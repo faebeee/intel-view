@@ -4,6 +4,7 @@ import {
 	Compass,
 	Eye,
 	MapPin,
+	RefreshCw,
 	Search,
 	ShieldAlert,
 	X,
@@ -13,6 +14,7 @@ import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { useMap } from "../hooks/useMap";
+import { useNotesQuery } from "../hooks/useNotesQuery";
 import type { Coordinate, MapMarkerData } from "../types";
 import { MapContainer } from "./MapContainer";
 import { MapControls } from "./MapControls";
@@ -20,92 +22,26 @@ import { MapProvider } from "./MapProvider";
 import { MarkerLayer } from "./MarkerLayer";
 import { TileLayer } from "./TileLayer";
 
-// Mock operational data for Intel View theme
-const MOCK_INTEL_ASSETS: MapMarkerData[] = [
-	{
-		id: "asset-1",
-		lat: 48.1351,
-		lng: 11.582,
-		title: "Munich HQ",
-		category: "active",
-		description: "Primary regional coordinates and tactical command node.",
-		metadata: {
-			classification: "Secret",
-			personnel: 14,
-			status: "Fully Operational",
-		},
-	},
-	{
-		id: "asset-2",
-		lat: 48.1375,
-		lng: 11.5754,
-		title: "Viktualienmarkt Safehouse",
-		category: "intel",
-		description:
-			"Secure, low-signature residential workspace and tactical stash.",
-		metadata: {
-			classification: "Top Secret",
-			accessCode: "V-9082",
-			lastInspected: "2026-08-01",
-		},
-	},
-	{
-		id: "asset-3",
-		lat: 48.1458,
-		lng: 11.591,
-		title: "Englischer Garten Lookout",
-		category: "warning",
-		description:
-			"Unobstructed high-ground surveillance and signals intercept spot.",
-		metadata: {
-			classification: "Unclassified",
-			coverageRange: "1.2km",
-			frequency: "433.92 MHz",
-		},
-	},
-	{
-		id: "asset-4",
-		lat: 48.1275,
-		lng: 11.5864,
-		title: "Isar Sector Danger Zone",
-		category: "danger",
-		description:
-			"Hostile electronic countermeasures and drone tracking detected.",
-		metadata: {
-			classification: "Restricted",
-			threatLevel: "High",
-			hazardType: "Surveillance Swarm",
-		},
-	},
-	{
-		id: "asset-5",
-		lat: 48.1502,
-		lng: 11.5685,
-		title: "Schwabing Safehouse",
-		category: "intel",
-		description: "Secondary backup point with satellite uplink terminal.",
-		metadata: {
-			classification: "Secret",
-			powerSource: "Solar Battery Backup",
-			channels: "6 active",
-		},
-	},
-];
-
-type CategoryFilter = "all" | "intel" | "active" | "danger" | "warning";
+type CategoryFilter = "all" | "note";
 
 function MapInnerView() {
 	const { map, selectedMarker, setSelectedMarker } = useMap();
+	const { data: notes = [], isLoading, error, refetch } = useNotesQuery();
 	const [searchQuery, setSearchQuery] = React.useState("");
 	const [selectedCategory, setSelectedCategory] =
 		React.useState<CategoryFilter>("all");
 
-	// Center point calculated from mock assets
-	const defaultCenter: Coordinate = [48.137, 11.58];
+	// Center point defaulted to Munich, or dynamically focus on first note if available
+	const defaultCenter: Coordinate = React.useMemo(() => {
+		if (notes.length > 0) {
+			return [notes[0].lat, notes[0].lng];
+		}
+		return [48.1351, 11.582];
+	}, [notes]);
 
-	// Filter assets based on search query and category tab selection
+	// Filter notes based on search query and category
 	const filteredAssets = React.useMemo(() => {
-		return MOCK_INTEL_ASSETS.filter((asset) => {
+		return notes.filter((asset) => {
 			const matchesSearch =
 				asset.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				(asset.description?.toLowerCase().includes(searchQuery.toLowerCase()) ??
@@ -116,7 +52,7 @@ function MapInnerView() {
 
 			return matchesSearch && matchesCategory;
 		});
-	}, [searchQuery, selectedCategory]);
+	}, [notes, searchQuery, selectedCategory]);
 
 	const handleFocusAsset = (asset: MapMarkerData) => {
 		setSelectedMarker(asset);
@@ -158,22 +94,64 @@ function MapInnerView() {
 		}
 	};
 
+	if (isLoading) {
+		return (
+			<div className="h-full w-full flex flex-col items-center justify-center bg-[#030712] font-mono text-xs text-[#00f2ff] gap-3">
+				<RefreshCw className="h-6 w-6 animate-spin text-palm" />
+				<span>DOWNLOADING GEOSPATIAL DATABASE...</span>
+			</div>
+		);
+	}
+
+	if (error) {
+		return (
+			<div className="h-full w-full flex flex-col items-center justify-center bg-[#030712] font-mono text-xs text-red-400 p-6 text-center gap-3">
+				<ShieldAlert className="h-8 w-8 text-red-500" />
+				<span className="font-bold">CONNECTION TO SATELLITE API FAILED</span>
+				<p className="max-w-xs text-[10px] text-muted-foreground">
+					{error instanceof Error
+						? error.message
+						: "An unknown decryption error occurred."}
+				</p>
+				<Button
+					variant="outline"
+					size="xs"
+					className="mt-2 border-red-500/40 text-red-400 hover:bg-red-500/15"
+					onClick={() => refetch()}
+				>
+					Retry Connection
+				</Button>
+			</div>
+		);
+	}
+
 	return (
 		<div className="flex flex-col md:flex-row h-full w-full min-h-0 divide-y md:divide-y-0 md:divide-x divide-line bg-background">
 			{/* Left Sidebar Control Panel */}
 			<div className="w-full md:w-80 lg:w-96 flex flex-col shrink-0 bg-surface-strong/95 backdrop-blur-md z-10 overflow-hidden">
 				{/* Sidebar Header */}
 				<div className="p-4 border-b border-line flex flex-col gap-1.5 shrink-0">
-					<span className="island-kicker text-[10px] tracking-widest text-[#00f2ff]">
-						Surveillance Terminal
-					</span>
+					<div className="flex items-center justify-between">
+						<span className="island-kicker text-[10px] tracking-widest text-[#00f2ff]">
+							Surveillance Terminal
+						</span>
+						<Button
+							variant="ghost"
+							size="icon-xs"
+							className="h-5 w-5 text-muted-foreground hover:text-[#00f2ff]"
+							onClick={() => refetch()}
+							title="Refresh Data"
+						>
+							<RefreshCw className="h-3 w-3" />
+						</Button>
+					</div>
 					<h1 className="display-title text-xl font-bold text-sea-ink flex items-center gap-2">
 						<Eye className="h-5 w-5 text-palm" />
 						Operational Map
 					</h1>
 					<p className="text-xs text-muted-foreground">
-						Tactical visualization and tracking of active assets, nodes, and
-						threat vectors.
+						Tactical visualization and tracking of active notes, secure nodes,
+						and coordinates.
 					</p>
 				</div>
 
@@ -192,15 +170,7 @@ function MapInnerView() {
 
 					{/* Category Tabs */}
 					<div className="flex flex-wrap gap-1">
-						{(
-							[
-								"all",
-								"intel",
-								"active",
-								"danger",
-								"warning",
-							] as CategoryFilter[]
-						).map((cat) => (
+						{(["all", "note"] as CategoryFilter[]).map((cat) => (
 							<Button
 								key={cat}
 								variant={selectedCategory === cat ? "default" : "outline"}
@@ -212,7 +182,7 @@ function MapInnerView() {
 										: "bg-surface-strong/50 border-line text-sea-ink-soft hover:border-palm/40 hover:text-[#00f2ff]"
 								}`}
 							>
-								{cat}
+								{cat === "all" ? "All Coordinates" : "Sector Notes"}
 							</Button>
 						))}
 					</div>
@@ -290,7 +260,7 @@ function MapInnerView() {
 						<h2 className="font-sans text-sm font-extrabold text-sea-ink mt-1">
 							{selectedMarker.title}
 						</h2>
-						<p className="text-xs text-muted-foreground leading-relaxed mt-1.5">
+						<p className="text-xs text-muted-foreground leading-relaxed mt-1.5 whitespace-pre-wrap">
 							{selectedMarker.description}
 						</p>
 
