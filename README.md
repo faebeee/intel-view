@@ -1,159 +1,76 @@
-# Turborepo starter
+# Intel View Monorepo
 
-This Turborepo starter is maintained by the Turborepo core team.
+Intel View is an enterprise-grade Turborepo monorepo designed with a decoupled Next.js web application frontend and a robust, highly-typed NestJS REST API backend.
 
-## Using this example
+## Workspace Architecture & Boundaries
 
-Run the following command:
+The codebase is organized into local services and shared tooling packages under an npm workspace setup:
 
-```sh
-npx create-turbo@latest
+- **`apps/web`** (Next.js, Port 3000): The main user interface, styled with Tailwind CSS v4 and built on Next.js 16.
+- **`apps/api`** (NestJS, Port 4010): The high-performance backend REST API, utilizing TypeORM connecting to PostgreSQL.
+- **`packages/ui`**: Shared React primitives and reusable component boundaries (`@repo/ui`).
+- **`packages/eslint-config`**: Standardized configurations for ESLint.
+- **`packages/typescript-config`**: Shared tsconfig patterns across all packages.
+
+---
+
+## Database & Infrastructure
+
+A local PostgreSQL database is defined and running in Docker:
+
+- **Container service**: `db`
+- **Port**: `5432`
+- **Default Database**: `intel_view`
+- **Default Credentials**: User `postgres` / Password `postgres`
+
+To spin up the database, run:
+```bash
+docker compose up -d
 ```
 
-## What's inside?
+The NestJS server will automatically resolve connection parameters through default overrides or system environment variables (`DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE`).
 
-This Turborepo includes the following packages/apps:
+---
 
-### Apps and Packages
+## Code Quality Standards & Guidelines
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+We enforce strict quality boundaries, type checking, and design principles across this repository:
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+### 1. TypeScript Strictness
+- **Explicit Return Types**: All methods and functions MUST declare explicit return types. Implicit inference is forbidden.
+- **No `any`**: The `any` keyword is completely prohibited. Use typed generics, specific union types, or `unknown` where applicable.
+- **Type Aliases over Interfaces**: Strictly favor the `type` keyword for all data models, shape aliases, and interface/union structures.
 
-### Utilities
+### 2. NestJS Backend Architecture
+- **Request Validation**: Configured globally with strict `ValidationPipe` (`whitelist`, `transform`, `forbidNonWhitelisted`). All DTO properties require validation decorators from `class-validator`.
+- **Response Mapping**: Database entities are anemic (pure schema structures) and MUST NEVER be returned directly from Controllers. They must be explicitly mapped to dedicated Response DTOs before responding.
+- **Pagination**: Use `nestjs-paginate` for all list and search endpoints. Provide proper configuration via `@ApiPaginationQuery(config)`.
+- **Exceptions**: Throw standard NestJS HTTP exceptions directly from Services to bubble errors up naturally.
+- **Database Transactions**: Utilize TypeORM's built-in transaction manager for multi-table updates.
 
-This Turborepo has some additional tools already setup for you:
+### 3. Swagger (OpenAPI) Documentation
+- Exposed at `/docs` (e.g. `http://localhost:4010/docs`).
+- Full endpoint and DTO property decorator coverage required (`@ApiTags`, `@ApiOperation`, `@ApiResponse`, `@ApiProperty`).
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+---
 
-### Build
+## Development & Build Commands
 
-To build all apps and packages, run the following command:
+Always run verification scripts before proposing changes:
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+- **Install Dependencies**: `npm install`
+- **Start All Apps (Dev)**: `npm run dev`
+- **Build Entire Workspace**: `npm run build`
+- **Lint All Files**: `npm run lint`
+- **Run All Typechecks**: `npm run check-types`
+- **Run Tests**: `npm run test`
 
-```sh
-cd my-turborepo
-turbo build
-```
+### Targeting specific apps (via Turborepo filters)
+- **Build NestJS API**: `npx turbo run build --filter=api`
+- **Build NextJS Web**: `npx turbo run build --filter=web`
+- **Lint API Only**: `npx turbo run lint --filter=api`
 
-Without global `turbo`, use your package manager:
+---
 
-```sh
-cd my-turborepo
-npx turbo build
-npm dlx turbo build
-npm exec turbo build
-```
-
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo build --filter=docs
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo build --filter=docs
-npm exec turbo build --filter=docs
-npm exec turbo build --filter=docs
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo dev
-npm exec turbo dev
-npm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-npm exec turbo dev --filter=web
-npm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-npm exec turbo login
-npm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-npm exec turbo link
-npm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+## LLM/Agent Instructions
+AI-based coding assistants and code-generation agents MUST strictly adhere to the guidelines detailed in [AGENTS.md](./AGENTS.md).
