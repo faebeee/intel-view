@@ -1,5 +1,6 @@
 import Image, { type ImageProps } from "next/image";
 import { Button } from "@repo/ui/button";
+import { Button as ShadcnButton } from "@/components/ui/button";
 import styles from "./page.module.css";
 
 type Props = Omit<ImageProps, "src"> & {
@@ -37,6 +38,13 @@ export default function Home() {
           </li>
           <li>Save and see your changes instantly.</li>
         </ol>
+
+        <div className="flex gap-4 items-center">
+          <ShadcnButton variant="default">Shadcn Default</ShadcnButton>
+          <ShadcnButton variant="secondary">Shadcn Secondary</ShadcnButton>
+          <ShadcnButton variant="destructive">Shadcn Destructive</ShadcnButton>
+          <ShadcnButton variant="outline">Shadcn Outline</ShadcnButton>
+        </div>
 
         <div className={styles.ctas}>
           <a
