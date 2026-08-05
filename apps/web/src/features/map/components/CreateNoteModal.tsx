@@ -13,7 +13,7 @@ import {
 	DialogTitle,
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
-import { Textarea } from "#/components/ui/textarea";
+import { MarkdownEditor } from "#/components/ui/markdown-editor.tsx";
 
 type CreateNoteModalProps = {
 	open: boolean;
@@ -62,6 +62,7 @@ export function CreateNoteModal({
 		onSuccess: () => {
 			toast.success("Note added successfully");
 			queryClient.invalidateQueries({ queryKey: ["notes", "map"] });
+			queryClient.invalidateQueries({ queryKey: ["notes", "all"] });
 			onOpenChange(false);
 			if (onSuccess) onSuccess();
 		},
@@ -103,80 +104,84 @@ export function CreateNoteModal({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="border-line bg-surface-strong/95 backdrop-blur-md text-sea-ink max-w-md shadow-2xl shadow-black/80">
+			<DialogContent className="border-line bg-surface-strong/95 backdrop-blur-md text-sea-ink max-w-md md:max-w-3xl lg:max-w-4xl shadow-2xl shadow-black/80 duration-200 transition-all">
 				<DialogHeader className="space-y-1">
-					<DialogTitle className="text-lg font-bold text-sea-ink">
-						Add Note
+					<DialogTitle className="text-lg font-bold text-sea-ink uppercase tracking-wider font-mono">
+						Add Sector Note
 					</DialogTitle>
 					<DialogDescription className="text-xs text-muted-foreground leading-relaxed">
-						Create a new note at these coordinates.
+						Create a new sector note at these coordinates. Real-time markdown
+						preview is active.
 					</DialogDescription>
 				</DialogHeader>
 
-				<form onSubmit={handleSubmit} className="space-y-4 my-2">
-					{/* Content Textarea */}
+				<form onSubmit={handleSubmit} className="space-y-5 my-2">
+					{/* Markdown Live Editor */}
 					<div className="flex flex-col gap-1.5">
 						<label
 							htmlFor="note-content"
-							className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft"
+							className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
 						>
-							Content
+							Content / Intelligence Data (Markdown Supported)
 						</label>
-						<Textarea
-							id="note-content"
-							placeholder="Write note details here..."
-							className="bg-[#040814]/60 border-line text-xs min-h-24 leading-relaxed"
+						<MarkdownEditor
 							value={content}
-							onChange={(e) => setContent(e.target.value)}
+							onChange={setContent}
+							placeholder="Write markdown note details here..."
 							disabled={createNoteMutation.isPending}
-							required
+							minHeight="min-h-36"
 						/>
 					</div>
 
 					{/* 2-column Lat/Lng prefilled inputs */}
-					<div className="grid grid-cols-2 gap-3 p-3 bg-[#040814]/40 border border-line/50 rounded-lg">
-						<div className="flex flex-col gap-1">
-							<label
-								htmlFor="note-lat"
-								className="text-[9px] uppercase font-mono text-muted-foreground"
-							>
-								Latitude
-							</label>
-							<Input
-								id="note-lat"
-								type="text"
-								className="bg-transparent border-none p-0 text-xs font-mono h-auto text-palm focus-visible:ring-0"
-								value={lat}
-								onChange={(e) => setLat(e.target.value)}
-								disabled={createNoteMutation.isPending}
-								required
-							/>
-						</div>
-						<div className="flex flex-col gap-1 border-l border-line/30 pl-3">
-							<label
-								htmlFor="note-lng"
-								className="text-[9px] uppercase font-mono text-muted-foreground"
-							>
-								Longitude
-							</label>
-							<Input
-								id="note-lng"
-								type="text"
-								className="bg-transparent border-none p-0 text-xs font-mono h-auto text-palm focus-visible:ring-0"
-								value={lng}
-								onChange={(e) => setLng(e.target.value)}
-								disabled={createNoteMutation.isPending}
-								required
-							/>
+					<div className="flex flex-col gap-1.5 max-w-md">
+						<span className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1">
+							Geospatial Coordinates
+						</span>
+						<div className="grid grid-cols-2 gap-3 p-3 bg-[#040814]/40 border border-line/50 rounded-lg">
+							<div className="flex flex-col gap-1">
+								<label
+									htmlFor="note-lat"
+									className="text-[9px] uppercase font-mono text-muted-foreground"
+								>
+									Latitude
+								</label>
+								<Input
+									id="note-lat"
+									type="text"
+									className="bg-transparent border-none p-0 text-xs font-mono h-auto text-palm focus-visible:ring-0"
+									value={lat}
+									onChange={(e) => setLat(e.target.value)}
+									disabled={createNoteMutation.isPending}
+									required
+								/>
+							</div>
+							<div className="flex flex-col gap-1 border-l border-line/30 pl-3">
+								<label
+									htmlFor="note-lng"
+									className="text-[9px] uppercase font-mono text-muted-foreground"
+								>
+									Longitude
+								</label>
+								<Input
+									id="note-lng"
+									type="text"
+									className="bg-transparent border-none p-0 text-xs font-mono h-auto text-palm focus-visible:ring-0"
+									value={lng}
+									onChange={(e) => setLng(e.target.value)}
+									disabled={createNoteMutation.isPending}
+									required
+								/>
+							</div>
 						</div>
 					</div>
 
-					<DialogFooter className="pt-2">
+					<DialogFooter className="pt-2 border-t border-line/30">
 						<Button
 							type="button"
 							variant="outline"
 							size="sm"
-							className="border-line text-sea-ink-soft hover:bg-line/20 hover:text-sea-ink text-xs"
+							className="border-line text-sea-ink-soft hover:bg-line/20 hover:text-sea-ink text-xs font-mono font-bold"
 							onClick={() => onOpenChange(false)}
 							disabled={createNoteMutation.isPending}
 						>
@@ -185,7 +190,7 @@ export function CreateNoteModal({
 						<Button
 							type="submit"
 							size="sm"
-							className="bg-palm text-background border-none hover:bg-palm/90 shadow-[0_0_10px_rgba(56,189,248,0.4)] font-bold text-xs"
+							className="bg-palm text-background border-none hover:bg-palm/90 shadow-[0_0_10px_rgba(56,189,248,0.4)] font-mono font-bold text-xs h-9 px-4"
 							disabled={createNoteMutation.isPending}
 						>
 							{createNoteMutation.isPending ? (

@@ -234,7 +234,7 @@ function MapInnerView() {
 
 			{/* Map Container Area */}
 			<div className="flex-1 h-full min-h-0 relative">
-				<MapContainer center={defaultCenter} zoom={13}>
+				<MapContainer center={defaultCenter} zoom={1}>
 					<TileLayer />
 					<MarkerLayer data={filteredAssets} />
 					<MapSearch />
