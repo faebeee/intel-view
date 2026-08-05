@@ -8,6 +8,7 @@ export type MapMarkerData = {
 	description?: string;
 	category?: string;
 	metadata?: Record<string, unknown>;
+	tags?: { id: number; name: string; color: string }[];
 };
 
 export type MapConfig = {

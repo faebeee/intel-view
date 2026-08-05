@@ -50,6 +50,11 @@ export function useNotesQuery() {
 							created: new Date(note.createdAt).toLocaleDateString(),
 							noteId: `#${note.id}`,
 						},
+						tags: (note.tags || []).map((t) => ({
+							id: t.id,
+							name: t.name,
+							color: t.color || "#38bdf8",
+						})),
 					};
 				});
 		},

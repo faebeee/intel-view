@@ -68,11 +68,48 @@ function NotesRouteComponent(): JSX.Element {
 					<button
 						type="button"
 						onClick={() => handleViewClick(row.original)}
-						className="text-left whitespace-pre-wrap break-all hover:text-palm cursor-pointer transition-colors outline-none focus-visible:text-palm font-sans"
-						title="Click to view full markdown intel"
+						className="text-left whitespace-pre-wrap break-all hover:text-palm cursor-pointer transition-colors outline-none focus-visible:text-palm font-sans text-xs"
+						title="Click to view note details"
 					>
 						{truncated}
 					</button>
+				);
+			},
+		},
+		{
+			accessorKey: "tags",
+			header: () => (
+				<span className="font-mono text-xs font-bold tracking-wider text-sea-ink/80 px-2">
+					TAGS
+				</span>
+			),
+			cell: ({ row }: { row: Row<Note> }) => {
+				const tags = row.original.tags || [];
+				return (
+					<div className="flex flex-wrap gap-1.5 max-w-[200px] px-2">
+						{tags.length > 0 ? (
+							tags.map((tag) => {
+								const displayColor = tag.color || "#00f2ff";
+								return (
+									<span
+										key={tag.id}
+										className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase border"
+										style={{
+											backgroundColor: `${displayColor}12`,
+											borderColor: `${displayColor}35`,
+											color: displayColor,
+										}}
+									>
+										{tag.name}
+									</span>
+								);
+							})
+						) : (
+							<span className="text-muted-foreground font-mono text-xs italic">
+								-
+							</span>
+						)}
+					</div>
 				);
 			},
 		},
@@ -143,7 +180,7 @@ function NotesRouteComponent(): JSX.Element {
 							size="xs"
 							onClick={() => handleViewClick(note)}
 							className="inline-flex items-center gap-1 border-line hover:bg-accent/25 hover:text-palm text-sea-ink font-mono text-xs"
-							title="View rendered Markdown details"
+							title="View note details"
 						>
 							<Eye className="h-3 w-3" />
 							<span>View</span>
@@ -189,12 +226,11 @@ function NotesRouteComponent(): JSX.Element {
 					<div className="flex items-center gap-2">
 						<FileText className="h-5 w-5 text-palm" />
 						<h1 className="text-xl font-bold text-sea-ink uppercase tracking-wider">
-							Notes Intelligence Database
+							Notes
 						</h1>
 					</div>
 					<p className="text-xs text-muted-foreground">
-						Secure terminal displaying searchable, sortable, and geolocated
-						sector notes with full markdown capabilities.
+						Search, sort, and manage geolocated notes.
 					</p>
 				</div>
 				<div>
@@ -219,7 +255,7 @@ function NotesRouteComponent(): JSX.Element {
 			{isLoading && !isRefetching ? (
 				<div className="flex-1 flex flex-col items-center justify-center py-20 font-mono text-xs text-[#00f2ff]">
 					<div className="animate-pulse flex flex-col items-center gap-2">
-						<span>DOWNLOADING NOTES ARCHIVE...</span>
+						<span>Loading notes...</span>
 					</div>
 				</div>
 			) : (
@@ -232,7 +268,7 @@ function NotesRouteComponent(): JSX.Element {
 							>[]
 						}
 						data={tableData}
-						searchPlaceholder="Search intel records by content..."
+						searchPlaceholder="Search notes by content..."
 					/>
 				</div>
 			)}

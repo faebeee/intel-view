@@ -76,7 +76,7 @@ export function DataTable<TData extends Record<string, unknown>>({
 					/>
 				</div>
 				<div className="text-xs font-mono text-muted-foreground">
-					TOTAL RECORDS: <span className="text-palm">{data.length}</span>
+					Total: <span className="text-palm">{data.length}</span>
 				</div>
 			</div>
 
@@ -134,7 +134,7 @@ export function DataTable<TData extends Record<string, unknown>>({
 									colSpan={columns.length}
 									className="h-32 text-center text-muted-foreground font-mono text-xs"
 								>
-									NO SECURITY DATA OR INTEL RECORDED.
+									No records found.
 								</TableCell>
 							</TableRow>
 						)}
@@ -146,11 +146,11 @@ export function DataTable<TData extends Record<string, unknown>>({
 			{table.getPageCount() > 1 && (
 				<div className="flex items-center justify-between gap-4 py-1">
 					<div className="text-xs font-mono text-muted-foreground">
-						PAGE{" "}
+						Page{" "}
 						<span className="text-palm">
 							{table.getState().pagination.pageIndex + 1}
 						</span>{" "}
-						OF <span className="text-palm">{table.getPageCount()}</span>
+						of <span className="text-palm">{table.getPageCount()}</span>
 					</div>
 					<div className="flex items-center gap-2">
 						<Button
@@ -160,7 +160,7 @@ export function DataTable<TData extends Record<string, unknown>>({
 							disabled={!table.getCanPreviousPage()}
 							className="font-mono text-xs border-line hover:bg-accent/25 hover:text-palm text-sea-ink disabled:opacity-30"
 						>
-							PREV
+							Prev
 						</Button>
 						<Button
 							variant="outline"
@@ -169,7 +169,7 @@ export function DataTable<TData extends Record<string, unknown>>({
 							disabled={!table.getCanNextPage()}
 							className="font-mono text-xs border-line hover:bg-accent/25 hover:text-palm text-sea-ink disabled:opacity-30"
 						>
-							NEXT
+							Next
 						</Button>
 					</div>
 				</div>

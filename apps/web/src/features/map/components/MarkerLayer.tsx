@@ -9,31 +9,52 @@ type MarkerLayerProps = {
 	onMarkerClick?: (marker: MapMarkerData) => void;
 };
 
-// Helper to create the neon-styled marker icon
-const createNeonIcon = (category?: string) => {
-	let colorClass = "bg-[#00f2ff]"; // Default lagoon cyan
-	let pingClass = "bg-[#00f2ff]";
+// Helper to create the neon-styled marker icon using dynamic tag gradients or solid fallbacks
+const createNeonIcon = (
+	tags?: { id: number; name: string; color: string }[],
+	category?: string,
+) => {
+	let backgroundStyle = "";
+	let shadowStyle = "";
 
-	if (category === "intel" || category === "note") {
-		colorClass = "bg-[#38bdf8]"; // Palm blue
-		pingClass = "bg-[#38bdf8]";
-	} else if (category === "danger" || category === "critical") {
-		colorClass = "bg-red-500";
-		pingClass = "bg-red-500";
-	} else if (category === "success" || category === "active") {
-		colorClass = "bg-emerald-400";
-		pingClass = "bg-emerald-400";
-	} else if (category === "warning") {
-		colorClass = "bg-amber-500";
-		pingClass = "bg-amber-500";
+	if (tags && tags.length > 0) {
+		const colors = tags.map((t) => t.color);
+		if (colors.length === 1) {
+			const color = colors[0];
+			backgroundStyle = `background-color: ${color}`;
+			shadowStyle = `box-shadow: 0 0 10px ${color}`;
+		} else {
+			// Multi-stop linear gradient for notes with multiple tags
+			const gradientColors = colors.join(", ");
+			backgroundStyle = `background: linear-gradient(135deg, ${gradientColors})`;
+
+			// Stack box-shadows for all assigned colors to create a multi-colored neon glow halo
+			shadowStyle = `box-shadow: ${colors.map((c) => `0 0 10px ${c}`).join(", ")}`;
+		}
+	} else {
+		// Category-based solid color fallbacks
+		let color = "#38bdf8"; // Fallback Palm blue
+		if (category === "danger" || category === "critical") {
+			color = "#ef4444";
+		} else if (category === "success" || category === "active") {
+			color = "#10b981";
+		} else if (category === "warning") {
+			color = "#f59e0b";
+		} else if (category === "intel" || category === "note") {
+			color = "#38bdf8";
+		} else {
+			color = "#00f2ff"; // Default cyan
+		}
+		backgroundStyle = `background-color: ${color}`;
+		shadowStyle = `box-shadow: 0 0 10px ${color}`;
 	}
 
 	return L.divIcon({
 		className: "custom-neon-marker",
 		html: `
 			<div class="relative flex items-center justify-center w-6 h-6">
-				<span class="absolute inline-flex h-6 w-6 animate-ping rounded-full ${pingClass} opacity-40"></span>
-				<span class="relative inline-flex h-3.5 w-3.5 rounded-full ${colorClass} border border-white shadow-[0_0_8px_rgba(0,242,255,0.6)]"></span>
+				<span class="absolute inline-flex h-6 w-6 animate-ping rounded-full opacity-40" style="${backgroundStyle}"></span>
+				<span class="relative inline-flex h-3.5 w-3.5 rounded-full border border-white" style="${backgroundStyle}; ${shadowStyle}"></span>
 			</div>
 		`,
 		iconSize: [24, 24],
@@ -53,8 +74,8 @@ export function MarkerLayer({ data, onMarkerClick }: MarkerLayerProps) {
 	return (
 		<>
 			{data.map((markerData) => {
-				const { id, lat, lng, title, category } = markerData;
-				const icon = createNeonIcon(category);
+				const { id, lat, lng, title, category, tags } = markerData;
+				const icon = createNeonIcon(tags, category);
 
 				return (
 					<Marker
@@ -92,3 +113,4 @@ export function MarkerLayer({ data, onMarkerClick }: MarkerLayerProps) {
 		</>
 	);
 }
+export default MarkerLayer;

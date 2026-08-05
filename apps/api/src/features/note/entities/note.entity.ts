@@ -1,6 +1,7 @@
 import { BaseEntity } from '../../database/entities/base.entity';
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, ManyToMany } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+import { Tag } from '../../tag/entities/tag.entity';
 
 @Entity()
 export class Note extends BaseEntity {
@@ -25,4 +26,8 @@ export class Note extends BaseEntity {
     type: 'number',
   })
   lng: number | null;
+
+  @ManyToMany(() => Tag, (tag) => tag.notes)
+  @ApiProperty({ type: () => [Tag], description: 'Tags linked to this note' })
+  tags: Tag[];
 }

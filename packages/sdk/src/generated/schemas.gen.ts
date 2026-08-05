@@ -16,6 +16,13 @@ export const CreateNoteDtoSchema = {
             type: 'number',
             description: 'The longitude coordinate of the note',
             nullable: true
+        },
+        tagIds: {
+            description: 'Optional list of Tag IDs to associate with this note',
+            type: 'array',
+            items: {
+                type: 'number'
+            }
         }
     }
 } as const;
@@ -52,9 +59,54 @@ export const NoteSchema = {
             type: 'number',
             description: 'Longitude coordinate of the note',
             nullable: true
+        },
+        tags: {
+            description: 'Tags linked to this note',
+            type: 'array',
+            items: {
+                '$ref': '#/components/schemas/Tag'
+            }
         }
     },
-    required: ['id', 'createdAt', 'updatedAt', 'deletedAt', 'content']
+    required: ['id', 'createdAt', 'updatedAt', 'deletedAt', 'content', 'tags']
+} as const;
+
+export const TagSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'number'
+        },
+        createdAt: {
+            format: 'date-time',
+            type: 'string'
+        },
+        updatedAt: {
+            format: 'date-time',
+            type: 'string'
+        },
+        deletedAt: {
+            type: 'string',
+            format: 'date-time',
+            nullable: true
+        },
+        name: {
+            type: 'string',
+            description: 'Name of the tag'
+        },
+        color: {
+            type: 'string',
+            description: 'Color of the tag (HEX code or name)'
+        },
+        notes: {
+            description: 'Notes linked to this tag',
+            type: 'array',
+            items: {
+                '$ref': '#/components/schemas/Note'
+            }
+        }
+    },
+    required: ['id', 'createdAt', 'updatedAt', 'deletedAt', 'name', 'color', 'notes']
 } as const;
 
 export const UpdateNoteDtoSchema = {
@@ -73,6 +125,56 @@ export const UpdateNoteDtoSchema = {
             type: 'number',
             description: 'The longitude coordinate of the note',
             nullable: true
+        },
+        tagIds: {
+            description: 'Optional list of Tag IDs to associate with this note',
+            type: 'array',
+            items: {
+                type: 'number'
+            }
+        }
+    }
+} as const;
+
+export const CreateTagDtoSchema = {
+    type: 'object',
+    properties: {
+        name: {
+            type: 'string',
+            description: 'The name of the tag'
+        },
+        color: {
+            type: 'string',
+            description: 'The color of the tag (e.g. HEX value like #FF0000)'
+        },
+        noteIds: {
+            description: 'Optional list of Note IDs to associate with this tag',
+            type: 'array',
+            items: {
+                type: 'number'
+            }
+        }
+    },
+    required: ['name', 'color']
+} as const;
+
+export const UpdateTagDtoSchema = {
+    type: 'object',
+    properties: {
+        name: {
+            type: 'string',
+            description: 'The name of the tag'
+        },
+        color: {
+            type: 'string',
+            description: 'The color of the tag'
+        },
+        noteIds: {
+            description: 'List of Note IDs to associate with this tag',
+            type: 'array',
+            items: {
+                type: 'number'
+            }
         }
     }
 } as const;

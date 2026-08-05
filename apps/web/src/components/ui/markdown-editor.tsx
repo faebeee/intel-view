@@ -20,7 +20,7 @@ type MarkdownEditorProps = {
 export function MarkdownEditor({
 	value,
 	onChange,
-	placeholder = "Write markdown content here...",
+	placeholder = "Write content here...",
 	disabled = false,
 	className,
 	minHeight = "min-h-32",
@@ -58,7 +58,7 @@ export function MarkdownEditor({
 						</Tabs>
 					) : (
 						<span className="text-xs font-mono font-bold tracking-wider text-palm bg-accent/10 px-2.5 py-1 rounded border border-palm/20 uppercase">
-							Live Split Terminal
+							Split View
 						</span>
 					)}
 				</div>
@@ -75,7 +75,7 @@ export function MarkdownEditor({
 						className="font-mono text-[10px] text-muted-foreground hover:text-palm hover:bg-accent/10 gap-1.5 border border-line/20 h-7"
 						title={
 							mode === "tabbed"
-								? "Switch to live split view"
+								? "Switch to split view"
 								: "Switch to tabbed view"
 						}
 					>
@@ -122,7 +122,7 @@ export function MarkdownEditor({
 					{/* Write Column */}
 					<div className="flex flex-col gap-1.5">
 						<span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest pl-1">
-							Source Input
+							Write
 						</span>
 						<Textarea
 							placeholder={placeholder}
@@ -139,7 +139,7 @@ export function MarkdownEditor({
 					{/* Live Render Column */}
 					<div className="flex flex-col gap-1.5">
 						<span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest pl-1">
-							Live Render Output
+							Preview
 						</span>
 						<div
 							className={cn(
@@ -151,7 +151,7 @@ export function MarkdownEditor({
 								<Markdown content={value} />
 							) : (
 								<span className="text-xs text-muted-foreground font-mono italic">
-									Empty record. Enter intel source data to preview.
+									Empty. Enter text to preview.
 								</span>
 							)}
 						</div>

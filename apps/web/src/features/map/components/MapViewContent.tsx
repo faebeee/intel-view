@@ -163,6 +163,28 @@ function MapInnerView() {
 									<span className="text-line/40">|</span>
 									<span>Lng: {asset.lng.toFixed(4)}</span>
 								</div>
+
+								{/* Assigned Tags in List View */}
+								{asset.tags && asset.tags.length > 0 && (
+									<div className="flex flex-wrap gap-1 mt-2">
+										{asset.tags.map((tag) => {
+											const displayColor = tag.color || "#00f2ff";
+											return (
+												<span
+													key={tag.id}
+													className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-mono font-bold uppercase border"
+													style={{
+														backgroundColor: `${displayColor}12`,
+														borderColor: `${displayColor}30`,
+														color: displayColor,
+													}}
+												>
+													{tag.name}
+												</span>
+											);
+										})}
+									</div>
+								)}
 							</button>
 						))
 					)}
@@ -191,6 +213,28 @@ function MapInnerView() {
 						<p className="text-xs text-muted-foreground leading-relaxed mt-1.5 whitespace-pre-wrap">
 							{selectedMarker.description}
 						</p>
+
+						{/* Assigned Tags in Detail Panel */}
+						{selectedMarker.tags && selectedMarker.tags.length > 0 && (
+							<div className="flex flex-wrap gap-1.5 mt-3">
+								{selectedMarker.tags.map((tag) => {
+									const displayColor = tag.color || "#00f2ff";
+									return (
+										<span
+											key={tag.id}
+											className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase border"
+											style={{
+												backgroundColor: `${displayColor}12`,
+												borderColor: `${displayColor}35`,
+												color: displayColor,
+											}}
+										>
+											{tag.name}
+										</span>
+									);
+								})}
+							</div>
+						)}
 
 						{/* Metadata */}
 						{selectedMarker.metadata && (

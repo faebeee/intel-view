@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { NoteModule } from './features/note/note.module';
+import { TagModule } from './features/tag/tag.module';
 import { DatabaseModule } from './features/database/database.module';
 
 @Module({
@@ -18,6 +19,7 @@ import { DatabaseModule } from './features/database/database.module';
     }),
     DatabaseModule,
     NoteModule,
+    TagModule,
   ],
 })
 export class AppModule {}

@@ -40,14 +40,16 @@ export function ViewNoteModal({
 		minute: "2-digit",
 	});
 
+	const tags = note.tags || [];
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="border-line bg-surface-strong/95 backdrop-blur-md text-sea-ink max-w-2xl shadow-2xl shadow-black/80 max-h-[85vh] flex flex-col p-0">
 				{/* Modal Header */}
-				<DialogHeader className="p-6 border-b border-line pb-4 shrink-0 space-y-1.5">
+				<DialogHeader className="p-6 border-b border-line pb-4 shrink-0 space-y-2">
 					<div className="flex items-center justify-between gap-4">
 						<DialogTitle className="text-lg font-bold text-sea-ink uppercase tracking-wider font-mono">
-							Sector Intel Entry #{note.id}
+							Note #{note.id}
 						</DialogTitle>
 						{onEditClick && (
 							<Button
@@ -60,26 +62,48 @@ export function ViewNoteModal({
 								className="border-line hover:bg-accent/25 hover:text-palm text-sea-ink font-mono text-xs gap-1.5"
 							>
 								<Edit2 className="h-3 w-3" />
-								<span>Edit Intel</span>
+								<span>Edit Note</span>
 							</Button>
 						)}
 					</div>
 					<DialogDescription className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1">
 						<span className="flex items-center gap-1">
 							<Calendar className="h-3.5 w-3.5 text-palm" />
-							<span>RECORDED: {formattedDate}</span>
+							<span>Created: {formattedDate}</span>
 						</span>
 						<span className="flex items-center gap-1">
 							<MapPin className="h-3.5 w-3.5 text-palm" />
 							{hasCoords ? (
 								<span className="font-mono">
-									LOC: [{note.lat?.toFixed(5)}, {note.lng?.toFixed(5)}]
+									Coordinates: [{note.lat?.toFixed(5)}, {note.lng?.toFixed(5)}]
 								</span>
 							) : (
-								<span className="italic">Non-geolocated entry</span>
+								<span className="italic">Non-geolocated note</span>
 							)}
 						</span>
 					</DialogDescription>
+
+					{/* Tag Chips in Header */}
+					{tags.length > 0 && (
+						<div className="flex flex-wrap gap-1.5 pt-1">
+							{tags.map((tag) => {
+								const displayColor = tag.color || "#00f2ff";
+								return (
+									<span
+										key={tag.id}
+										className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border"
+										style={{
+											backgroundColor: `${displayColor}12`,
+											borderColor: `${displayColor}35`,
+											color: displayColor,
+										}}
+									>
+										{tag.name}
+									</span>
+								);
+							})}
+						</div>
+					)}
 				</DialogHeader>
 
 				{/* Modal Body / Markdown Content */}
@@ -96,7 +120,7 @@ export function ViewNoteModal({
 						className="border-line text-sea-ink-soft hover:bg-line/20 hover:text-sea-ink text-xs font-mono font-bold"
 						onClick={() => onOpenChange(false)}
 					>
-						CLOSE TERMINAL
+						Close
 					</Button>
 				</DialogFooter>
 			</DialogContent>

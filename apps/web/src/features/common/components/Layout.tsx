@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Map as MapIcon, StickyNote } from "lucide-react";
+import { Map as MapIcon, StickyNote, Tag as TagIcon } from "lucide-react";
 import type { JSX, ReactNode } from "react";
 import ParaglideLocaleSwitcher from "../../../components/LocaleSwitcher";
 
@@ -36,6 +36,14 @@ export function Layout({ children }: LayoutProps): JSX.Element {
 						>
 							<StickyNote className="w-4 h-4" />
 							<span>Notes</span>
+						</Link>
+						<Link
+							to="/tags"
+							className="nav-link text-sm font-bold flex items-center gap-1.5"
+							activeProps={{ className: "is-active" }}
+						>
+							<TagIcon className="w-4 h-4" />
+							<span>Tags</span>
 						</Link>
 					</nav>
 

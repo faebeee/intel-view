@@ -1,7 +1,7 @@
 import { noteControllerUpdate } from "@repo/sdk";
 import type { Note } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Check } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
@@ -15,6 +15,7 @@ import {
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { MarkdownEditor } from "#/components/ui/markdown-editor.tsx";
+import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 
 type EditNoteModalProps = {
 	note: Note | null;
@@ -32,7 +33,10 @@ export function EditNoteModal({
 	const [content, setContent] = React.useState("");
 	const [lat, setLat] = React.useState("");
 	const [lng, setLng] = React.useState("");
+	const [selectedTagIds, setSelectedTagIds] = React.useState<number[]>([]);
 	const queryClient = useQueryClient();
+
+	const { data: availableTags = [] } = useAllTagsQuery();
 
 	// Prefill form states when note changes or modal opens
 	React.useEffect(() => {
@@ -44,6 +48,7 @@ export function EditNoteModal({
 			setLng(
 				note.lng !== null && note.lng !== undefined ? String(note.lng) : "",
 			);
+			setSelectedTagIds((note.tags || []).map((t) => t.id));
 		}
 	}, [note, open]);
 
@@ -52,6 +57,7 @@ export function EditNoteModal({
 			content: string;
 			lat: number | null;
 			lng: number | null;
+			tagIds: number[];
 		}) => {
 			if (!note) throw new Error("No note selected");
 			const res = await noteControllerUpdate({
@@ -75,6 +81,14 @@ export function EditNoteModal({
 			});
 		},
 	});
+
+	const handleTagToggle = (tagId: number) => {
+		setSelectedTagIds((prev) =>
+			prev.includes(tagId)
+				? prev.filter((id) => id !== tagId)
+				: [...prev, tagId],
+		);
+	};
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
@@ -106,6 +120,7 @@ export function EditNoteModal({
 			content: content.trim(),
 			lat: parsedLat,
 			lng: parsedLng,
+			tagIds: selectedTagIds,
 		});
 	};
 
@@ -114,11 +129,10 @@ export function EditNoteModal({
 			<DialogContent className="border-line bg-surface-strong/95 backdrop-blur-md text-sea-ink max-w-md md:max-w-3xl lg:max-w-4xl shadow-2xl shadow-black/80 duration-200 transition-all">
 				<DialogHeader className="space-y-1">
 					<DialogTitle className="text-lg font-bold text-sea-ink uppercase tracking-wider font-mono">
-						Edit Sector Note #{note?.id}
+						Edit Note #{note?.id}
 					</DialogTitle>
 					<DialogDescription className="text-xs text-muted-foreground leading-relaxed">
-						Modify note details or relocate coordinates for this entry using the
-						real-time Markdown editor.
+						Edit note details, tags, and coordinates with markdown preview.
 					</DialogDescription>
 				</DialogHeader>
 
@@ -129,21 +143,66 @@ export function EditNoteModal({
 							htmlFor="edit-note-content"
 							className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
 						>
-							Content / Intelligence Data (Markdown Supported)
+							Content (Markdown Supported)
 						</label>
 						<MarkdownEditor
 							value={content}
 							onChange={setContent}
-							placeholder="Write markdown note details here..."
+							placeholder="Write markdown details here..."
 							disabled={updateNoteMutation.isPending}
 							minHeight="min-h-36"
 						/>
 					</div>
 
+					{/* Tag Assosication Selector */}
+					<div className="flex flex-col gap-1.5">
+						<span className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1">
+							Tags
+						</span>
+						<div className="flex flex-wrap gap-2 p-3 bg-[#040814]/40 border border-line/50 rounded-lg">
+							{availableTags.length > 0 ? (
+								availableTags.map((tag) => {
+									const isSelected = selectedTagIds.includes(tag.id);
+									const displayColor = tag.color || "#00f2ff";
+									return (
+										<button
+											key={tag.id}
+											type="button"
+											onClick={() => handleTagToggle(tag.id)}
+											className="inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-mono font-bold uppercase border transition-all duration-200 cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-palm"
+											style={{
+												backgroundColor: isSelected
+													? `${displayColor}20`
+													: "transparent",
+												borderColor: isSelected
+													? displayColor
+													: "rgba(0, 242, 255, 0.16)",
+												color: isSelected
+													? displayColor
+													: "rgba(240, 249, 255, 0.4)",
+												boxShadow: isSelected
+													? `0 0 10px ${displayColor}18`
+													: "none",
+											}}
+										>
+											{isSelected && <Check className="h-3 w-3" />}
+											<span>{tag.name}</span>
+										</button>
+									);
+								})
+							) : (
+								<p className="text-[10px] text-muted-foreground italic font-mono pl-1 py-1">
+									No tags configured. Create tags in the Tags tab to organize
+									notes.
+								</p>
+							)}
+						</div>
+					</div>
+
 					{/* 2-column Lat/Lng prefilled inputs */}
 					<div className="flex flex-col gap-1.5 max-w-md">
 						<span className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1">
-							Geospatial Coordinates (Optional)
+							Coordinates (Optional)
 						</span>
 						<div className="grid grid-cols-2 gap-3 p-3 bg-[#040814]/40 border border-line/50 rounded-lg">
 							<div className="flex flex-col gap-1">
@@ -182,8 +241,7 @@ export function EditNoteModal({
 							</div>
 						</div>
 						<p className="text-[9px] text-muted-foreground italic pl-1">
-							Leave both coordinate fields blank to save this as a
-							non-geolocated note.
+							Leave coordinates blank to save as a non-geolocated note.
 						</p>
 					</div>
 

@@ -13,6 +13,10 @@ export type CreateNoteDto = {
      * The longitude coordinate of the note
      */
     lng?: (number) | null;
+    /**
+     * Optional list of Tag IDs to associate with this note
+     */
+    tagIds?: Array<(number)>;
 };
 
 export type Note = {
@@ -32,6 +36,29 @@ export type Note = {
      * Longitude coordinate of the note
      */
     lng?: (number) | null;
+    /**
+     * Tags linked to this note
+     */
+    tags: Array<Tag>;
+};
+
+export type Tag = {
+    id: number;
+    createdAt: string;
+    updatedAt: string;
+    deletedAt: (string) | null;
+    /**
+     * Name of the tag
+     */
+    name: string;
+    /**
+     * Color of the tag (HEX code or name)
+     */
+    color: string;
+    /**
+     * Notes linked to this tag
+     */
+    notes: Array<Note>;
 };
 
 export type UpdateNoteDto = {
@@ -47,6 +74,40 @@ export type UpdateNoteDto = {
      * The longitude coordinate of the note
      */
     lng?: (number) | null;
+    /**
+     * Optional list of Tag IDs to associate with this note
+     */
+    tagIds?: Array<(number)>;
+};
+
+export type CreateTagDto = {
+    /**
+     * The name of the tag
+     */
+    name: string;
+    /**
+     * The color of the tag (e.g. HEX value like #FF0000)
+     */
+    color: string;
+    /**
+     * Optional list of Note IDs to associate with this tag
+     */
+    noteIds?: Array<(number)>;
+};
+
+export type UpdateTagDto = {
+    /**
+     * The name of the tag
+     */
+    name?: string;
+    /**
+     * The color of the tag
+     */
+    color?: string;
+    /**
+     * List of Note IDs to associate with this tag
+     */
+    noteIds?: Array<(number)>;
 };
 
 export type NoteControllerCreateData = {
@@ -288,3 +349,208 @@ export type NoteControllerRemoveData = {
 export type NoteControllerRemoveResponse = (unknown);
 
 export type NoteControllerRemoveError = (unknown);
+
+export type TagControllerCreateData = {
+    body: CreateTagDto;
+};
+
+export type TagControllerCreateResponse = (Tag);
+
+export type TagControllerCreateError = unknown;
+
+export type TagControllerFindAllData = {
+    query?: {
+        /**
+         * Filter by color query param.
+         *
+         * **Format:** filter.color={$not}:OPERATION:VALUE
+         *
+         *
+         *
+         * **Example:** filter.color=$btw:John Doe&filter.color=$contains:John Doe
+         *
+         * **Available Operations**
+         * - $eq
+         *
+         * - $gt
+         *
+         * - $gte
+         *
+         * - $in
+         *
+         * - $null
+         *
+         * - $lt
+         *
+         * - $lte
+         *
+         * - $btw
+         *
+         * - $ilike
+         *
+         * - $sw
+         *
+         * - $contains
+         *
+         * - $not
+         *
+         * - $and
+         *
+         * - $or
+         */
+        'filter.color'?: Array<(string)>;
+        /**
+         * Filter by name query param.
+         *
+         * **Format:** filter.name={$not}:OPERATION:VALUE
+         *
+         *
+         *
+         * **Example:** filter.name=$btw:John Doe&filter.name=$contains:John Doe
+         *
+         * **Available Operations**
+         * - $eq
+         *
+         * - $gt
+         *
+         * - $gte
+         *
+         * - $in
+         *
+         * - $null
+         *
+         * - $lt
+         *
+         * - $lte
+         *
+         * - $btw
+         *
+         * - $ilike
+         *
+         * - $sw
+         *
+         * - $contains
+         *
+         * - $not
+         *
+         * - $and
+         *
+         * - $or
+         */
+        'filter.name'?: Array<(string)>;
+        /**
+         * Number of records per page.
+         *
+         *
+         * **Example:** 20
+         *
+         *
+         *
+         * **Default Value:** 20
+         *
+         *
+         *
+         * **Max Value:** 100
+         *
+         *
+         * If provided value is greater than max value, max value will be applied.
+         *
+         */
+        limit?: number;
+        /**
+         * Page number to retrieve. If you provide invalid value the default page number will applied
+         *
+         * **Example:** 1
+         *
+         *
+         * **Default Value:** 1
+         *
+         *
+         */
+        page?: number;
+        /**
+         * Search term to filter result values
+         *
+         * **Example:** John
+         *
+         *
+         * **Default Value:** No default value
+         *
+         *
+         */
+        search?: string;
+        /**
+         * List of fields to search by term to filter result values
+         *
+         * **Example:** name
+         *
+         *
+         * **Default Value:** By default all fields mentioned below will be used to search by term
+         *
+         * **Available Fields**
+         * - name
+         *
+         */
+        searchBy?: Array<(string)>;
+        /**
+         * Parameter to sort by.
+         * To sort by multiple fields, just provide query param multiple types. The order in url defines an order of sorting
+         *
+         * **Format:** {fieldName}:{DIRECTION}
+         *
+         *
+         * **Example:** sortBy=id:DESC&sortBy=name:DESC
+         *
+         *
+         * **Default Value:** id:DESC
+         *
+         * **Available Fields**
+         * - id
+         *
+         * - name
+         *
+         * - color
+         *
+         * - createdAt
+         *
+         * - updatedAt
+         *
+         */
+        sortBy?: Array<('id:ASC' | 'id:DESC' | 'name:ASC' | 'name:DESC' | 'color:ASC' | 'color:DESC' | 'createdAt:ASC' | 'createdAt:DESC' | 'updatedAt:ASC' | 'updatedAt:DESC')>;
+    };
+};
+
+export type TagControllerFindAllResponse = (unknown);
+
+export type TagControllerFindAllError = unknown;
+
+export type TagControllerFindOneData = {
+    path: {
+        id: number;
+    };
+};
+
+export type TagControllerFindOneResponse = (Tag);
+
+export type TagControllerFindOneError = (unknown);
+
+export type TagControllerUpdateData = {
+    body: UpdateTagDto;
+    path: {
+        id: number;
+    };
+};
+
+export type TagControllerUpdateResponse = (Tag);
+
+export type TagControllerUpdateError = (unknown);
+
+export type TagControllerRemoveData = {
+    path: {
+        id: number;
+    };
+};
+
+export type TagControllerRemoveResponse = (unknown);
+
+export type TagControllerRemoveError = (unknown);
