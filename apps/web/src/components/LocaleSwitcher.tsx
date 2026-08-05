@@ -4,6 +4,8 @@
 
 import { m } from "#/paraglide/messages";
 import { getLocale, locales, setLocale } from "#/paraglide/runtime";
+import { Button } from "./ui/button";
+import { ButtonGroup } from "./ui/button-group";
 
 export default function ParaglideLocaleSwitcher() {
 	const currentLocale = getLocale();
@@ -18,31 +20,19 @@ export default function ParaglideLocaleSwitcher() {
 			}}
 			aria-label={m.language_label()}
 		>
-			<span style={{ opacity: 0.85 }}>
-				{m.current_locale({ locale: currentLocale })}
-			</span>
-			<div style={{ display: "flex", gap: "0.25rem" }}>
+			<ButtonGroup>
 				{locales.map((locale) => (
-					<button
+					<Button
 						key={locale}
 						onClick={() => setLocale(locale)}
 						aria-pressed={locale === currentLocale}
 						type="button"
-						style={{
-							cursor: "pointer",
-							padding: "0.35rem 0.75rem",
-							borderRadius: "999px",
-							border: "1px solid #d1d5db",
-							background: locale === currentLocale ? "#0f172a" : "transparent",
-							color: locale === currentLocale ? "#f8fafc" : "inherit",
-							fontWeight: locale === currentLocale ? 700 : 500,
-							letterSpacing: "0.01em",
-						}}
+						variant={locale === currentLocale ? "default" : "outline"}
 					>
 						{locale.toUpperCase()}
-					</button>
+					</Button>
 				))}
-			</div>
+			</ButtonGroup>
 		</section>
 	);
 }

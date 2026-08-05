@@ -5,6 +5,11 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.enableCors({
+    origin: process.env.APP_URL ?? 'http://localhost:4000',
+    credentials: true,
+  });
+
   const config = new DocumentBuilder()
     .setTitle('Intel View API')
     .setDescription('The Intel View API documentation')

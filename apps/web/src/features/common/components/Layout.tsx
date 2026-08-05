@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Home, LayoutDashboard, StickyNote } from "lucide-react";
+import { StickyNote } from "lucide-react";
 import type { JSX, ReactNode } from "react";
 import ParaglideLocaleSwitcher from "../../../components/LocaleSwitcher";
 
@@ -18,28 +18,16 @@ export function Layout({ children }: LayoutProps): JSX.Element {
 						className="flex items-center gap-2 text-inherit no-underline"
 					>
 						<StickyNote className="w-6 h-6 text-palm" />
-						<span className="font-extrabold text-sea-ink tracking-tight display-title">
-							Intel View
-						</span>
 					</Link>
 
 					<nav className="flex items-center gap-6">
 						<Link
-							to="/"
-							activeOptions={{ exact: true }}
+							to="/notes"
 							className="nav-link text-sm font-bold flex items-center gap-1.5"
 							activeProps={{ className: "is-active" }}
 						>
-							<Home className="w-4 h-4" />
-							<span>Home</span>
-						</Link>
-						<Link
-							to="/nodes"
-							className="nav-link text-sm font-bold flex items-center gap-1.5"
-							activeProps={{ className: "is-active" }}
-						>
-							<LayoutDashboard className="w-4 h-4" />
-							<span>Dashboard</span>
+							<StickyNote className="w-4 h-4" />
+							<span>Notes</span>
 						</Link>
 					</nav>
 
