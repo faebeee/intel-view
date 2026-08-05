@@ -13,6 +13,7 @@ export class Note extends BaseEntity {
     description: 'Latitude coordinate of the note',
     required: false,
     nullable: true,
+    type: 'number',
   })
   lat: number | null;
 
@@ -21,6 +22,7 @@ export class Note extends BaseEntity {
     description: 'Longitude coordinate of the note',
     required: false,
     nullable: true,
+    type: 'number',
   })
   lng: number | null;
 }

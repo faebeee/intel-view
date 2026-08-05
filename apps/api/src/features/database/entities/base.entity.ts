@@ -15,6 +15,6 @@ export class BaseEntity {
   updatedAt: Date;
 
   @Column({ type: 'timestamp', nullable: true })
-  @ApiProperty()
+  @ApiProperty({ type: 'string', format: 'date-time', nullable: true })
   deletedAt: Date | null;
 }

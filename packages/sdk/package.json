@@ -1,0 +1,22 @@
+{
+  "name": "@repo/sdk",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "generate": "openapi-ts",
+    "build": "tsc --noEmit",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hey-api/client-fetch": "^0.4.3"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "^0.53.5",
+    "@repo/typescript-config": "*",
+    "typescript": "5.9.2"
+  }
+}
