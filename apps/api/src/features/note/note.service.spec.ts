@@ -47,7 +47,11 @@ describe('NoteService', () => {
         content: 'hello world',
         config: { foo: 'bar' },
       };
-      const createdNote = { id: 1, projectId, ...createNoteDto } as Note;
+      const createdNote = {
+        id: 1,
+        projectId,
+        ...createNoteDto,
+      } as unknown as Note;
 
       mockProjectRepository.findOne.mockResolvedValue({ id: projectId });
       mockNoteRepository.create.mockReturnValue(createdNote);
@@ -72,7 +76,7 @@ describe('NoteService', () => {
         type: 'markdown',
         content: 'hello world',
         config: null,
-      } as Note;
+      } as unknown as Note;
 
       mockProjectRepository.findOne.mockResolvedValue({ id: projectId });
       mockNoteRepository.create.mockReturnValue(createdNote);
@@ -97,7 +101,7 @@ describe('NoteService', () => {
         type: 'markdown',
         content: 'old content',
         config: null,
-      } as Note;
+      } as unknown as Note;
       const updateNoteDto = {
         content: 'new content',
         config: { updated: true },

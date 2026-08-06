@@ -4,10 +4,12 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Project } from '../../project/entities/project.entity';
 
 // Supported note types. Each type renders differently in the UI and may use
-// the `config` field to store type-specific settings (e.g. an iframe URL, or
-// an IP address to track). Add new types here as they are implemented.
-export type NoteType = 'markdown';
-export const NOTE_TYPES: NoteType[] = ['markdown'];
+// the `config` field to store type-specific settings. Add new types here as
+// they are implemented.
+// - 'markdown': plain markdown content (stored in `content`).
+// - 'iframe': embeds an external page; `config.url` holds the iframe source.
+export type NoteType = 'markdown' | 'iframe';
+export const NOTE_TYPES: NoteType[] = ['markdown', 'iframe'];
 
 @Entity()
 export class Note extends BaseEntity {

@@ -7,6 +7,7 @@ import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Markdown } from "#/components/ui/markdown.tsx";
 import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal";
+import type { IframeNoteConfig } from "#/features/notes/noteTypes.ts";
 import { useProjectQuery } from "#/features/projects/hooks/useProjectQuery";
 import { useUpdateProject } from "#/features/projects/hooks/useUpdateProject";
 import { useMap } from "../hooks/useMap";
@@ -242,6 +243,26 @@ function MapInnerView({ projectId }: { projectId: number }) {
 								className="text-xs text-muted-foreground leading-relaxed mt-1.5"
 							/>
 						)}
+
+						{/* iFrame Embed Preview in Detail Panel */}
+						{selectedMarker.type === "iframe" &&
+							(() => {
+								const url = (
+									(selectedMarker.config || {}) as IframeNoteConfig
+								).url;
+								return url ? (
+									<iframe
+										src={url}
+										title={selectedMarker.title}
+										className="mt-2 w-full h-48 rounded border border-line bg-white"
+										sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+									/>
+								) : (
+									<p className="mt-2 text-[10px] italic text-muted-foreground">
+										No iframe URL configured for this note.
+									</p>
+								);
+							})()}
 
 						{/* Assigned Tags in Detail Panel */}
 						{selectedMarker.tags && selectedMarker.tags.length > 0 && (

@@ -48,7 +48,7 @@ export type CreateNoteDto = {
     /**
      * The type of note, determines how it is rendered
      */
-    type?: 'markdown';
+    type?: 'markdown' | 'iframe';
     /**
      * The content of the note
      */
@@ -76,7 +76,7 @@ export type CreateNoteDto = {
 /**
  * The type of note, determines how it is rendered
  */
-export type type = 'markdown';
+export type type = 'markdown' | 'iframe';
 
 export type NoteResponseDto = {
     id: number;
@@ -84,7 +84,7 @@ export type NoteResponseDto = {
     /**
      * The type of note, determines how it is rendered
      */
-    type: 'markdown';
+    type: 'markdown' | 'iframe';
     /**
      * Content of the note
      */

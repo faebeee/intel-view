@@ -59,8 +59,10 @@ export function useNotesQuery(projectId: number) {
 						lat: note.lat,
 						lng: note.lng,
 						title: title || `Sector Note #${note.id}`,
-						category: "note",
+						category: note.type === "iframe" ? "iframe" : "note",
 						description: description || "No detailed coordinates recorded.",
+						type: note.type,
+						config: note.config,
 						metadata: {
 							classification: "Restricted",
 							created: new Date(note.createdAt).toLocaleDateString(),

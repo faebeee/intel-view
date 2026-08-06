@@ -45,6 +45,7 @@ export function CreateNoteModal({
 }: CreateNoteModalProps) {
 	const [type, setType] = React.useState<NoteType>("markdown");
 	const [content, setContent] = React.useState("");
+	const [iframeUrl, setIframeUrl] = React.useState("");
 	const [lat, setLat] = React.useState("");
 	const [lng, setLng] = React.useState("");
 	const [tagsInput, setTagsInput] = React.useState("");
@@ -61,6 +62,7 @@ export function CreateNoteModal({
 		if (!open) {
 			setType("markdown");
 			setContent("");
+			setIframeUrl("");
 			setTagsInput("");
 		}
 	}, [open]);
@@ -69,6 +71,7 @@ export function CreateNoteModal({
 		mutationFn: async (payload: {
 			type: NoteType;
 			content: string;
+			config?: Record<string, unknown> | null;
 			lat: number;
 			lng: number;
 			tags: string[];
@@ -98,11 +101,28 @@ export function CreateNoteModal({
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 
-		if (!content.trim()) {
+		if (type === "markdown" && !content.trim()) {
 			toast.warning("Empty content", {
 				description: "Note content cannot be empty.",
 			});
 			return;
+		}
+
+		if (type === "iframe") {
+			if (!iframeUrl.trim()) {
+				toast.warning("Missing iframe URL", {
+					description: "Enter the URL to embed in this note.",
+				});
+				return;
+			}
+			try {
+				new URL(iframeUrl.trim());
+			} catch {
+				toast.warning("Invalid iframe URL", {
+					description: "Enter a valid, fully-qualified URL (e.g. https://...).",
+				});
+				return;
+			}
 		}
 
 		const parsedLat = parseFloat(lat);
@@ -123,6 +143,7 @@ export function CreateNoteModal({
 		createNoteMutation.mutate({
 			type,
 			content: content.trim(),
+			config: type === "iframe" ? { url: iframeUrl.trim() } : undefined,
 			lat: parsedLat,
 			lng: parsedLng,
 			tags: tagsArray,
@@ -169,21 +190,63 @@ export function CreateNoteModal({
 					</div>
 
 					{/* Markdown Live Editor */}
-					<div className="flex flex-col gap-1.5">
-						<label
-							htmlFor="note-content"
-							className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
-						>
-							Content (Markdown Supported)
-						</label>
-						<MarkdownEditor
-							value={content}
-							onChange={setContent}
-							placeholder="Write content here..."
-							disabled={createNoteMutation.isPending}
-							minHeight="min-h-36"
-						/>
-					</div>
+					{type === "markdown" && (
+						<div className="flex flex-col gap-1.5">
+							<label
+								htmlFor="note-content"
+								className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
+							>
+								Content (Markdown Supported)
+							</label>
+							<MarkdownEditor
+								value={content}
+								onChange={setContent}
+								placeholder="Write content here..."
+								disabled={createNoteMutation.isPending}
+								minHeight="min-h-36"
+							/>
+						</div>
+					)}
+
+					{/* iFrame URL Configuration */}
+					{type === "iframe" && (
+						<div className="flex flex-col gap-3">
+							<div className="flex flex-col gap-1.5">
+								<label
+									htmlFor="note-iframe-url"
+									className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
+								>
+									iFrame URL
+								</label>
+								<Input
+									id="note-iframe-url"
+									type="url"
+									placeholder="https://example.com"
+									className="bg-[#040814]/40 border border-line/50 rounded-lg p-3 text-xs font-mono h-auto text-palm placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-palm"
+									value={iframeUrl}
+									onChange={(e) => setIframeUrl(e.target.value)}
+									disabled={createNoteMutation.isPending}
+								/>
+							</div>
+							<div className="flex flex-col gap-1.5">
+								<label
+									htmlFor="note-content"
+									className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
+								>
+									Caption (Optional)
+								</label>
+								<Input
+									id="note-content"
+									type="text"
+									placeholder="Short description shown alongside the embed"
+									className="bg-[#040814]/40 border border-line/50 rounded-lg p-3 text-xs font-mono h-auto text-palm placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-palm"
+									value={content}
+									onChange={(e) => setContent(e.target.value)}
+									disabled={createNoteMutation.isPending}
+								/>
+							</div>
+						</div>
+					)}
 
 					{/* Tags Input */}
 					<div className="flex flex-col gap-1.5">

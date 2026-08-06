@@ -21,7 +21,10 @@ export function Markdown({ content, className }: MarkdownProps) {
 	return (
 		<div
 			className={cn(
-				"prose prose-sm dark:prose-invert max-w-none text-sea-ink-soft leading-relaxed",
+				// This app has no light-mode variant (no `.dark` class is ever toggled
+				// on the document), so `prose-invert` is applied unconditionally
+				// rather than gated behind Tailwind's `dark:` variant.
+				"prose prose-sm prose-invert max-w-none text-sea-ink-soft leading-relaxed",
 				"prose-headings:text-sea-ink prose-headings:font-bold prose-headings:uppercase prose-headings:tracking-wider prose-headings:border-b prose-headings:border-line/20 prose-headings:pb-1",
 				"prose-a:text-palm prose-a:no-underline hover:prose-a:underline",
 				"prose-strong:text-sea-ink prose-strong:font-bold",

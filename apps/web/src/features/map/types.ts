@@ -1,3 +1,5 @@
+import type { NoteType } from "#/features/notes/noteTypes.ts";
+
 export type Coordinate = [number, number];
 
 export type MapStyleValue = "dark" | "light" | "street" | "satellite";
@@ -11,6 +13,8 @@ export type MapMarkerData = {
 	category?: string;
 	metadata?: Record<string, unknown>;
 	tags?: { id: string; name: string; color: string }[];
+	type?: NoteType;
+	config?: Record<string, unknown> | null;
 };
 
 export type MapConfig = {

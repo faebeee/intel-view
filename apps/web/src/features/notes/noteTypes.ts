@@ -1,4 +1,4 @@
-import { FileText } from "lucide-react";
+import { AppWindow, FileText } from "lucide-react";
 import type { NoteResponseDto } from "@repo/sdk";
 
 export type NoteType = NoteResponseDto["type"];
@@ -10,14 +10,20 @@ export type NoteTypeOption = {
 	icon: typeof FileText;
 };
 
+/** Shape of `config` for a note of type `'iframe'`. */
+export type IframeNoteConfig = {
+	url?: string;
+};
+
 /**
  * Registry of all note types supported by the UI.
  *
- * To add a new note type in the future (e.g. an embedded iframe, or a live
- * IP address location), add an entry here, implement a renderer branch in
- * `NoteContentRenderer.tsx`, and (if it needs type-specific settings) add
- * the relevant fields to `CreateNoteModal.tsx`/`EditNoteModal.tsx` that
- * read/write the note's `config` object.
+ * To add a new note type in the future (e.g. a live IP address location),
+ * add an entry here, implement a renderer branch in
+ * `NoteContentRenderer.tsx` and `MarkerLayer.tsx` (for map rendering), and
+ * (if it needs type-specific settings) add the relevant fields to
+ * `CreateNoteModal.tsx`/`EditNoteModal.tsx` that read/write the note's
+ * `config` object.
  */
 export const NOTE_TYPE_OPTIONS: NoteTypeOption[] = [
 	{
@@ -25,6 +31,12 @@ export const NOTE_TYPE_OPTIONS: NoteTypeOption[] = [
 		label: "Markdown",
 		description: "Rich text note with markdown formatting",
 		icon: FileText,
+	},
+	{
+		value: "iframe",
+		label: "iFrame",
+		description: "Embeds an external web page inside the note",
+		icon: AppWindow,
 	},
 ];
 

@@ -74,7 +74,7 @@ export const CreateNoteDtoSchema = {
         type: {
             type: 'string',
             description: 'The type of note, determines how it is rendered',
-            enum: ['markdown'],
+            enum: ['markdown', 'iframe'],
             default: 'markdown'
         },
         content: {
@@ -118,7 +118,7 @@ export const NoteResponseDtoSchema = {
         type: {
             type: 'string',
             description: 'The type of note, determines how it is rendered',
-            enum: ['markdown']
+            enum: ['markdown', 'iframe']
         },
         content: {
             type: 'string',

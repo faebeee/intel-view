@@ -16,6 +16,7 @@ import {
 import { Input } from "#/components/ui/input";
 import { MarkdownEditor } from "#/components/ui/markdown-editor.tsx";
 import { NoteTypeBadge } from "#/features/notes/components/NoteTypeBadge.tsx";
+import type { IframeNoteConfig } from "#/features/notes/noteTypes.ts";
 
 type EditNoteModalProps = {
 	projectId: number;
@@ -33,6 +34,7 @@ export function EditNoteModal({
 	onSuccess,
 }: EditNoteModalProps) {
 	const [content, setContent] = React.useState("");
+	const [iframeUrl, setIframeUrl] = React.useState("");
 	const [lat, setLat] = React.useState("");
 	const [lng, setLng] = React.useState("");
 	const [tagsInput, setTagsInput] = React.useState("");
@@ -42,6 +44,8 @@ export function EditNoteModal({
 	React.useEffect(() => {
 		if (note && open) {
 			setContent(note.content || "");
+			const config = (note.config || {}) as IframeNoteConfig;
+			setIframeUrl(note.type === "iframe" ? config.url || "" : "");
 			setLat(
 				note.lat !== null && note.lat !== undefined ? String(note.lat) : "",
 			);
@@ -55,6 +59,7 @@ export function EditNoteModal({
 	const updateNoteMutation = useMutation({
 		mutationFn: async (payload: {
 			content: string;
+			config?: Record<string, unknown> | null;
 			lat: number | null;
 			lng: number | null;
 			tags: string[];
@@ -90,11 +95,28 @@ export function EditNoteModal({
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 
-		if (!content.trim()) {
+		if (note?.type === "markdown" && !content.trim()) {
 			toast.warning("Empty content", {
 				description: "Note content cannot be empty.",
 			});
 			return;
+		}
+
+		if (note?.type === "iframe") {
+			if (!iframeUrl.trim()) {
+				toast.warning("Missing iframe URL", {
+					description: "Enter the URL to embed in this note.",
+				});
+				return;
+			}
+			try {
+				new URL(iframeUrl.trim());
+			} catch {
+				toast.warning("Invalid iframe URL", {
+					description: "Enter a valid, fully-qualified URL (e.g. https://...).",
+				});
+				return;
+			}
 		}
 
 		let parsedLat: number | null = null;
@@ -120,6 +142,7 @@ export function EditNoteModal({
 
 		updateNoteMutation.mutate({
 			content: content.trim(),
+			config: note?.type === "iframe" ? { url: iframeUrl.trim() } : undefined,
 			lat: parsedLat,
 			lng: parsedLng,
 			tags: tagsArray,
@@ -141,21 +164,63 @@ export function EditNoteModal({
 
 				<form onSubmit={handleSubmit} className="space-y-5 my-2">
 					{/* Markdown Live Editor */}
-					<div className="flex flex-col gap-1.5">
-						<label
-							htmlFor="edit-note-content"
-							className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
-						>
-							Content (Markdown Supported)
-						</label>
-						<MarkdownEditor
-							value={content}
-							onChange={setContent}
-							placeholder="Write markdown details here..."
-							disabled={updateNoteMutation.isPending}
-							minHeight="min-h-36"
-						/>
-					</div>
+					{note?.type === "markdown" && (
+						<div className="flex flex-col gap-1.5">
+							<label
+								htmlFor="edit-note-content"
+								className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
+							>
+								Content (Markdown Supported)
+							</label>
+							<MarkdownEditor
+								value={content}
+								onChange={setContent}
+								placeholder="Write markdown details here..."
+								disabled={updateNoteMutation.isPending}
+								minHeight="min-h-36"
+							/>
+						</div>
+					)}
+
+					{/* iFrame URL Configuration */}
+					{note?.type === "iframe" && (
+						<div className="flex flex-col gap-3">
+							<div className="flex flex-col gap-1.5">
+								<label
+									htmlFor="edit-note-iframe-url"
+									className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
+								>
+									iFrame URL
+								</label>
+								<Input
+									id="edit-note-iframe-url"
+									type="url"
+									placeholder="https://example.com"
+									className="bg-[#040814]/40 border border-line/50 rounded-lg p-3 text-xs font-mono h-auto text-palm placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-palm"
+									value={iframeUrl}
+									onChange={(e) => setIframeUrl(e.target.value)}
+									disabled={updateNoteMutation.isPending}
+								/>
+							</div>
+							<div className="flex flex-col gap-1.5">
+								<label
+									htmlFor="edit-note-content"
+									className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
+								>
+									Caption (Optional)
+								</label>
+								<Input
+									id="edit-note-content"
+									type="text"
+									placeholder="Short description shown alongside the embed"
+									className="bg-[#040814]/40 border border-line/50 rounded-lg p-3 text-xs font-mono h-auto text-palm placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-palm"
+									value={content}
+									onChange={(e) => setContent(e.target.value)}
+									disabled={updateNoteMutation.isPending}
+								/>
+							</div>
+						</div>
+					)}
 
 					{/* Tags Input */}
 					<div className="flex flex-col gap-1.5">

@@ -2,6 +2,7 @@ import L from "leaflet";
 import * as React from "react";
 import { Marker, Popup, Tooltip, useMap as useReactLeafletMap } from "react-leaflet";
 import { Markdown } from "#/components/ui/markdown.tsx";
+import type { IframeNoteConfig } from "#/features/notes/noteTypes.ts";
 import { useMap } from "../hooks/useMap";
 import type { MapMarkerData } from "../types";
 
@@ -43,6 +44,8 @@ const createNeonIcon = (
 			color = "#f59e0b";
 		} else if (category === "intel" || category === "note") {
 			color = "#38bdf8";
+		} else if (category === "iframe") {
+			color = "#a855f7";
 		} else {
 			color = "#00f2ff"; // Default cyan
 		}
@@ -75,8 +78,13 @@ export function MarkerLayer({ data, onMarkerClick }: MarkerLayerProps) {
 	return (
 		<>
 			{data.map((markerData) => {
-				const { id, lat, lng, title, category, tags, description } = markerData;
+				const { id, lat, lng, title, category, tags, description, type, config } =
+					markerData;
 				const icon = createNeonIcon(tags, category);
+				const isIframe = type === "iframe";
+				const iframeUrl = isIframe
+					? ((config || {}) as IframeNoteConfig).url
+					: undefined;
 
 				return (
 					<Marker
@@ -110,18 +118,31 @@ export function MarkerLayer({ data, onMarkerClick }: MarkerLayerProps) {
 						</Tooltip>
 						<Popup
 							className="custom-map-popup"
-							minWidth={200}
-							maxWidth={320}
+							minWidth={isIframe ? 280 : 200}
+							maxWidth={isIframe ? 360 : 320}
 						>
 							<div className="p-1 font-sans text-sea-ink">
 								<h3 className="text-xs font-bold border-b border-line pb-1 mb-1 text-[#00f2ff] uppercase tracking-wider font-mono">
 									{title}
 								</h3>
 								{description && (
-									<div className="mt-1 text-[11px] leading-relaxed text-sea-ink-soft max-h-36 overflow-y-auto pr-1">
-										<Markdown content={description} />
+									<div className="mt-1 text-[11px] leading-relaxed text-foreground max-h-36 overflow-y-auto pr-1">
+										<Markdown content={description} className="text-foreground" />
 									</div>
 								)}
+								{isIframe &&
+									(iframeUrl ? (
+										<iframe
+											src={iframeUrl}
+											title={title}
+											className="mt-2 w-full h-56 rounded border border-line bg-white"
+											sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+										/>
+									) : (
+										<p className="mt-2 text-[10px] italic text-muted-foreground">
+											No iframe URL configured for this note.
+										</p>
+									))}
 							</div>
 						</Popup>
 					</Marker>
