@@ -1,11 +1,34 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsArray } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsIn, IsObject } from 'class-validator';
+import { NOTE_TYPES } from '../entities/note.entity';
+import type { NoteType } from '../entities/note.entity';
 
 export class CreateNoteDto {
+  @IsIn(NOTE_TYPES)
+  @IsOptional()
+  @ApiProperty({
+    description: 'The type of note, determines how it is rendered',
+    enum: NOTE_TYPES,
+    required: false,
+    default: 'markdown',
+  })
+  type?: NoteType;
+
   @IsString()
   @IsOptional()
   @ApiProperty({ description: 'The content of the note', required: false })
   content?: string;
+
+  @IsObject()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Type-specific configuration object for the note (used by non-markdown note types)',
+    type: Object,
+    required: false,
+    nullable: true,
+  })
+  config?: Record<string, unknown> | null;
 
   @IsOptional()
   @ApiProperty({

@@ -14,6 +14,17 @@ import {
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { MarkdownEditor } from "#/components/ui/markdown-editor.tsx";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "#/components/ui/select.tsx";
+import {
+	NOTE_TYPE_OPTIONS,
+	type NoteType,
+} from "#/features/notes/noteTypes.ts";
 
 type CreateNoteModalProps = {
 	projectId: number;
@@ -32,6 +43,7 @@ export function CreateNoteModal({
 	defaultLng,
 	onSuccess,
 }: CreateNoteModalProps) {
+	const [type, setType] = React.useState<NoteType>("markdown");
 	const [content, setContent] = React.useState("");
 	const [lat, setLat] = React.useState("");
 	const [lng, setLng] = React.useState("");
@@ -47,6 +59,7 @@ export function CreateNoteModal({
 	// Reset form when modal closes or opens
 	React.useEffect(() => {
 		if (!open) {
+			setType("markdown");
 			setContent("");
 			setTagsInput("");
 		}
@@ -54,6 +67,7 @@ export function CreateNoteModal({
 
 	const createNoteMutation = useMutation({
 		mutationFn: async (payload: {
+			type: NoteType;
 			content: string;
 			lat: number;
 			lng: number;
@@ -107,6 +121,7 @@ export function CreateNoteModal({
 			.filter(Boolean);
 
 		createNoteMutation.mutate({
+			type,
 			content: content.trim(),
 			lat: parsedLat,
 			lng: parsedLng,
@@ -127,6 +142,32 @@ export function CreateNoteModal({
 				</DialogHeader>
 
 				<form onSubmit={handleSubmit} className="space-y-5 my-2">
+					{/* Note Type Selector */}
+					<div className="flex flex-col gap-1.5">
+						<label
+							htmlFor="note-type"
+							className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
+						>
+							Note Type
+						</label>
+						<Select
+							value={type}
+							onValueChange={(value) => setType(value as NoteType)}
+							disabled={createNoteMutation.isPending}
+						>
+							<SelectTrigger id="note-type" className="w-full">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{NOTE_TYPE_OPTIONS.map((option) => (
+									<SelectItem key={option.value} value={option.value}>
+										{option.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+
 					{/* Markdown Live Editor */}
 					<div className="flex flex-col gap-1.5">
 						<label

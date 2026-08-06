@@ -10,8 +10,9 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
-import { Markdown } from "#/components/ui/markdown.tsx";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
+import { NoteContentRenderer } from "#/features/notes/components/NoteContentRenderer.tsx";
+import { NoteTypeBadge } from "#/features/notes/components/NoteTypeBadge.tsx";
 
 type ViewNoteModalProps = {
 	projectId: number;
@@ -62,8 +63,9 @@ export function ViewNoteModal({
 				{/* Modal Header */}
 				<DialogHeader className="p-6 border-b border-line pb-4 shrink-0 space-y-2">
 					<div className="flex items-center justify-between gap-4">
-						<DialogTitle className="text-lg font-bold text-sea-ink uppercase tracking-wider font-mono">
-							Note #{note.id}
+						<DialogTitle className="text-lg font-bold text-sea-ink uppercase tracking-wider font-mono flex items-center gap-2">
+							<span>Note #{note.id}</span>
+							<NoteTypeBadge type={note.type} />
 						</DialogTitle>
 						{onEditClick && (
 							<Button
@@ -121,7 +123,7 @@ export function ViewNoteModal({
 
 				{/* Modal Body / Markdown Content */}
 				<div className="flex-1 overflow-y-auto p-6 min-h-0 bg-[#040814]/30">
-					<Markdown content={note.content} />
+					<NoteContentRenderer note={note} />
 				</div>
 
 				{/* Modal Footer */}

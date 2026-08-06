@@ -71,9 +71,20 @@ export const UpdateProjectDtoSchema = {
 export const CreateNoteDtoSchema = {
     type: 'object',
     properties: {
+        type: {
+            type: 'string',
+            description: 'The type of note, determines how it is rendered',
+            enum: ['markdown'],
+            default: 'markdown'
+        },
         content: {
             type: 'string',
             description: 'The content of the note'
+        },
+        config: {
+            type: 'object',
+            description: 'Type-specific configuration object for the note (used by non-markdown note types)',
+            nullable: true
         },
         lat: {
             type: 'number',
@@ -104,9 +115,19 @@ export const NoteResponseDtoSchema = {
         projectId: {
             type: 'number'
         },
+        type: {
+            type: 'string',
+            description: 'The type of note, determines how it is rendered',
+            enum: ['markdown']
+        },
         content: {
             type: 'string',
             description: 'Content of the note'
+        },
+        config: {
+            type: 'object',
+            description: 'Type-specific configuration object for the note (used by non-markdown note types)',
+            nullable: true
         },
         lat: {
             type: 'number',
@@ -134,7 +155,7 @@ export const NoteResponseDtoSchema = {
             type: 'string'
         }
     },
-    required: ['id', 'projectId', 'content', 'createdAt', 'updatedAt']
+    required: ['id', 'projectId', 'type', 'content', 'createdAt', 'updatedAt']
 } as const;
 
 export const UpdateNoteDtoSchema = {
@@ -143,6 +164,11 @@ export const UpdateNoteDtoSchema = {
         content: {
             type: 'string',
             description: 'The content of the note'
+        },
+        config: {
+            type: 'object',
+            description: 'Type-specific configuration object for the note (used by non-markdown note types)',
+            nullable: true
         },
         lat: {
             type: 'number',

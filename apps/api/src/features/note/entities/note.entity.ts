@@ -3,6 +3,12 @@ import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Project } from '../../project/entities/project.entity';
 
+// Supported note types. Each type renders differently in the UI and may use
+// the `config` field to store type-specific settings (e.g. an iframe URL, or
+// an IP address to track). Add new types here as they are implemented.
+export type NoteType = 'markdown';
+export const NOTE_TYPES: NoteType[] = ['markdown'];
+
 @Entity()
 export class Note extends BaseEntity {
   @Column()
@@ -13,9 +19,27 @@ export class Note extends BaseEntity {
   @JoinColumn({ name: 'projectId' })
   project: Project;
 
+  @Column({ type: 'varchar', length: 30, default: 'markdown' })
+  @ApiProperty({
+    description: 'The type of note, determines how it is rendered',
+    enum: NOTE_TYPES,
+    default: 'markdown',
+  })
+  type: NoteType;
+
   @Column({ type: 'text', nullable: true })
   @ApiProperty({ description: 'Content of the note' })
   content: string;
+
+  @Column({ type: 'json', nullable: true })
+  @ApiProperty({
+    description:
+      'Type-specific configuration object for the note (used by non-markdown note types)',
+    type: Object,
+    required: false,
+    nullable: true,
+  })
+  config: Record<string, unknown> | null;
 
   @Column({ type: 'double precision', nullable: true })
   @ApiProperty({

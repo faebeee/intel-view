@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Note } from '../entities/note.entity';
+import { Note, NOTE_TYPES } from '../entities/note.entity';
+import type { NoteType } from '../entities/note.entity';
 
 export class NoteResponseDto {
   @ApiProperty()
@@ -8,8 +9,23 @@ export class NoteResponseDto {
   @ApiProperty()
   projectId: number;
 
+  @ApiProperty({
+    description: 'The type of note, determines how it is rendered',
+    enum: NOTE_TYPES,
+  })
+  type: NoteType;
+
   @ApiProperty({ description: 'Content of the note' })
   content: string;
+
+  @ApiProperty({
+    description:
+      'Type-specific configuration object for the note (used by non-markdown note types)',
+    type: Object,
+    required: false,
+    nullable: true,
+  })
+  config: Record<string, unknown> | null;
 
   @ApiProperty({
     description: 'Latitude coordinate of the note',
@@ -45,7 +61,9 @@ export function toNoteResponseDto(note: Note): NoteResponseDto {
   return {
     id: note.id,
     projectId: note.projectId,
+    type: note.type,
     content: note.content,
+    config: note.config,
     lat: note.lat,
     lng: note.lng,
     tags: note.tags,

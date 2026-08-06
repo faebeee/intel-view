@@ -1,11 +1,22 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsArray } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsObject } from 'class-validator';
 
 export class UpdateNoteDto {
   @IsString()
   @IsOptional()
   @ApiProperty({ description: 'The content of the note', required: false })
   content?: string;
+
+  @IsObject()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Type-specific configuration object for the note (used by non-markdown note types)',
+    type: Object,
+    required: false,
+    nullable: true,
+  })
+  config?: Record<string, unknown> | null;
 
   @IsOptional()
   @ApiProperty({

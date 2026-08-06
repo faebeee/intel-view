@@ -7,8 +7,9 @@ import type { JSX } from "react";
 import * as React from "react";
 import { Button } from "#/components/ui/button.tsx";
 import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
-import { Markdown } from "#/components/ui/markdown.tsx";
 import { EditNoteModal } from "#/features/notes/components/EditNoteModal.tsx";
+import { NoteContentRenderer } from "#/features/notes/components/NoteContentRenderer.tsx";
+import { NoteTypeBadge } from "#/features/notes/components/NoteTypeBadge.tsx";
 import { useNoteQuery } from "#/features/notes/hooks/useNoteQuery.ts";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 
@@ -155,8 +156,9 @@ function NoteDetailRouteComponent(): JSX.Element {
 							<span className="text-[10px] tracking-wider text-[#00f2ff] uppercase font-bold font-mono">
 								Note Registry
 							</span>
-							<h1 className="text-2xl font-bold text-sea-ink leading-tight font-mono">
-								Note #{note.id}
+							<h1 className="text-2xl font-bold text-sea-ink leading-tight font-mono flex items-center gap-2">
+								<span>Note #{note.id}</span>
+								<NoteTypeBadge type={note.type} />
 							</h1>
 						</div>
 						{hasCoords && (
@@ -216,7 +218,7 @@ function NoteDetailRouteComponent(): JSX.Element {
 
 				{/* Note Content Panel */}
 				<div className="p-6 md:p-8 bg-[#040814]/35 min-h-[300px]">
-					<Markdown content={note.content} />
+					<NoteContentRenderer note={note} />
 				</div>
 			</div>
 

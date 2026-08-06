@@ -15,6 +15,7 @@ import {
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { MarkdownEditor } from "#/components/ui/markdown-editor.tsx";
+import { NoteTypeBadge } from "#/features/notes/components/NoteTypeBadge.tsx";
 
 type EditNoteModalProps = {
 	projectId: number;
@@ -129,8 +130,9 @@ export function EditNoteModal({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="border-line bg-surface-strong/95 backdrop-blur-md text-sea-ink max-w-md md:max-w-3xl lg:max-w-4xl shadow-2xl shadow-black/80 duration-200 transition-all">
 				<DialogHeader className="space-y-1">
-					<DialogTitle className="text-lg font-bold text-sea-ink uppercase tracking-wider font-mono">
-						Edit Note #{note?.id}
+					<DialogTitle className="text-lg font-bold text-sea-ink uppercase tracking-wider font-mono flex items-center gap-2">
+						<span>Edit Note #{note?.id}</span>
+						{note && <NoteTypeBadge type={note.type} />}
 					</DialogTitle>
 					<DialogDescription className="text-xs text-muted-foreground leading-relaxed">
 						Edit note details, tags, and coordinates with markdown preview.

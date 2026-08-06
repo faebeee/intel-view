@@ -46,9 +46,19 @@ export type UpdateProjectDto = {
 
 export type CreateNoteDto = {
     /**
+     * The type of note, determines how it is rendered
+     */
+    type?: 'markdown';
+    /**
      * The content of the note
      */
     content?: string;
+    /**
+     * Type-specific configuration object for the note (used by non-markdown note types)
+     */
+    config?: {
+        [key: string]: unknown;
+    } | null;
     /**
      * The latitude coordinate of the note
      */
@@ -63,13 +73,28 @@ export type CreateNoteDto = {
     tags?: Array<(string)>;
 };
 
+/**
+ * The type of note, determines how it is rendered
+ */
+export type type = 'markdown';
+
 export type NoteResponseDto = {
     id: number;
     projectId: number;
     /**
+     * The type of note, determines how it is rendered
+     */
+    type: 'markdown';
+    /**
      * Content of the note
      */
     content: string;
+    /**
+     * Type-specific configuration object for the note (used by non-markdown note types)
+     */
+    config?: {
+        [key: string]: unknown;
+    } | null;
     /**
      * Latitude coordinate of the note
      */
@@ -91,6 +116,12 @@ export type UpdateNoteDto = {
      * The content of the note
      */
     content?: string;
+    /**
+     * Type-specific configuration object for the note (used by non-markdown note types)
+     */
+    config?: {
+        [key: string]: unknown;
+    } | null;
     /**
      * The latitude coordinate of the note
      */

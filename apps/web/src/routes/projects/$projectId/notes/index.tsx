@@ -24,6 +24,7 @@ import { ConfirmationButton } from "#/features/common/components/ConfirmationBut
 import { DataTable, SortableHeader } from "#/components/ui/data-table.tsx";
 import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal.tsx";
 import { EditNoteModal } from "#/features/notes/components/EditNoteModal.tsx";
+import { NoteTypeBadge } from "#/features/notes/components/NoteTypeBadge.tsx";
 import { ViewNoteModal } from "#/features/notes/components/ViewNoteModal.tsx";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 
@@ -105,6 +106,17 @@ function NotesRouteComponent(): JSX.Element {
 				>
 					#{row.original.id}
 				</Link>
+			),
+		},
+		{
+			accessorKey: "type",
+			header: () => (
+				<span className="font-mono text-xs font-bold tracking-wider text-sea-ink/80 px-2">
+					TYPE
+				</span>
+			),
+			cell: ({ row }: { row: Row<Note> }) => (
+				<NoteTypeBadge type={row.original.type} />
 			),
 		},
 		{
