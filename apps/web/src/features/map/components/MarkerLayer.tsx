@@ -92,12 +92,19 @@ export function MarkerLayer({ data, onMarkerClick }: MarkerLayerProps) {
 						position={[lat, lng]}
 						icon={icon}
 						eventHandlers={{
-							click: () => {
+							click: (e) => {
+								// Prevent this click from bubbling up to the underlying map's
+								// click handler (Leaflet markers bubble mouse events by
+								// default), which would otherwise also trigger the "add note
+								// at clicked coordinates" flow and open the create-note modal.
+								L.DomEvent.stopPropagation(e);
+
 								setSelectedMarker(markerData);
 								if (onMarkerClick) {
 									onMarkerClick(markerData);
 								}
-								// Smoothly focus map on marker
+								// Smoothly focus map on marker and let Leaflet's bound Popup
+								// open natively (no custom modal involved).
 								leafletMap.flyTo(
 									[lat, lng],
 									leafletMap.getZoom() < 14 ? 14 : leafletMap.getZoom(),
