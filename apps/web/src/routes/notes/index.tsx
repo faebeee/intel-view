@@ -8,12 +8,21 @@ import type {
 	LegacyColumnDef as ColumnDef,
 	LegacyRow as Row,
 } from "@tanstack/react-table/legacy";
-import { Edit2, Eye, FileText, MapPin, RefreshCw, Trash2 } from "lucide-react";
+import {
+	Edit2,
+	Eye,
+	FileText,
+	MapPin,
+	Plus,
+	RefreshCw,
+	Trash2,
+} from "lucide-react";
 import type { JSX } from "react";
 import * as React from "react";
 import { Button } from "#/components/ui/button.tsx";
 import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
 import { DataTable, SortableHeader } from "#/components/ui/data-table.tsx";
+import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal.tsx";
 import { EditNoteModal } from "#/features/notes/components/EditNoteModal.tsx";
 import { ViewNoteModal } from "#/features/notes/components/ViewNoteModal.tsx";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
@@ -46,6 +55,8 @@ function NotesRouteComponent(): JSX.Element {
 
 	const [viewingNote, setViewingNote] = React.useState<Note | null>(null);
 	const [isViewOpen, setIsViewOpen] = React.useState(false);
+
+	const [isCreateOpen, setIsCreateOpen] = React.useState(false);
 
 	const removeNoteMutation = useMutation({
 		mutationFn: async (id: number) => {
@@ -288,7 +299,7 @@ function NotesRouteComponent(): JSX.Element {
 						Search, sort, and manage geolocated notes.
 					</p>
 				</div>
-				<div>
+				<div className="flex items-center gap-2">
 					<Button
 						variant="outline"
 						size="sm"
@@ -301,6 +312,15 @@ function NotesRouteComponent(): JSX.Element {
 						<span>
 							{isLoading || isRefetching ? "REFRESHING..." : "REFRESH"}
 						</span>
+					</Button>
+
+					<Button
+						variant="default"
+						size="sm"
+						onClick={() => setIsCreateOpen(true)}
+					>
+						<Plus className="h-4 w-4" />
+						<span>Add Note</span>
 					</Button>
 				</div>
 			</div>
@@ -341,6 +361,9 @@ function NotesRouteComponent(): JSX.Element {
 				open={isEditOpen}
 				onOpenChange={setIsEditOpen}
 			/>
+
+			{/* Create Note Modal */}
+			<CreateNoteModal open={isCreateOpen} onOpenChange={setIsCreateOpen} />
 		</div>
 	);
 }
