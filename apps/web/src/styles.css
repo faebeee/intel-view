@@ -336,6 +336,28 @@ a {
   background: color-mix(in oklab, var(--header-bg) 84%, transparent 16%);
 }
 
+/* Custom styling for Leaflet Popups to match the Cyber Dark theme */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+	background-color: rgba(13, 27, 48, 0.95) !important;
+	border: 1px solid rgba(0, 242, 255, 0.22) !important;
+	color: #f0f9ff !important;
+	backdrop-filter: blur(8px) !important;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+}
+
+.leaflet-popup-content {
+	margin: 12px 14px 10px 14px !important;
+}
+
+.leaflet-popup-close-button {
+	color: #38bdf8 !important;
+}
+
+.leaflet-popup-close-button:hover {
+	color: #00f2ff !important;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

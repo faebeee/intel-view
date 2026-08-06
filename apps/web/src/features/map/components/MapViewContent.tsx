@@ -5,6 +5,7 @@ import { Link } from "@tanstack/react-router";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal";
+import { Markdown } from "#/components/ui/markdown.tsx";
 import { useMap } from "../hooks/useMap";
 import { useNotesQuery } from "../hooks/useNotesQuery";
 import type { Coordinate, MapMarkerData } from "../types";
@@ -208,9 +209,12 @@ function MapInnerView() {
 						<h2 className="font-sans text-sm font-bold text-sea-ink mt-1">
 							{selectedMarker.title}
 						</h2>
-						<p className="text-xs text-muted-foreground leading-relaxed mt-1.5 whitespace-pre-wrap">
-							{selectedMarker.description}
-						</p>
+						{selectedMarker.description && (
+							<Markdown
+								content={selectedMarker.description}
+								className="text-xs text-muted-foreground leading-relaxed mt-1.5"
+							/>
+						)}
 
 						{/* Assigned Tags in Detail Panel */}
 						{selectedMarker.tags && selectedMarker.tags.length > 0 && (
@@ -291,7 +295,7 @@ function MapInnerView() {
 					<MarkerLayer data={filteredAssets} />
 					<MapClickHandler onMapClick={handleMapClick} />
 
-					<MapSearch />
+					<MapSearch onCreateNote={handleMapClick} />
 					<MapControls />
 				</MapContainer>
 			</div>

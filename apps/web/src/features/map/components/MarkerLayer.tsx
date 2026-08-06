@@ -1,6 +1,7 @@
 import L from "leaflet";
 import * as React from "react";
-import { Marker, Tooltip, useMap as useReactLeafletMap } from "react-leaflet";
+import { Marker, Popup, Tooltip, useMap as useReactLeafletMap } from "react-leaflet";
+import { Markdown } from "#/components/ui/markdown.tsx";
 import { useMap } from "../hooks/useMap";
 import type { MapMarkerData } from "../types";
 
@@ -74,7 +75,7 @@ export function MarkerLayer({ data, onMarkerClick }: MarkerLayerProps) {
 	return (
 		<>
 			{data.map((markerData) => {
-				const { id, lat, lng, title, category, tags } = markerData;
+				const { id, lat, lng, title, category, tags, description } = markerData;
 				const icon = createNeonIcon(tags, category);
 
 				return (
@@ -107,6 +108,22 @@ export function MarkerLayer({ data, onMarkerClick }: MarkerLayerProps) {
 						>
 							{title}
 						</Tooltip>
+						<Popup
+							className="custom-map-popup"
+							minWidth={200}
+							maxWidth={320}
+						>
+							<div className="p-1 font-sans text-sea-ink">
+								<h3 className="text-xs font-bold border-b border-line pb-1 mb-1 text-[#00f2ff] uppercase tracking-wider font-mono">
+									{title}
+								</h3>
+								{description && (
+									<div className="mt-1 text-[11px] leading-relaxed text-sea-ink-soft max-h-36 overflow-y-auto pr-1">
+										<Markdown content={description} />
+									</div>
+								)}
+							</div>
+						</Popup>
 					</Marker>
 				);
 			})}

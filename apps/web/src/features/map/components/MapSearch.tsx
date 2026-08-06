@@ -1,5 +1,5 @@
 import L from "leaflet";
-import { Compass, Loader2, MapPin, Search, X } from "lucide-react";
+import { Compass, Loader2, MapPin, Plus, Search, X } from "lucide-react";
 import * as React from "react";
 import { Marker, Tooltip, useMap as useReactLeafletMap } from "react-leaflet";
 import { Button } from "#/components/ui/button";
@@ -28,7 +28,11 @@ const createTargetIcon = () => {
 	});
 };
 
-export function MapSearch() {
+type MapSearchProps = {
+	onCreateNote?: (lat: number, lng: number) => void;
+};
+
+export function MapSearch({ onCreateNote }: MapSearchProps) {
 	const leafletMap = useReactLeafletMap();
 	const [query, setQuery] = React.useState("");
 	const [results, setResults] = React.useState<GeocodingResult[]>([]);
@@ -183,13 +187,31 @@ export function MapSearch() {
 								</span>
 							</div>
 						</div>
-						<Button
-							variant="ghost"
-							size="icon-xs"
-							onClick={handleClearTarget}
-						>
-							<X className="h-3 w-3" />
-						</Button>
+						<div className="flex items-center gap-1.5 shrink-0">
+							{onCreateNote && (
+								<Button
+									variant="outline"
+									size="xs"
+									onClick={() => {
+										onCreateNote(
+											parseFloat(selectedTarget.lat),
+											parseFloat(selectedTarget.lon),
+										);
+									}}
+									className="border-amber-500/30 text-amber-500 hover:bg-amber-500/10 hover:text-amber-400 font-bold text-[9px] uppercase tracking-wider h-6 px-2"
+								>
+									<Plus className="h-3 w-3" />
+									<span>Add Note</span>
+								</Button>
+							)}
+							<Button
+								variant="ghost"
+								size="icon-xs"
+								onClick={handleClearTarget}
+							>
+								<X className="h-3 w-3" />
+							</Button>
+						</div>
 					</div>
 				)}
 			</div>
