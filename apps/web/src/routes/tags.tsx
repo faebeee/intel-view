@@ -150,7 +150,6 @@ function TagsRouteComponent(): JSX.Element {
 							variant="outline"
 							size="xs"
 							onClick={() => handleEditClick(tag)}
-							className="inline-flex items-center gap-1 border-line hover:bg-accent/25 hover:text-palm text-sea-ink font-mono text-xs"
 						>
 							<Edit2 className="h-3 w-3" />
 							<span>Edit</span>
@@ -160,7 +159,6 @@ function TagsRouteComponent(): JSX.Element {
 							variant="outline"
 							size="xs"
 							onClick={() => handleDeleteClick(tag)}
-							className="inline-flex items-center gap-1 border-destructive/30 hover:bg-destructive/20 hover:text-destructive text-destructive font-mono text-xs"
 							disabled={removeTagMutation.isPending}
 						>
 							<Trash2 className="h-3 w-3" />
@@ -196,7 +194,6 @@ function TagsRouteComponent(): JSX.Element {
 						size="sm"
 						onClick={() => refetch()}
 						disabled={isLoading || isRefetching}
-						className="font-mono text-xs border-line hover:bg-accent/15 hover:text-palm text-sea-ink gap-1.5 h-9"
 					>
 						<RefreshCw
 							className={`h-3 w-3 ${isLoading || isRefetching ? "animate-spin" : ""}`}
@@ -205,11 +202,13 @@ function TagsRouteComponent(): JSX.Element {
 							{isLoading || isRefetching ? "REFRESHING..." : "REFRESH"}
 						</span>
 					</Button>
+				</div>
 
+				<div className="flex items-center gap-2">
 					<Button
+						variant="default"
 						onClick={() => setIsCreateOpen(true)}
 						size="sm"
-						className="bg-palm text-background border-none hover:bg-palm/90 shadow-[0_0_10px_rgba(56,189,248,0.4)] font-mono font-bold text-xs h-9 gap-1.5"
 					>
 						<Plus className="h-4 w-4" />
 						<span>Add Tag</span>

@@ -72,7 +72,6 @@ export function MarkdownEditor({
 						onClick={() => {
 							setMode((prev) => (prev === "tabbed" ? "split" : "tabbed"));
 						}}
-						className="font-mono text-[10px] text-muted-foreground hover:text-palm hover:bg-accent/10 gap-1.5 border border-line/20 h-7"
 						title={
 							mode === "tabbed"
 								? "Switch to split view"

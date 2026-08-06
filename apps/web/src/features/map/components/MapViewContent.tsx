@@ -1,12 +1,13 @@
 import { MapPin, PlusCircle, RefreshCw, Search, X } from "lucide-react";
 import * as React from "react";
 import { useMapEvents } from "react-leaflet";
+import { Link } from "@tanstack/react-router";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
+import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal";
 import { useMap } from "../hooks/useMap";
 import { useNotesQuery } from "../hooks/useNotesQuery";
 import type { Coordinate, MapMarkerData } from "../types";
-import { CreateNoteModal } from "./CreateNoteModal";
 import { MapContainer } from "./MapContainer";
 import { MapControls } from "./MapControls";
 import { MapProvider } from "./MapProvider";
@@ -85,7 +86,6 @@ function MapInnerView() {
 						<Button
 							variant="ghost"
 							size="icon-xs"
-							className="h-5 w-5 text-muted-foreground hover:text-[#00f2ff]"
 							onClick={() => refetch()}
 							title="Refresh notes"
 						>
@@ -113,7 +113,6 @@ function MapInnerView() {
 					<Button
 						variant="outline"
 						size="sm"
-						className="w-full text-xs border-line hover:border-[#00f2ff] text-[#00f2ff] gap-1.5 bg-surface-strong/30"
 						onClick={() => {
 							setClickedCoordinates(null);
 							setIsCreateOpen(true);
@@ -200,7 +199,6 @@ function MapInnerView() {
 							<Button
 								variant="ghost"
 								size="icon-xs"
-								className="h-5 w-5 text-muted-foreground hover:text-sea-ink rounded-full"
 								onClick={() => setSelectedMarker(null)}
 							>
 								<X className="h-3 w-3" />
@@ -251,7 +249,6 @@ function MapInnerView() {
 							<Button
 								variant="outline"
 								size="xs"
-								className="flex-1 text-[10px] border-line hover:border-palm/50 text-sea-ink hover:text-[#00f2ff]"
 								onClick={() => {
 									if (map) {
 										map.flyTo([selectedMarker.lat, selectedMarker.lng], 16, {
@@ -261,12 +258,23 @@ function MapInnerView() {
 									}
 								}}
 							>
-								Zoom to Note
+								Zoom
 							</Button>
+							<Link
+								to="/notes/$id"
+								params={{ id: String(selectedMarker.id) }}
+								className="flex-1"
+							>
+								<Button
+									variant="outline"
+									size="xs"
+								>
+									Details
+								</Button>
+							</Link>
 							<Button
 								variant="ghost"
 								size="xs"
-								className="text-[10px] text-muted-foreground hover:text-red-400"
 								onClick={() => setSelectedMarker(null)}
 							>
 								Close
@@ -281,8 +289,9 @@ function MapInnerView() {
 				<MapContainer center={defaultCenter} zoom={1}>
 					<TileLayer />
 					<MarkerLayer data={filteredAssets} />
-					<MapSearch />
 					<MapClickHandler onMapClick={handleMapClick} />
+
+					<MapSearch />
 					<MapControls />
 				</MapContainer>
 			</div>

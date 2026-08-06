@@ -1,3 +1,4 @@
+import L from "leaflet";
 import { Layers, Locate, ZoomIn, ZoomOut } from "lucide-react";
 import * as React from "react";
 import { useMap as useReactLeafletMap } from "react-leaflet";
@@ -15,6 +16,14 @@ export function MapControls() {
 	const { mapStyle, setMapStyle } = useMap();
 	const leafletMap = useReactLeafletMap();
 	const [locating, setLocating] = React.useState(false);
+	const containerRef = React.useRef<HTMLDivElement>(null);
+
+	React.useEffect(() => {
+		if (containerRef.current) {
+			L.DomEvent.disableClickPropagation(containerRef.current);
+			L.DomEvent.disableScrollPropagation(containerRef.current);
+		}
+	}, []);
 
 	const handleZoomIn = () => {
 		leafletMap.zoomIn();
@@ -44,13 +53,12 @@ export function MapControls() {
 	};
 
 	return (
-		<div className="absolute right-4 bottom-4 z-500 flex flex-col gap-2">
+		<div ref={containerRef} className="absolute right-4 bottom-4 z-500 flex flex-col gap-2">
 			{/* Zoom Controls */}
 			<div className="flex flex-col rounded-lg border border-line bg-surface-strong backdrop-blur-md overflow-hidden shadow-lg shadow-black/40">
 				<Button
 					variant="ghost"
 					size="icon-sm"
-					className="h-10 w-10 text-sea-ink hover:text-lagoon rounded-none border-b border-line/50"
 					onClick={handleZoomIn}
 					title="Zoom In"
 				>
@@ -59,7 +67,6 @@ export function MapControls() {
 				<Button
 					variant="ghost"
 					size="icon-sm"
-					className="h-10 w-10 text-sea-ink hover:text-lagoon rounded-none"
 					onClick={handleZoomOut}
 					title="Zoom Out"
 				>
@@ -71,7 +78,6 @@ export function MapControls() {
 			<Button
 				variant="outline"
 				size="icon-sm"
-				className="h-10 w-10 border border-line bg-surface-strong text-sea-ink hover:text-lagoon backdrop-blur-md shadow-lg shadow-black/40 hover:bg-surface"
 				onClick={handleLocateMe}
 				disabled={locating}
 				title="Locate Me"
@@ -87,7 +93,6 @@ export function MapControls() {
 					<Button
 						variant="outline"
 						size="icon-sm"
-						className="h-10 w-10 border border-line bg-surface-strong text-sea-ink hover:text-lagoon backdrop-blur-md shadow-lg shadow-black/40 hover:bg-surface"
 						title="Change Style"
 					>
 						<Layers className="h-5 w-5" />

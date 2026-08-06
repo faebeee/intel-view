@@ -240,7 +240,6 @@ export function CreateNoteModal({
 							type="button"
 							variant="outline"
 							size="sm"
-							className="border-line text-sea-ink-soft hover:bg-line/20 hover:text-sea-ink text-xs font-mono font-bold"
 							onClick={() => onOpenChange(false)}
 							disabled={createNoteMutation.isPending}
 						>
@@ -248,8 +247,8 @@ export function CreateNoteModal({
 						</Button>
 						<Button
 							type="submit"
+							variant="default"
 							size="sm"
-							className="bg-palm text-background border-none hover:bg-palm/90 shadow-[0_0_10px_rgba(56,189,248,0.4)] font-mono font-bold text-xs h-9 px-4"
 							disabled={createNoteMutation.isPending}
 						>
 							{createNoteMutation.isPending ? (

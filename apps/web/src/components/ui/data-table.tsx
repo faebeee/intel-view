@@ -158,7 +158,6 @@ export function DataTable<TData extends Record<string, unknown>>({
 							size="sm"
 							onClick={() => table.previousPage()}
 							disabled={!table.getCanPreviousPage()}
-							className="font-mono text-xs border-line hover:bg-accent/25 hover:text-palm text-sea-ink disabled:opacity-30"
 						>
 							Prev
 						</Button>
@@ -167,7 +166,6 @@ export function DataTable<TData extends Record<string, unknown>>({
 							size="sm"
 							onClick={() => table.nextPage()}
 							disabled={!table.getCanNextPage()}
-							className="font-mono text-xs border-line hover:bg-accent/25 hover:text-palm text-sea-ink disabled:opacity-30"
 						>
 							Next
 						</Button>
@@ -195,7 +193,7 @@ export function SortableHeader<TData extends Record<string, unknown>, TValue>({
 			variant="ghost"
 			size="sm"
 			onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-			className="-ml-3 h-8 gap-1 font-mono text-xs font-bold tracking-wider text-sea-ink/80 hover:bg-accent/15 hover:text-palm"
+			className="-ml-3 h-8 gap-1"
 		>
 			<span>{title}</span>
 			{isSorted === "desc" ? (

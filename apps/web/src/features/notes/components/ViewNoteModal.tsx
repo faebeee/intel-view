@@ -59,7 +59,6 @@ export function ViewNoteModal({
 									onOpenChange(false);
 									onEditClick(note);
 								}}
-								className="border-line hover:bg-accent/25 hover:text-palm text-sea-ink font-mono text-xs gap-1.5"
 							>
 								<Edit2 className="h-3 w-3" />
 								<span>Edit Note</span>
@@ -117,7 +116,6 @@ export function ViewNoteModal({
 						type="button"
 						variant="outline"
 						size="sm"
-						className="border-line text-sea-ink-soft hover:bg-line/20 hover:text-sea-ink text-xs font-mono font-bold"
 						onClick={() => onOpenChange(false)}
 					>
 						Close

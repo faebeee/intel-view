@@ -85,6 +85,14 @@ export function MapSearch() {
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
 
+	// Disable click and scroll propagation to the underlying map
+	React.useEffect(() => {
+		if (dropdownRef.current) {
+			L.DomEvent.disableClickPropagation(dropdownRef.current);
+			L.DomEvent.disableScrollPropagation(dropdownRef.current);
+		}
+	}, []);
+
 	const handleSelectResult = (result: GeocodingResult) => {
 		const lat = parseFloat(result.lat);
 		const lon = parseFloat(result.lon);
@@ -109,7 +117,7 @@ export function MapSearch() {
 			{/* Floating Geocoding Search Panel */}
 			<div
 				ref={dropdownRef}
-				className="absolute left-4 top-4 z-500 w-72 sm:w-80 md:w-96 flex flex-col gap-1.5"
+				className="absolute left-4 top-4 z-1000 w-72 sm:w-80 md:w-96 flex flex-col gap-1.5"
 			>
 				<div className="relative flex items-center bg-surface-strong/95 border border-line rounded-lg backdrop-blur-md shadow-lg shadow-black/40 p-1">
 					<Search className="absolute left-3.5 h-4 w-4 text-[#00f2ff] pointer-events-none" />
@@ -178,7 +186,6 @@ export function MapSearch() {
 						<Button
 							variant="ghost"
 							size="icon-xs"
-							className="h-5 w-5 text-amber-400 hover:text-red-400 hover:bg-amber-500/10"
 							onClick={handleClearTarget}
 						>
 							<X className="h-3 w-3" />
