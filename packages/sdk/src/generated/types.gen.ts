@@ -72,6 +72,14 @@ export type CreateNoteDto = {
      */
     tags?: Array<(string)>;
     /**
+     * X coordinate of the note on the canvas view
+     */
+    canvasX?: (number) | null;
+    /**
+     * Y coordinate of the note on the canvas view
+     */
+    canvasY?: (number) | null;
+    /**
      * ID of the parent note this note should be nested under. Omit or set to null for a top-level (root) note.
      */
     parentId?: (number) | null;
@@ -112,6 +120,14 @@ export type NoteResponseDto = {
      */
     tags?: Array<(string)>;
     /**
+     * X coordinate of the note on the canvas view
+     */
+    canvasX?: (number) | null;
+    /**
+     * Y coordinate of the note on the canvas view
+     */
+    canvasY?: (number) | null;
+    /**
      * ID of the parent note this note is nested under, if any. Null means the note is a top-level (root) note.
      */
     parentId?: (number) | null;
@@ -142,6 +158,14 @@ export type UpdateNoteDto = {
      * Optional list of plain text tags associated with this note
      */
     tags?: Array<(string)>;
+    /**
+     * X coordinate of the note on the canvas view
+     */
+    canvasX?: (number) | null;
+    /**
+     * Y coordinate of the note on the canvas view
+     */
+    canvasY?: (number) | null;
     /**
      * ID of the parent note this note should be nested under. Set to null to detach and make this a top-level (root) note.
      */

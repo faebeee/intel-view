@@ -4,6 +4,7 @@ import {
 	Map as MapIcon,
 	StickyNote,
 	Tag as TagIcon,
+	Workflow,
 } from "lucide-react";
 import type { JSX, ReactNode } from "react";
 import ParaglideLocaleSwitcher from "../../../components/LocaleSwitcher";
@@ -56,6 +57,15 @@ export function Layout({ children }: LayoutProps): JSX.Element {
 							>
 								<StickyNote className="w-4 h-4" />
 								<span>Notes</span>
+							</Link>
+							<Link
+								to="/projects/$projectId/canvas"
+								params={{ projectId: projectIdParam }}
+								className="nav-link text-sm font-bold flex items-center gap-1.5"
+								activeProps={{ className: "is-active" }}
+							>
+								<Workflow className="w-4 h-4" />
+								<span>Canvas</span>
 							</Link>
 							<Link
 								to="/projects/$projectId/tags"

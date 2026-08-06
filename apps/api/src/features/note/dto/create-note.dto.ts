@@ -65,6 +65,24 @@ export class CreateNoteDto {
   })
   tags?: string[];
 
+  @IsOptional()
+  @ApiProperty({
+    description: 'X coordinate of the note on the canvas view',
+    required: false,
+    type: Number,
+    nullable: true,
+  })
+  canvasX?: number | null;
+
+  @IsOptional()
+  @ApiProperty({
+    description: 'Y coordinate of the note on the canvas view',
+    required: false,
+    type: Number,
+    nullable: true,
+  })
+  canvasY?: number | null;
+
   @IsInt()
   @IsOptional()
   @ApiProperty({

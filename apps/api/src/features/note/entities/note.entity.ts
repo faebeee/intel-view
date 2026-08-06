@@ -69,6 +69,24 @@ export class Note extends BaseEntity {
   })
   tags: string[];
 
+  @Column({ type: 'double precision', nullable: true })
+  @ApiProperty({
+    description: 'X coordinate of the note on the canvas view',
+    required: false,
+    nullable: true,
+    type: 'number',
+  })
+  canvasX: number | null;
+
+  @Column({ type: 'double precision', nullable: true })
+  @ApiProperty({
+    description: 'Y coordinate of the note on the canvas view',
+    required: false,
+    nullable: true,
+    type: 'number',
+  })
+  canvasY: number | null;
+
   @Column({ type: 'int', nullable: true })
   @ApiProperty({
     description:

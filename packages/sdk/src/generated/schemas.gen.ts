@@ -103,6 +103,16 @@ export const CreateNoteDtoSchema = {
                 type: 'string'
             }
         },
+        canvasX: {
+            type: 'number',
+            description: 'X coordinate of the note on the canvas view',
+            nullable: true
+        },
+        canvasY: {
+            type: 'number',
+            description: 'Y coordinate of the note on the canvas view',
+            nullable: true
+        },
         parentId: {
             type: 'number',
             description: 'ID of the parent note this note should be nested under. Omit or set to null for a top-level (root) note.',
@@ -151,6 +161,16 @@ export const NoteResponseDtoSchema = {
                 type: 'string'
             }
         },
+        canvasX: {
+            type: 'number',
+            description: 'X coordinate of the note on the canvas view',
+            nullable: true
+        },
+        canvasY: {
+            type: 'number',
+            description: 'Y coordinate of the note on the canvas view',
+            nullable: true
+        },
         parentId: {
             type: 'number',
             description: 'ID of the parent note this note is nested under, if any. Null means the note is a top-level (root) note.',
@@ -196,6 +216,16 @@ export const UpdateNoteDtoSchema = {
             items: {
                 type: 'string'
             }
+        },
+        canvasX: {
+            type: 'number',
+            description: 'X coordinate of the note on the canvas view',
+            nullable: true
+        },
+        canvasY: {
+            type: 'number',
+            description: 'Y coordinate of the note on the canvas view',
+            nullable: true
         },
         parentId: {
             type: 'number',

@@ -51,6 +51,22 @@ export class NoteResponseDto {
   tags: string[];
 
   @ApiProperty({
+    description: 'X coordinate of the note on the canvas view',
+    required: false,
+    nullable: true,
+    type: 'number',
+  })
+  canvasX: number | null;
+
+  @ApiProperty({
+    description: 'Y coordinate of the note on the canvas view',
+    required: false,
+    nullable: true,
+    type: 'number',
+  })
+  canvasY: number | null;
+
+  @ApiProperty({
     description:
       'ID of the parent note this note is nested under, if any. Null means the note is a top-level (root) note.',
     required: false,
@@ -76,6 +92,8 @@ export function toNoteResponseDto(note: Note): NoteResponseDto {
     lat: note.lat,
     lng: note.lng,
     tags: note.tags,
+    canvasX: note.canvasX,
+    canvasY: note.canvasY,
     parentId: note.parentId,
     createdAt: note.createdAt,
     updatedAt: note.updatedAt,
