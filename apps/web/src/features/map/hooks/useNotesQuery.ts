@@ -1,15 +1,16 @@
-import type { Note, Tag } from "@repo/sdk";
+import type { NoteResponseDto as Note, TagResponseDto as Tag } from "@repo/sdk";
 import { noteControllerFindAll, tagControllerFindAll } from "@repo/sdk";
 import { useQuery } from "@tanstack/react-query";
 import type { PaginatedResponse } from "#/types/note";
 import type { MapMarkerData } from "../types";
 
-export function useNotesQuery() {
+export function useNotesQuery(projectId: number) {
 	return useQuery({
-		queryKey: ["notes", "map"],
+		queryKey: ["notes", "map", projectId],
 		queryFn: async () => {
 			const [response, tagsResponse] = await Promise.all([
 				noteControllerFindAll({
+					path: { projectId },
 					query: {
 						"filter.lat": ["$not:$null"],
 						"filter.lng": ["$not:$null"],
@@ -17,6 +18,7 @@ export function useNotesQuery() {
 					},
 				}),
 				tagControllerFindAll({
+					path: { projectId },
 					query: {
 						limit: 100,
 					},
@@ -72,5 +74,6 @@ export function useNotesQuery() {
 					};
 				});
 		},
+		enabled: !Number.isNaN(projectId),
 	});
 }

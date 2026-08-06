@@ -1,9 +1,18 @@
 import { BaseEntity } from '../../database/entities/base.entity';
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+import { Project } from '../../project/entities/project.entity';
 
 @Entity()
 export class Note extends BaseEntity {
+  @Column()
+  @ApiProperty({ description: 'ID of the project this note belongs to' })
+  projectId: number;
+
+  @ManyToOne(() => Project, (project) => project.notes)
+  @JoinColumn({ name: 'projectId' })
+  project: Project;
+
   @Column({ type: 'text', nullable: true })
   @ApiProperty({ description: 'Content of the note' })
   content: string;

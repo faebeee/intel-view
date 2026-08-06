@@ -1,13 +1,14 @@
-import type { Note } from "@repo/sdk";
+import type { NoteResponseDto as Note } from "@repo/sdk";
 import { noteControllerFindAll } from "@repo/sdk";
 import { useQuery } from "@tanstack/react-query";
 import type { PaginatedResponse } from "#/types/note";
 
-export function useAllNotesQuery() {
+export function useAllNotesQuery(projectId: number) {
 	return useQuery({
-		queryKey: ["notes", "all"],
+		queryKey: ["notes", "all", projectId],
 		queryFn: async () => {
 			const response = await noteControllerFindAll({
+				path: { projectId },
 				query: {
 					limit: 100,
 					sortBy: ["id:DESC"],
@@ -17,5 +18,6 @@ export function useAllNotesQuery() {
 			const paginated = response.data as PaginatedResponse<Note>;
 			return paginated?.data || [];
 		},
+		enabled: !Number.isNaN(projectId),
 	});
 }

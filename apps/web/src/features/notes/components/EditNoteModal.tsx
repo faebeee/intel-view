@@ -1,7 +1,7 @@
-import type { Note } from "@repo/sdk";
+import type { NoteResponseDto as Note } from "@repo/sdk";
 import { noteControllerUpdate } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
@@ -17,6 +17,7 @@ import { Input } from "#/components/ui/input";
 import { MarkdownEditor } from "#/components/ui/markdown-editor.tsx";
 
 type EditNoteModalProps = {
+	projectId: number;
 	note: Note | null;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -24,6 +25,7 @@ type EditNoteModalProps = {
 };
 
 export function EditNoteModal({
+	projectId,
 	note,
 	open,
 	onOpenChange,
@@ -58,17 +60,19 @@ export function EditNoteModal({
 		}) => {
 			if (!note) throw new Error("No note selected");
 			const res = await noteControllerUpdate({
-				path: { id: note.id },
+				path: { projectId, id: note.id },
 				body: payload,
 			});
 			return res.data;
 		},
 		onSuccess: () => {
 			toast.success("Note updated successfully");
-			queryClient.invalidateQueries({ queryKey: ["notes", "all"] });
-			queryClient.invalidateQueries({ queryKey: ["notes", "map"] });
+			queryClient.invalidateQueries({ queryKey: ["notes", "all", projectId] });
+			queryClient.invalidateQueries({ queryKey: ["notes", "map", projectId] });
 			if (note) {
-				queryClient.invalidateQueries({ queryKey: ["notes", note.id] });
+				queryClient.invalidateQueries({
+					queryKey: ["notes", projectId, note.id],
+				});
 			}
 			onOpenChange(false);
 			if (onSuccess) onSuccess();

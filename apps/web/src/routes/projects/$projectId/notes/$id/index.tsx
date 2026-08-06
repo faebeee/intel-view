@@ -12,18 +12,19 @@ import { EditNoteModal } from "#/features/notes/components/EditNoteModal.tsx";
 import { useNoteQuery } from "#/features/notes/hooks/useNoteQuery.ts";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 
-export const Route = createFileRoute("/notes/$id/")({
+export const Route = createFileRoute("/projects/$projectId/notes/$id/")({
 	component: NoteDetailRouteComponent,
 });
 
 function NoteDetailRouteComponent(): JSX.Element {
-	const { id } = Route.useParams();
+	const { projectId: projectIdParam, id } = Route.useParams();
+	const projectId = parseInt(projectIdParam, 10);
 	const noteId = parseInt(id, 10);
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 
-	const { data: note, isLoading, refetch } = useNoteQuery(noteId);
-	const { data: availableTags = [] } = useAllTagsQuery();
+	const { data: note, isLoading, refetch } = useNoteQuery(projectId, noteId);
+	const { data: availableTags = [] } = useAllTagsQuery(projectId);
 	const [isEditOpen, setIsEditOpen] = React.useState(false);
 
 	const tagColorMap = React.useMemo(() => {
@@ -37,15 +38,18 @@ function NoteDetailRouteComponent(): JSX.Element {
 	const removeNoteMutation = useMutation({
 		mutationFn: async (id: number) => {
 			const res = await noteControllerRemove({
-				path: { id },
+				path: { projectId, id },
 			});
 			return res.data;
 		},
 		onSuccess: () => {
 			toast.success("Note deleted successfully");
-			queryClient.invalidateQueries({ queryKey: ["notes", "all"] });
-			queryClient.invalidateQueries({ queryKey: ["notes", "map"] });
-			navigate({ to: "/notes" });
+			queryClient.invalidateQueries({ queryKey: ["notes", "all", projectId] });
+			queryClient.invalidateQueries({ queryKey: ["notes", "map", projectId] });
+			navigate({
+				to: "/projects/$projectId/notes",
+				params: { projectId: projectIdParam },
+			});
 		},
 		onError: (err) => {
 			console.error("Failed to delete note:", err);
@@ -70,7 +74,10 @@ function NoteDetailRouteComponent(): JSX.Element {
 		return (
 			<div className="min-h-full w-full bg-background/50 p-6 flex flex-col items-center justify-center py-40 gap-4">
 				<p className="font-mono text-xs text-red-400">Note #{id} not found.</p>
-				<Link to="/notes">
+				<Link
+					to="/projects/$projectId/notes"
+					params={{ projectId: projectIdParam }}
+				>
 					<Button
 						variant="outline"
 						size="sm"
@@ -103,7 +110,10 @@ function NoteDetailRouteComponent(): JSX.Element {
 		<div className="min-h-full w-full bg-background/50 p-6 flex flex-col gap-6 max-w-4xl mx-auto animate-fade-in">
 			{/* Breadcrumb Navigation */}
 			<div className="flex items-center justify-between border-b border-line pb-4">
-				<Link to="/notes">
+				<Link
+					to="/projects/$projectId/notes"
+					params={{ projectId: projectIdParam }}
+				>
 					<Button
 						variant="outline"
 						size="xs"
@@ -151,7 +161,8 @@ function NoteDetailRouteComponent(): JSX.Element {
 						</div>
 						{hasCoords && (
 							<Link
-								to="/map"
+								to="/projects/$projectId/map"
+								params={{ projectId: projectIdParam }}
 								className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-palm/10 border border-palm/25 hover:bg-palm/25 text-palm text-xs font-mono font-bold uppercase tracking-wider transition-colors no-underline shadow-[0_0_15px_rgba(0,242,255,0.1)]"
 							>
 								<Compass className="h-3.5 w-3.5 animate-spin-slow" />
@@ -211,6 +222,7 @@ function NoteDetailRouteComponent(): JSX.Element {
 
 			{/* Edit Note Modal */}
 			<EditNoteModal
+				projectId={projectId}
 				note={note}
 				open={isEditOpen}
 				onOpenChange={setIsEditOpen}

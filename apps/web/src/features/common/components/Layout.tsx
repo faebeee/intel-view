@@ -1,13 +1,23 @@
-import { Link } from "@tanstack/react-router";
-import { Map as MapIcon, StickyNote, Tag as TagIcon } from "lucide-react";
+import { Link, useParams } from "@tanstack/react-router";
+import {
+	FolderKanban,
+	Map as MapIcon,
+	StickyNote,
+	Tag as TagIcon,
+} from "lucide-react";
 import type { JSX, ReactNode } from "react";
 import ParaglideLocaleSwitcher from "../../../components/LocaleSwitcher";
+import { useProjectQuery } from "../../projects/hooks/useProjectQuery";
 
 type LayoutProps = {
 	children: ReactNode;
 };
 
 export function Layout({ children }: LayoutProps): JSX.Element {
+	const { projectId: projectIdParam } = useParams({ strict: false });
+	const projectId = projectIdParam ? parseInt(projectIdParam, 10) : NaN;
+	const { data: project } = useProjectQuery(projectId);
+
 	return (
 		<div className="flex flex-col min-h-screen w-full bg-background text-foreground overflow-hidden">
 			{/* Small Header */}
@@ -20,32 +30,50 @@ export function Layout({ children }: LayoutProps): JSX.Element {
 						<StickyNote className="w-6 h-6 text-palm" />
 					</Link>
 
-					<nav className="flex items-center gap-6">
-						<Link
-							to="/map"
-							className="nav-link text-sm font-bold flex items-center gap-1.5"
-							activeProps={{ className: "is-active" }}
-						>
-							<MapIcon className="w-4 h-4" />
-							<span>Map</span>
-						</Link>
-						<Link
-							to="/notes"
-							className="nav-link text-sm font-bold flex items-center gap-1.5"
-							activeProps={{ className: "is-active" }}
-						>
-							<StickyNote className="w-4 h-4" />
-							<span>Notes</span>
-						</Link>
-						<Link
-							to="/tags"
-							className="nav-link text-sm font-bold flex items-center gap-1.5"
-							activeProps={{ className: "is-active" }}
-						>
-							<TagIcon className="w-4 h-4" />
-							<span>Tags</span>
-						</Link>
-					</nav>
+					{projectIdParam ? (
+						<nav className="flex items-center gap-6">
+							<Link
+								to="/"
+								className="nav-link text-sm font-bold flex items-center gap-1.5"
+							>
+								<FolderKanban className="w-4 h-4" />
+								<span>{project?.name || "Projects"}</span>
+							</Link>
+							<Link
+								to="/projects/$projectId/map"
+								params={{ projectId: projectIdParam }}
+								className="nav-link text-sm font-bold flex items-center gap-1.5"
+								activeProps={{ className: "is-active" }}
+							>
+								<MapIcon className="w-4 h-4" />
+								<span>Map</span>
+							</Link>
+							<Link
+								to="/projects/$projectId/notes"
+								params={{ projectId: projectIdParam }}
+								className="nav-link text-sm font-bold flex items-center gap-1.5"
+								activeProps={{ className: "is-active" }}
+							>
+								<StickyNote className="w-4 h-4" />
+								<span>Notes</span>
+							</Link>
+							<Link
+								to="/projects/$projectId/tags"
+								params={{ projectId: projectIdParam }}
+								className="nav-link text-sm font-bold flex items-center gap-1.5"
+								activeProps={{ className: "is-active" }}
+							>
+								<TagIcon className="w-4 h-4" />
+								<span>Tags</span>
+							</Link>
+						</nav>
+					) : (
+						<nav className="flex items-center gap-6">
+							<span className="text-sm font-bold text-sea-ink-soft uppercase tracking-wider">
+								Projects
+							</span>
+						</nav>
+					)}
 
 					<div className="flex items-center gap-3">
 						<ParaglideLocaleSwitcher />

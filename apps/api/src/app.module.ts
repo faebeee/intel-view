@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { NoteModule } from './features/note/note.module';
 import { TagModule } from './features/tag/tag.module';
+import { ProjectModule } from './features/project/project.module';
 import { DatabaseModule } from './features/database/database.module';
 
 @Module({
@@ -18,6 +19,7 @@ import { DatabaseModule } from './features/database/database.module';
       autoLoadEntities: true,
     }),
     DatabaseModule,
+    ProjectModule,
     NoteModule,
     TagModule,
   ],

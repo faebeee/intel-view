@@ -4,7 +4,11 @@ import "leaflet/dist/leaflet.css";
 
 const LazyMapViewContent = React.lazy(() => import("./MapViewContent"));
 
-export function MapView() {
+type MapViewProps = {
+	projectId: number;
+};
+
+export function MapView({ projectId }: MapViewProps) {
 	const [mounted, setMounted] = React.useState(false);
 
 	React.useEffect(() => {
@@ -31,7 +35,7 @@ export function MapView() {
 				</div>
 			}
 		>
-			<LazyMapViewContent />
+			<LazyMapViewContent projectId={projectId} />
 		</React.Suspense>
 	);
 }

@@ -1,6 +1,6 @@
 import { noteControllerCreate } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { RefreshCw, Check } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
@@ -16,6 +16,7 @@ import { Input } from "#/components/ui/input";
 import { MarkdownEditor } from "#/components/ui/markdown-editor.tsx";
 
 type CreateNoteModalProps = {
+	projectId: number;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	defaultLat?: number;
@@ -24,6 +25,7 @@ type CreateNoteModalProps = {
 };
 
 export function CreateNoteModal({
+	projectId,
 	open,
 	onOpenChange,
 	defaultLat,
@@ -58,14 +60,15 @@ export function CreateNoteModal({
 			tags: string[];
 		}) => {
 			const res = await noteControllerCreate({
+				path: { projectId },
 				body: payload,
 			});
 			return res.data;
 		},
 		onSuccess: () => {
 			toast.success("Note added successfully");
-			queryClient.invalidateQueries({ queryKey: ["notes", "map"] });
-			queryClient.invalidateQueries({ queryKey: ["notes", "all"] });
+			queryClient.invalidateQueries({ queryKey: ["notes", "map", projectId] });
+			queryClient.invalidateQueries({ queryKey: ["notes", "all", projectId] });
 			onOpenChange(false);
 			if (onSuccess) onSuccess();
 		},

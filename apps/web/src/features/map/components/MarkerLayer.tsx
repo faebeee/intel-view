@@ -12,7 +12,7 @@ type MarkerLayerProps = {
 
 // Helper to create the neon-styled marker icon using dynamic tag gradients or solid fallbacks
 const createNeonIcon = (
-	tags?: { id: number; name: string; color: string }[],
+	tags?: { id: string; name: string; color: string }[],
 	category?: string,
 ) => {
 	let backgroundStyle = "";

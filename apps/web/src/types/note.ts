@@ -1,4 +1,8 @@
-export type { CreateNoteDto, Note, UpdateNoteDto } from "@repo/sdk";
+export type {
+	CreateNoteDto,
+	NoteResponseDto,
+	UpdateNoteDto,
+} from "@repo/sdk";
 
 export type PaginatedResponse<T> = {
 	data: T[];

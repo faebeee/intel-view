@@ -1,5 +1,5 @@
 import { noteControllerRemove } from "@repo/sdk";
-import type { Note } from "@repo/sdk";
+import type { NoteResponseDto as Note } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -29,19 +29,21 @@ import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 
-export const Route = createFileRoute("/notes/")({
+export const Route = createFileRoute("/projects/$projectId/notes/")({
 	component: NotesRouteComponent,
 });
 
 function NotesRouteComponent(): JSX.Element {
+	const { projectId: projectIdParam } = Route.useParams();
+	const projectId = parseInt(projectIdParam, 10);
 	const queryClient = useQueryClient();
 	const {
 		data: notes = [],
 		isLoading,
 		isRefetching,
 		refetch,
-	} = useAllNotesQuery();
-	const { data: availableTags = [] } = useAllTagsQuery();
+	} = useAllNotesQuery(projectId);
+	const { data: availableTags = [] } = useAllTagsQuery(projectId);
 
 	const tagColorMap = React.useMemo(() => {
 		const map = new Map<string, string>();
@@ -61,14 +63,14 @@ function NotesRouteComponent(): JSX.Element {
 	const removeNoteMutation = useMutation({
 		mutationFn: async (id: number) => {
 			const res = await noteControllerRemove({
-				path: { id },
+				path: { projectId, id },
 			});
 			return res.data;
 		},
 		onSuccess: () => {
 			toast.success("Note deleted successfully");
-			queryClient.invalidateQueries({ queryKey: ["notes", "all"] });
-			queryClient.invalidateQueries({ queryKey: ["notes", "map"] });
+			queryClient.invalidateQueries({ queryKey: ["notes", "all", projectId] });
+			queryClient.invalidateQueries({ queryKey: ["notes", "map", projectId] });
 		},
 		onError: (err) => {
 			console.error("Failed to delete note:", err);
@@ -97,8 +99,8 @@ function NotesRouteComponent(): JSX.Element {
 			),
 			cell: ({ row }: { row: Row<Note> }) => (
 				<Link
-					to="/notes/$id"
-					params={{ id: String(row.original.id) }}
+					to="/projects/$projectId/notes/$id"
+					params={{ projectId: projectIdParam, id: String(row.original.id) }}
 					className="font-mono text-palm font-bold hover:underline"
 				>
 					#{row.original.id}
@@ -117,8 +119,8 @@ function NotesRouteComponent(): JSX.Element {
 					content.length > 80 ? `${content.substring(0, 80)}...` : content;
 				return (
 					<Link
-						to="/notes/$id"
-						params={{ id: String(row.original.id) }}
+						to="/projects/$projectId/notes/$id"
+						params={{ projectId: projectIdParam, id: String(row.original.id) }}
 						className="text-left whitespace-pre-wrap break-all hover:text-palm cursor-pointer transition-colors outline-none focus-visible:text-palm font-sans text-xs hover:underline no-underline text-inherit"
 						title="Click to view note details"
 					>
@@ -226,19 +228,15 @@ function NotesRouteComponent(): JSX.Element {
 					note.lng !== undefined;
 				return (
 					<div className="flex items-center gap-2">
-						<Link
-							to="/notes/$id"
-							params={{ id: String(note.id) }}
+						<Button
+							variant="outline"
+							size="xs"
+							title="Quick view note"
+							onClick={() => handleViewClick(note)}
 						>
-							<Button
-								variant="outline"
-								size="xs"
-								title="View note details"
-							>
-								<Eye className="h-3 w-3" />
-								<span>View</span>
-							</Button>
-						</Link>
+							<Eye className="h-3 w-3" />
+							<span>View</span>
+						</Button>
 
 						<Button
 							variant="outline"
@@ -264,7 +262,8 @@ function NotesRouteComponent(): JSX.Element {
 
 						{hasCoords ? (
 							<Link
-								to="/map"
+								to="/projects/$projectId/map"
+								params={{ projectId: projectIdParam }}
 								className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-palm/10 border border-palm/20 hover:bg-palm/25 text-palm text-xs font-mono font-bold uppercase tracking-wider transition-colors no-underline"
 							>
 								<MapPin className="h-3 w-3" />
@@ -349,6 +348,7 @@ function NotesRouteComponent(): JSX.Element {
 
 			{/* View Note Modal */}
 			<ViewNoteModal
+				projectId={projectId}
 				note={viewingNote}
 				open={isViewOpen}
 				onOpenChange={setIsViewOpen}
@@ -357,13 +357,18 @@ function NotesRouteComponent(): JSX.Element {
 
 			{/* Edit Note Modal */}
 			<EditNoteModal
+				projectId={projectId}
 				note={editingNote}
 				open={isEditOpen}
 				onOpenChange={setIsEditOpen}
 			/>
 
 			{/* Create Note Modal */}
-			<CreateNoteModal open={isCreateOpen} onOpenChange={setIsCreateOpen} />
+			<CreateNoteModal
+				projectId={projectId}
+				open={isCreateOpen}
+				onOpenChange={setIsCreateOpen}
+			/>
 		</div>
 	);
 }

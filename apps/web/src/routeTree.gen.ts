@@ -10,80 +10,120 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as MapRouteImport } from './routes/map'
-import { Route as NotesRouteImport } from './routes/notes'
-import { Route as TagsRouteImport } from './routes/tags'
-import { Route as NotesIndexRouteImport } from './routes/notes/index'
-import { Route as NotesIdIndexRouteImport } from './routes/notes/$id/index'
+import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projectId'
+import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$projectId/index'
+import { Route as ProjectsProjectIdMapRouteImport } from './routes/projects/$projectId/map'
+import { Route as ProjectsProjectIdNotesRouteImport } from './routes/projects/$projectId/notes'
+import { Route as ProjectsProjectIdTagsRouteImport } from './routes/projects/$projectId/tags'
+import { Route as ProjectsProjectIdNotesIndexRouteImport } from './routes/projects/$projectId/notes/index'
+import { Route as ProjectsProjectIdNotesIdIndexRouteImport } from './routes/projects/$projectId/notes/$id/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MapRoute = MapRouteImport.update({
-  id: '/map',
-  path: '/map',
+const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
+  id: '/projects/$projectId',
+  path: '/projects/$projectId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const NotesRoute = NotesRouteImport.update({
-  id: '/notes',
-  path: '/notes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TagsRoute = TagsRouteImport.update({
-  id: '/tags',
-  path: '/tags',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotesIndexRoute = NotesIndexRouteImport.update({
+const ProjectsProjectIdIndexRoute = ProjectsProjectIdIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => NotesRoute,
+  getParentRoute: () => ProjectsProjectIdRoute,
 } as any)
-const NotesIdIndexRoute = NotesIdIndexRouteImport.update({
-  id: '/$id/',
-  path: '/$id/',
-  getParentRoute: () => NotesRoute,
+const ProjectsProjectIdMapRoute = ProjectsProjectIdMapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => ProjectsProjectIdRoute,
 } as any)
+const ProjectsProjectIdNotesRoute = ProjectsProjectIdNotesRouteImport.update({
+  id: '/notes',
+  path: '/notes',
+  getParentRoute: () => ProjectsProjectIdRoute,
+} as any)
+const ProjectsProjectIdTagsRoute = ProjectsProjectIdTagsRouteImport.update({
+  id: '/tags',
+  path: '/tags',
+  getParentRoute: () => ProjectsProjectIdRoute,
+} as any)
+const ProjectsProjectIdNotesIndexRoute =
+  ProjectsProjectIdNotesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => ProjectsProjectIdNotesRoute,
+  } as any)
+const ProjectsProjectIdNotesIdIndexRoute =
+  ProjectsProjectIdNotesIdIndexRouteImport.update({
+    id: '/$id/',
+    path: '/$id/',
+    getParentRoute: () => ProjectsProjectIdNotesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/map': typeof MapRoute
-  '/notes': typeof NotesRouteWithChildren
-  '/tags': typeof TagsRoute
-  '/notes/': typeof NotesIndexRoute
-  '/notes/$id/': typeof NotesIdIndexRoute
+  '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/projects/$projectId/map': typeof ProjectsProjectIdMapRoute
+  '/projects/$projectId/notes': typeof ProjectsProjectIdNotesRouteWithChildren
+  '/projects/$projectId/tags': typeof ProjectsProjectIdTagsRoute
+  '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
+  '/projects/$projectId/notes/': typeof ProjectsProjectIdNotesIndexRoute
+  '/projects/$projectId/notes/$id/': typeof ProjectsProjectIdNotesIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/map': typeof MapRoute
-  '/tags': typeof TagsRoute
-  '/notes': typeof NotesIndexRoute
-  '/notes/$id': typeof NotesIdIndexRoute
+  '/projects/$projectId/map': typeof ProjectsProjectIdMapRoute
+  '/projects/$projectId/tags': typeof ProjectsProjectIdTagsRoute
+  '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
+  '/projects/$projectId/notes': typeof ProjectsProjectIdNotesIndexRoute
+  '/projects/$projectId/notes/$id': typeof ProjectsProjectIdNotesIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/map': typeof MapRoute
-  '/notes': typeof NotesRouteWithChildren
-  '/tags': typeof TagsRoute
-  '/notes/': typeof NotesIndexRoute
-  '/notes/$id/': typeof NotesIdIndexRoute
+  '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/projects/$projectId/map': typeof ProjectsProjectIdMapRoute
+  '/projects/$projectId/notes': typeof ProjectsProjectIdNotesRouteWithChildren
+  '/projects/$projectId/tags': typeof ProjectsProjectIdTagsRoute
+  '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
+  '/projects/$projectId/notes/': typeof ProjectsProjectIdNotesIndexRoute
+  '/projects/$projectId/notes/$id/': typeof ProjectsProjectIdNotesIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/map' | '/notes' | '/tags' | '/notes/' | '/notes/$id/'
+  fullPaths:
+    | '/'
+    | '/projects/$projectId'
+    | '/projects/$projectId/map'
+    | '/projects/$projectId/notes'
+    | '/projects/$projectId/tags'
+    | '/projects/$projectId/'
+    | '/projects/$projectId/notes/'
+    | '/projects/$projectId/notes/$id/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/map' | '/tags' | '/notes' | '/notes/$id'
-  id: '__root__' | '/' | '/map' | '/notes' | '/tags' | '/notes/' | '/notes/$id/'
+  to:
+    | '/'
+    | '/projects/$projectId/map'
+    | '/projects/$projectId/tags'
+    | '/projects/$projectId'
+    | '/projects/$projectId/notes'
+    | '/projects/$projectId/notes/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/projects/$projectId'
+    | '/projects/$projectId/map'
+    | '/projects/$projectId/notes'
+    | '/projects/$projectId/tags'
+    | '/projects/$projectId/'
+    | '/projects/$projectId/notes/'
+    | '/projects/$projectId/notes/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  MapRoute: typeof MapRoute
-  NotesRoute: typeof NotesRouteWithChildren
-  TagsRoute: typeof TagsRoute
+  ProjectsProjectIdRoute: typeof ProjectsProjectIdRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -95,61 +135,94 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/map': {
-      id: '/map'
-      path: '/map'
-      fullPath: '/map'
-      preLoaderRoute: typeof MapRouteImport
+    '/projects/$projectId': {
+      id: '/projects/$projectId'
+      path: '/projects/$projectId'
+      fullPath: '/projects/$projectId'
+      preLoaderRoute: typeof ProjectsProjectIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/notes': {
-      id: '/notes'
-      path: '/notes'
-      fullPath: '/notes'
-      preLoaderRoute: typeof NotesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tags': {
-      id: '/tags'
-      path: '/tags'
-      fullPath: '/tags'
-      preLoaderRoute: typeof TagsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notes/': {
-      id: '/notes/'
+    '/projects/$projectId/': {
+      id: '/projects/$projectId/'
       path: '/'
-      fullPath: '/notes/'
-      preLoaderRoute: typeof NotesIndexRouteImport
-      parentRoute: typeof NotesRoute
+      fullPath: '/projects/$projectId/'
+      preLoaderRoute: typeof ProjectsProjectIdIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
     }
-    '/notes/$id/': {
-      id: '/notes/$id/'
+    '/projects/$projectId/map': {
+      id: '/projects/$projectId/map'
+      path: '/map'
+      fullPath: '/projects/$projectId/map'
+      preLoaderRoute: typeof ProjectsProjectIdMapRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/notes': {
+      id: '/projects/$projectId/notes'
+      path: '/notes'
+      fullPath: '/projects/$projectId/notes'
+      preLoaderRoute: typeof ProjectsProjectIdNotesRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/tags': {
+      id: '/projects/$projectId/tags'
+      path: '/tags'
+      fullPath: '/projects/$projectId/tags'
+      preLoaderRoute: typeof ProjectsProjectIdTagsRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/notes/': {
+      id: '/projects/$projectId/notes/'
+      path: '/'
+      fullPath: '/projects/$projectId/notes/'
+      preLoaderRoute: typeof ProjectsProjectIdNotesIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdNotesRoute
+    }
+    '/projects/$projectId/notes/$id/': {
+      id: '/projects/$projectId/notes/$id/'
       path: '/$id'
-      fullPath: '/notes/$id/'
-      preLoaderRoute: typeof NotesIdIndexRouteImport
-      parentRoute: typeof NotesRoute
+      fullPath: '/projects/$projectId/notes/$id/'
+      preLoaderRoute: typeof ProjectsProjectIdNotesIdIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdNotesRoute
     }
   }
 }
 
-interface NotesRouteChildren {
-  NotesIndexRoute: typeof NotesIndexRoute
-  NotesIdIndexRoute: typeof NotesIdIndexRoute
+interface ProjectsProjectIdNotesRouteChildren {
+  ProjectsProjectIdNotesIndexRoute: typeof ProjectsProjectIdNotesIndexRoute
+  ProjectsProjectIdNotesIdIndexRoute: typeof ProjectsProjectIdNotesIdIndexRoute
 }
 
-const NotesRouteChildren: NotesRouteChildren = {
-  NotesIndexRoute: NotesIndexRoute,
-  NotesIdIndexRoute: NotesIdIndexRoute,
+const ProjectsProjectIdNotesRouteChildren: ProjectsProjectIdNotesRouteChildren =
+  {
+    ProjectsProjectIdNotesIndexRoute: ProjectsProjectIdNotesIndexRoute,
+    ProjectsProjectIdNotesIdIndexRoute: ProjectsProjectIdNotesIdIndexRoute,
+  }
+
+const ProjectsProjectIdNotesRouteWithChildren =
+  ProjectsProjectIdNotesRoute._addFileChildren(
+    ProjectsProjectIdNotesRouteChildren,
+  )
+
+interface ProjectsProjectIdRouteChildren {
+  ProjectsProjectIdMapRoute: typeof ProjectsProjectIdMapRoute
+  ProjectsProjectIdNotesRoute: typeof ProjectsProjectIdNotesRouteWithChildren
+  ProjectsProjectIdTagsRoute: typeof ProjectsProjectIdTagsRoute
+  ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
 }
 
-const NotesRouteWithChildren = NotesRoute._addFileChildren(NotesRouteChildren)
+const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
+  ProjectsProjectIdMapRoute: ProjectsProjectIdMapRoute,
+  ProjectsProjectIdNotesRoute: ProjectsProjectIdNotesRouteWithChildren,
+  ProjectsProjectIdTagsRoute: ProjectsProjectIdTagsRoute,
+  ProjectsProjectIdIndexRoute: ProjectsProjectIdIndexRoute,
+}
+
+const ProjectsProjectIdRouteWithChildren =
+  ProjectsProjectIdRoute._addFileChildren(ProjectsProjectIdRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  MapRoute: MapRoute,
-  NotesRoute: NotesRouteWithChildren,
-  TagsRoute: TagsRoute,
+  ProjectsProjectIdRoute: ProjectsProjectIdRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

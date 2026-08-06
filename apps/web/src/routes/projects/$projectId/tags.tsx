@@ -8,7 +8,7 @@ import type {
 	LegacyRow as Row,
 } from "@tanstack/react-table/legacy";
 import { tagControllerRemove } from "@repo/sdk";
-import type { Tag } from "@repo/sdk";
+import type { TagResponseDto as Tag } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -18,18 +18,20 @@ import { Button } from "#/components/ui/button.tsx";
 import { CreateTagModal } from "#/features/tags/components/CreateTagModal.tsx";
 import { EditTagModal } from "#/features/tags/components/EditTagModal.tsx";
 
-export const Route = createFileRoute("/tags")({
+export const Route = createFileRoute("/projects/$projectId/tags")({
 	component: TagsRouteComponent,
 });
 
 function TagsRouteComponent(): JSX.Element {
+	const { projectId: projectIdParam } = Route.useParams();
+	const projectId = parseInt(projectIdParam, 10);
 	const queryClient = useQueryClient();
 	const {
 		data: tags = [],
 		isLoading,
 		isRefetching,
 		refetch,
-	} = useAllTagsQuery();
+	} = useAllTagsQuery(projectId);
 
 	const [editingTag, setEditingTag] = React.useState<Tag | null>(null);
 	const [isEditOpen, setIsEditOpen] = React.useState(false);
@@ -44,13 +46,13 @@ function TagsRouteComponent(): JSX.Element {
 	const removeTagMutation = useMutation({
 		mutationFn: async (id: number) => {
 			const res = await tagControllerRemove({
-				path: { id },
+				path: { projectId, id },
 			});
 			return res.data;
 		},
 		onSuccess: () => {
 			toast.success("Tag deleted successfully");
-			queryClient.invalidateQueries({ queryKey: ["tags", "all"] });
+			queryClient.invalidateQueries({ queryKey: ["tags", "all", projectId] });
 		},
 		onError: (err) => {
 			console.error("Failed to delete tag:", err);
@@ -239,10 +241,15 @@ function TagsRouteComponent(): JSX.Element {
 			)}
 
 			{/* Create Tag Modal */}
-			<CreateTagModal open={isCreateOpen} onOpenChange={setIsCreateOpen} />
+			<CreateTagModal
+				projectId={projectId}
+				open={isCreateOpen}
+				onOpenChange={setIsCreateOpen}
+			/>
 
 			{/* Edit Tag Modal */}
 			<EditTagModal
+				projectId={projectId}
 				tag={editingTag}
 				open={isEditOpen}
 				onOpenChange={setIsEditOpen}

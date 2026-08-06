@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import {
@@ -10,6 +10,7 @@ import {
 import { Note } from './entities/note.entity';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
+import { Project } from '../project/entities/project.entity';
 
 export const notePaginateConfig: PaginateConfig<Note> = {
   sortableColumns: ['id', 'createdAt', 'updatedAt'],
@@ -28,29 +29,49 @@ export class NoteService {
   constructor(
     @InjectRepository(Note)
     private readonly noteRepository: Repository<Note>,
+    @InjectRepository(Project)
+    private readonly projectRepository: Repository<Project>,
   ) {}
 
-  async create(createNoteDto: CreateNoteDto): Promise<Note> {
-    const note = this.noteRepository.create(createNoteDto);
+  private async assertProjectExists(projectId: number): Promise<void> {
+    const project = await this.projectRepository.findOne({
+      where: { id: projectId, deletedAt: IsNull() },
+    });
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+  }
+
+  async create(projectId: number, createNoteDto: CreateNoteDto): Promise<Note> {
+    await this.assertProjectExists(projectId);
+    const note = this.noteRepository.create({ ...createNoteDto, projectId });
     return this.noteRepository.save(note);
   }
 
-  async findAll(query: PaginateQuery): Promise<Paginated<Note>> {
+  async findAll(
+    projectId: number,
+    query: PaginateQuery,
+  ): Promise<Paginated<Note>> {
+    await this.assertProjectExists(projectId);
     return paginate(query, this.noteRepository, {
       ...notePaginateConfig,
-      where: { deletedAt: IsNull() },
+      where: { deletedAt: IsNull(), projectId },
     });
   }
 
-  async findOne(id: number): Promise<Note | null> {
+  async findOne(projectId: number, id: number): Promise<Note | null> {
     return this.noteRepository.findOne({
-      where: { id, deletedAt: IsNull() },
+      where: { id, projectId, deletedAt: IsNull() },
     });
   }
 
-  async update(id: number, updateNoteDto: UpdateNoteDto): Promise<Note | null> {
+  async update(
+    projectId: number,
+    id: number,
+    updateNoteDto: UpdateNoteDto,
+  ): Promise<Note | null> {
     const note = await this.noteRepository.findOne({
-      where: { id, deletedAt: IsNull() },
+      where: { id, projectId, deletedAt: IsNull() },
     });
 
     if (!note) {
@@ -64,14 +85,15 @@ export class NoteService {
     return this.noteRepository.save(note);
   }
 
-  async remove(id: number): Promise<boolean> {
-    const note = await this.findOne(id);
+  async remove(projectId: number, id: number): Promise<boolean> {
+    const note = await this.findOne(projectId, id);
     if (!note) {
       return false;
     }
-    const result = await this.noteRepository.update(id, {
-      deletedAt: new Date(),
-    });
+    const result = await this.noteRepository.update(
+      { id, projectId },
+      { deletedAt: new Date() },
+    );
     return (result.affected ?? 0) > 0;
   }
 }

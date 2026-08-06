@@ -15,6 +15,7 @@ import {
 import { Input } from "#/components/ui/input";
 
 type CreateTagModalProps = {
+	projectId: number;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onSuccess?: () => void;
@@ -31,6 +32,7 @@ const PRESET_COLORS = [
 ];
 
 export function CreateTagModal({
+	projectId,
 	open,
 	onOpenChange,
 	onSuccess,
@@ -50,6 +52,7 @@ export function CreateTagModal({
 	const createTagMutation = useMutation({
 		mutationFn: async (payload: { name: string; color: string }) => {
 			const res = await tagControllerCreate({
+				path: { projectId },
 				body: {
 					name: payload.name,
 					color: payload.color,
@@ -59,7 +62,7 @@ export function CreateTagModal({
 		},
 		onSuccess: () => {
 			toast.success("Tag created successfully");
-			queryClient.invalidateQueries({ queryKey: ["tags", "all"] });
+			queryClient.invalidateQueries({ queryKey: ["tags", "all", projectId] });
 			onOpenChange(false);
 			if (onSuccess) onSuccess();
 		},

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import {
@@ -10,6 +10,7 @@ import {
 import { Tag } from './entities/tag.entity';
 import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
+import { Project } from '../project/entities/project.entity';
 
 export const tagPaginateConfig: PaginateConfig<Tag> = {
   sortableColumns: ['id', 'name', 'color', 'createdAt', 'updatedAt'],
@@ -27,29 +28,49 @@ export class TagService {
   constructor(
     @InjectRepository(Tag)
     private readonly tagRepository: Repository<Tag>,
+    @InjectRepository(Project)
+    private readonly projectRepository: Repository<Project>,
   ) {}
 
-  async create(createTagDto: CreateTagDto): Promise<Tag> {
-    const tag = this.tagRepository.create(createTagDto);
+  private async assertProjectExists(projectId: number): Promise<void> {
+    const project = await this.projectRepository.findOne({
+      where: { id: projectId, deletedAt: IsNull() },
+    });
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+  }
+
+  async create(projectId: number, createTagDto: CreateTagDto): Promise<Tag> {
+    await this.assertProjectExists(projectId);
+    const tag = this.tagRepository.create({ ...createTagDto, projectId });
     return this.tagRepository.save(tag);
   }
 
-  async findAll(query: PaginateQuery): Promise<Paginated<Tag>> {
+  async findAll(
+    projectId: number,
+    query: PaginateQuery,
+  ): Promise<Paginated<Tag>> {
+    await this.assertProjectExists(projectId);
     return paginate(query, this.tagRepository, {
       ...tagPaginateConfig,
-      where: { deletedAt: IsNull() },
+      where: { deletedAt: IsNull(), projectId },
     });
   }
 
-  async findOne(id: number): Promise<Tag | null> {
+  async findOne(projectId: number, id: number): Promise<Tag | null> {
     return this.tagRepository.findOne({
-      where: { id, deletedAt: IsNull() },
+      where: { id, projectId, deletedAt: IsNull() },
     });
   }
 
-  async update(id: number, updateTagDto: UpdateTagDto): Promise<Tag | null> {
+  async update(
+    projectId: number,
+    id: number,
+    updateTagDto: UpdateTagDto,
+  ): Promise<Tag | null> {
     const tag = await this.tagRepository.findOne({
-      where: { id, deletedAt: IsNull() },
+      where: { id, projectId, deletedAt: IsNull() },
     });
 
     if (!tag) {
@@ -63,14 +84,15 @@ export class TagService {
     return this.tagRepository.save(tag);
   }
 
-  async remove(id: number): Promise<boolean> {
-    const tag = await this.findOne(id);
+  async remove(projectId: number, id: number): Promise<boolean> {
+    const tag = await this.findOne(projectId, id);
     if (!tag) {
       return false;
     }
-    const result = await this.tagRepository.update(id, {
-      deletedAt: new Date(),
-    });
+    const result = await this.tagRepository.update(
+      { id, projectId },
+      { deletedAt: new Date() },
+    );
     return (result.affected ?? 0) > 0;
   }
 }

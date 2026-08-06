@@ -1,5 +1,5 @@
 import { tagControllerUpdate } from "@repo/sdk";
-import type { Tag } from "@repo/sdk";
+import type { TagResponseDto as Tag } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import * as React from "react";
@@ -16,6 +16,7 @@ import {
 import { Input } from "#/components/ui/input";
 
 type EditTagModalProps = {
+	projectId: number;
 	tag: Tag | null;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -33,6 +34,7 @@ const PRESET_COLORS = [
 ];
 
 export function EditTagModal({
+	projectId,
 	tag,
 	open,
 	onOpenChange,
@@ -54,7 +56,7 @@ export function EditTagModal({
 		mutationFn: async (payload: { name: string; color: string }) => {
 			if (!tag) throw new Error("No tag selected");
 			const res = await tagControllerUpdate({
-				path: { id: tag.id },
+				path: { projectId, id: tag.id },
 				body: {
 					name: payload.name,
 					color: payload.color,
@@ -64,7 +66,7 @@ export function EditTagModal({
 		},
 		onSuccess: () => {
 			toast.success("Tag updated successfully");
-			queryClient.invalidateQueries({ queryKey: ["tags", "all"] });
+			queryClient.invalidateQueries({ queryKey: ["tags", "all", projectId] });
 			onOpenChange(false);
 			if (onSuccess) onSuccess();
 		},

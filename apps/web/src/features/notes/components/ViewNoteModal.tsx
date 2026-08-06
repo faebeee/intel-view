@@ -1,4 +1,4 @@
-import type { Note } from "@repo/sdk";
+import type { NoteResponseDto as Note } from "@repo/sdk";
 import { Calendar, MapPin, Edit2 } from "lucide-react";
 import * as React from "react";
 import { Button } from "#/components/ui/button";
@@ -14,6 +14,7 @@ import { Markdown } from "#/components/ui/markdown.tsx";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 
 type ViewNoteModalProps = {
+	projectId: number;
 	note: Note | null;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -21,12 +22,13 @@ type ViewNoteModalProps = {
 };
 
 export function ViewNoteModal({
+	projectId,
 	note,
 	open,
 	onOpenChange,
 	onEditClick,
 }: ViewNoteModalProps) {
-	const { data: availableTags = [] } = useAllTagsQuery();
+	const { data: availableTags = [] } = useAllTagsQuery(projectId);
 
 	const tagColorMap = React.useMemo(() => {
 		const map = new Map<string, string>();

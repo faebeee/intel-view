@@ -31,9 +31,9 @@ function MapClickHandler({ onMapClick }: MapClickHandlerProps) {
 	return null;
 }
 
-function MapInnerView() {
+function MapInnerView({ projectId }: { projectId: number }) {
 	const { map, selectedMarker, setSelectedMarker } = useMap();
-	const { data: notes = [], refetch } = useNotesQuery();
+	const { data: notes = [], refetch } = useNotesQuery(projectId);
 	const [searchQuery, setSearchQuery] = React.useState("");
 
 	// Add Note Modal states
@@ -290,8 +290,11 @@ function MapInnerView() {
 								Zoom
 							</Button>
 							<Link
-								to="/notes/$id"
-								params={{ id: String(selectedMarker.id) }}
+								to="/projects/$projectId/notes/$id"
+								params={{
+									projectId: String(projectId),
+									id: String(selectedMarker.id),
+								}}
 								className="flex-1"
 							>
 								<Button variant="outline" size="xs">
@@ -324,6 +327,7 @@ function MapInnerView() {
 
 			{/* Create Note Modal Overlay */}
 			<CreateNoteModal
+				projectId={projectId}
 				open={isCreateOpen}
 				onOpenChange={setIsCreateOpen}
 				defaultLat={clickedCoordinates?.lat}
@@ -333,10 +337,10 @@ function MapInnerView() {
 	);
 }
 
-export function MapViewContent() {
+export function MapViewContent({ projectId }: { projectId: number }) {
 	return (
 		<MapProvider>
-			<MapInnerView />
+			<MapInnerView projectId={projectId} />
 		</MapProvider>
 	);
 }

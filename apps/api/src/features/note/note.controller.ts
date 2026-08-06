@@ -15,83 +15,100 @@ import type { PaginateQuery } from 'nestjs-paginate';
 import { NoteService, notePaginateConfig } from './note.service';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
-import { Note } from './entities/note.entity';
+import { NoteResponseDto, toNoteResponseDto } from './dto/note-response.dto';
 
 @ApiTags('notes')
-@Controller('notes')
+@Controller('projects/:projectId/notes')
 export class NoteController {
   constructor(private readonly noteService: NoteService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new note' })
+  @ApiOperation({ summary: 'Create a new note in a project' })
   @ApiResponse({
     status: 201,
     description: 'The note has been successfully created.',
-    type: Note,
+    type: NoteResponseDto,
   })
-  async create(@Body() createNoteDto: CreateNoteDto): Promise<Note> {
-    return this.noteService.create(createNoteDto);
+  async create(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Body() createNoteDto: CreateNoteDto,
+  ): Promise<NoteResponseDto> {
+    const note = await this.noteService.create(projectId, createNoteDto);
+    return toNoteResponseDto(note);
   }
 
   @Get()
   @ApiOperation({
-    summary: 'Get all active notes with pagination, filtering and sorting',
+    summary:
+      'Get all active notes in a project with pagination, filtering and sorting',
   })
   @ApiPaginationQuery(notePaginateConfig)
   @ApiResponse({
     status: 200,
-    description: 'Return all active notes paginated.',
+    description: 'Return all active notes in the project, paginated.',
   })
-  async findAll(@Paginate() query: PaginateQuery): Promise<Paginated<Note>> {
-    return this.noteService.findAll(query);
+  async findAll(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Paginate() query: PaginateQuery,
+  ): Promise<Paginated<NoteResponseDto>> {
+    const paginated = await this.noteService.findAll(projectId, query);
+    return {
+      ...paginated,
+      data: paginated.data.map(toNoteResponseDto),
+    } as unknown as Paginated<NoteResponseDto>;
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get a single note by ID' })
+  @ApiOperation({ summary: 'Get a single note by ID within a project' })
   @ApiResponse({
     status: 200,
     description: 'Return the note with the specified ID.',
-    type: Note,
+    type: NoteResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Note not found.' })
-  async findOne(@Param('id', ParseIntPipe) id: number): Promise<Note> {
-    const note = await this.noteService.findOne(id);
+  async findOne(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<NoteResponseDto> {
+    const note = await this.noteService.findOne(projectId, id);
     if (!note) {
       throw new NotFoundException(`Note with ID ${id} not found`);
     }
-    return note;
+    return toNoteResponseDto(note);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update a note by ID' })
+  @ApiOperation({ summary: 'Update a note by ID within a project' })
   @ApiResponse({
     status: 200,
     description: 'The note has been successfully updated.',
-    type: Note,
+    type: NoteResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Note not found.' })
   async update(
+    @Param('projectId', ParseIntPipe) projectId: number,
     @Param('id', ParseIntPipe) id: number,
     @Body() updateNoteDto: UpdateNoteDto,
-  ): Promise<Note> {
-    const note = await this.noteService.update(id, updateNoteDto);
+  ): Promise<NoteResponseDto> {
+    const note = await this.noteService.update(projectId, id, updateNoteDto);
     if (!note) {
       throw new NotFoundException(`Note with ID ${id} not found`);
     }
-    return note;
+    return toNoteResponseDto(note);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Soft delete a note by ID' })
+  @ApiOperation({ summary: 'Soft delete a note by ID within a project' })
   @ApiResponse({
     status: 200,
     description: 'The note has been successfully deleted.',
   })
   @ApiResponse({ status: 404, description: 'Note not found.' })
   async remove(
+    @Param('projectId', ParseIntPipe) projectId: number,
     @Param('id', ParseIntPipe) id: number,
   ): Promise<{ message: string }> {
-    const deleted = await this.noteService.remove(id);
+    const deleted = await this.noteService.remove(projectId, id);
     if (!deleted) {
       throw new NotFoundException(`Note with ID ${id} not found`);
     }
