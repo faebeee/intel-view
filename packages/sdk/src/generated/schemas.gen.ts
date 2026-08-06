@@ -102,6 +102,11 @@ export const CreateNoteDtoSchema = {
             items: {
                 type: 'string'
             }
+        },
+        parentId: {
+            type: 'number',
+            description: 'ID of the parent note this note should be nested under. Omit or set to null for a top-level (root) note.',
+            nullable: true
         }
     }
 } as const;
@@ -146,6 +151,11 @@ export const NoteResponseDtoSchema = {
                 type: 'string'
             }
         },
+        parentId: {
+            type: 'number',
+            description: 'ID of the parent note this note is nested under, if any. Null means the note is a top-level (root) note.',
+            nullable: true
+        },
         createdAt: {
             format: 'date-time',
             type: 'string'
@@ -186,6 +196,11 @@ export const UpdateNoteDtoSchema = {
             items: {
                 type: 'string'
             }
+        },
+        parentId: {
+            type: 'number',
+            description: 'ID of the parent note this note should be nested under. Set to null to detach and make this a top-level (root) note.',
+            nullable: true
         }
     }
 } as const;

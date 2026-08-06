@@ -22,8 +22,8 @@ export type IframeNoteConfig = {
  * add an entry here, implement a renderer branch in
  * `NoteContentRenderer.tsx` and `MarkerLayer.tsx` (for map rendering), and
  * (if it needs type-specific settings) add the relevant fields to
- * `CreateNoteModal.tsx`/`EditNoteModal.tsx` that read/write the note's
- * `config` object.
+ * `CreateNoteModal.tsx` and the notes `$id/edit.tsx` route that read/write
+ * the note's `config` object.
  */
 export const NOTE_TYPE_OPTIONS: NoteTypeOption[] = [
 	{

@@ -63,6 +63,7 @@ export function useNotesQuery(projectId: number) {
 						description: description || "No detailed coordinates recorded.",
 						type: note.type,
 						config: note.config,
+						parentId: note.parentId,
 						metadata: {
 							classification: "Restricted",
 							created: new Date(note.createdAt).toLocaleDateString(),

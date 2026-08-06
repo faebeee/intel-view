@@ -71,6 +71,10 @@ export type CreateNoteDto = {
      * Optional list of plain text tags associated with this note
      */
     tags?: Array<(string)>;
+    /**
+     * ID of the parent note this note should be nested under. Omit or set to null for a top-level (root) note.
+     */
+    parentId?: (number) | null;
 };
 
 /**
@@ -107,6 +111,10 @@ export type NoteResponseDto = {
      * Plain text tags of the note
      */
     tags?: Array<(string)>;
+    /**
+     * ID of the parent note this note is nested under, if any. Null means the note is a top-level (root) note.
+     */
+    parentId?: (number) | null;
     createdAt: string;
     updatedAt: string;
 };
@@ -134,6 +142,10 @@ export type UpdateNoteDto = {
      * Optional list of plain text tags associated with this note
      */
     tags?: Array<(string)>;
+    /**
+     * ID of the parent note this note should be nested under. Set to null to detach and make this a top-level (root) note.
+     */
+    parentId?: (number) | null;
 };
 
 export type CreateTagDto = {
@@ -472,6 +484,45 @@ export type NoteControllerFindAllData = {
          * - $or
          */
         'filter.lng'?: Array<(string)>;
+        /**
+         * Filter by parentId query param.
+         *
+         * **Format:** filter.parentId={$not}:OPERATION:VALUE
+         *
+         *
+         *
+         * **Example:** filter.parentId=$btw:John Doe&filter.parentId=$contains:John Doe
+         *
+         * **Available Operations**
+         * - $eq
+         *
+         * - $gt
+         *
+         * - $gte
+         *
+         * - $in
+         *
+         * - $null
+         *
+         * - $lt
+         *
+         * - $lte
+         *
+         * - $btw
+         *
+         * - $ilike
+         *
+         * - $sw
+         *
+         * - $contains
+         *
+         * - $not
+         *
+         * - $and
+         *
+         * - $or
+         */
+        'filter.parentId'?: Array<(string)>;
         /**
          * Number of records per page.
          *

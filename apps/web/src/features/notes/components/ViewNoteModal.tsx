@@ -1,4 +1,5 @@
 import type { NoteResponseDto as Note } from "@repo/sdk";
+import { Link } from "@tanstack/react-router";
 import { Calendar, MapPin, Edit2 } from "lucide-react";
 import * as React from "react";
 import { Button } from "#/components/ui/button";
@@ -16,18 +17,18 @@ import { NoteTypeBadge } from "#/features/notes/components/NoteTypeBadge.tsx";
 
 type ViewNoteModalProps = {
 	projectId: number;
+	projectIdParam: string;
 	note: Note | null;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onEditClick?: (note: Note) => void;
 };
 
 export function ViewNoteModal({
 	projectId,
+	projectIdParam,
 	note,
 	open,
 	onOpenChange,
-	onEditClick,
 }: ViewNoteModalProps) {
 	const { data: availableTags = [] } = useAllTagsQuery(projectId);
 
@@ -67,19 +68,16 @@ export function ViewNoteModal({
 							<span>Note #{note.id}</span>
 							<NoteTypeBadge type={note.type} />
 						</DialogTitle>
-						{onEditClick && (
-							<Button
-								variant="outline"
-								size="xs"
-								onClick={() => {
-									onOpenChange(false);
-									onEditClick(note);
-								}}
+						<Button variant="outline" size="xs" asChild>
+							<Link
+								to="/projects/$projectId/notes/$id/edit"
+								params={{ projectId: projectIdParam, id: String(note.id) }}
+								onClick={() => onOpenChange(false)}
 							>
 								<Edit2 className="h-3 w-3" />
 								<span>Edit Note</span>
-							</Button>
-						)}
+							</Link>
+						</Button>
 					</div>
 					<DialogDescription className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1">
 						<span className="flex items-center gap-1">
@@ -96,6 +94,11 @@ export function ViewNoteModal({
 								<span className="italic">Non-geolocated note</span>
 							)}
 						</span>
+						{note.parentId !== null && note.parentId !== undefined && (
+							<span className="flex items-center gap-1 font-mono">
+								<span>Parent: #{note.parentId}</span>
+							</span>
+						)}
 					</DialogDescription>
 
 					{/* Tag Chips in Header */}

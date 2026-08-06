@@ -2,29 +2,13 @@ import { noteControllerRemove } from "@repo/sdk";
 import type { NoteResponseDto as Note } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import type {
-	LegacyColumn as Column,
-	LegacyColumnDef as ColumnDef,
-	LegacyRow as Row,
-} from "@tanstack/react-table/legacy";
-import {
-	Edit2,
-	Eye,
-	FileText,
-	MapPin,
-	Plus,
-	RefreshCw,
-	Trash2,
-} from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { FileText, Plus, RefreshCw } from "lucide-react";
 import type { JSX } from "react";
 import * as React from "react";
 import { Button } from "#/components/ui/button.tsx";
-import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
-import { DataTable, SortableHeader } from "#/components/ui/data-table.tsx";
 import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal.tsx";
-import { EditNoteModal } from "#/features/notes/components/EditNoteModal.tsx";
-import { NoteTypeBadge } from "#/features/notes/components/NoteTypeBadge.tsx";
+import { NoteTreeView } from "#/features/notes/components/NoteTreeView.tsx";
 import { ViewNoteModal } from "#/features/notes/components/ViewNoteModal.tsx";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 
@@ -53,13 +37,17 @@ function NotesRouteComponent(): JSX.Element {
 		}
 		return map;
 	}, [availableTags]);
-	const [editingNote, setEditingNote] = React.useState<Note | null>(null);
-	const [isEditOpen, setIsEditOpen] = React.useState(false);
-
 	const [viewingNote, setViewingNote] = React.useState<Note | null>(null);
 	const [isViewOpen, setIsViewOpen] = React.useState(false);
 
 	const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+	const [createParentId, setCreateParentId] = React.useState<number | null>(
+		null,
+	);
+
+	const [pendingDeleteIds, setPendingDeleteIds] = React.useState<Set<number>>(
+		new Set(),
+	);
 
 	const removeNoteMutation = useMutation({
 		mutationFn: async (id: number) => {
@@ -67,6 +55,9 @@ function NotesRouteComponent(): JSX.Element {
 				path: { projectId, id },
 			});
 			return res.data;
+		},
+		onMutate: (id: number) => {
+			setPendingDeleteIds((prev) => new Set(prev).add(id));
 		},
 		onSuccess: () => {
 			toast.success("Note deleted successfully");
@@ -80,220 +71,29 @@ function NotesRouteComponent(): JSX.Element {
 					err instanceof Error ? err.message : "Ensure the api is online.",
 			});
 		},
+		onSettled: (_data, _err, id) => {
+			setPendingDeleteIds((prev) => {
+				const next = new Set(prev);
+				next.delete(id);
+				return next;
+			});
+		},
 	});
-
-	const handleEditClick = (note: Note) => {
-		setEditingNote(note);
-		setIsEditOpen(true);
-	};
 
 	const handleViewClick = (note: Note) => {
 		setViewingNote(note);
 		setIsViewOpen(true);
 	};
 
-	const columns: ColumnDef<Note, unknown>[] = [
-		{
-			accessorKey: "id",
-			header: ({ column }: { column: Column<Note, unknown> }) => (
-				<SortableHeader column={column} title="ID" />
-			),
-			cell: ({ row }: { row: Row<Note> }) => (
-				<Link
-					to="/projects/$projectId/notes/$id"
-					params={{ projectId: projectIdParam, id: String(row.original.id) }}
-					className="font-mono text-palm font-bold hover:underline"
-				>
-					#{row.original.id}
-				</Link>
-			),
-		},
-		{
-			accessorKey: "type",
-			header: () => (
-				<span className="font-mono text-xs font-bold tracking-wider text-sea-ink/80 px-2">
-					TYPE
-				</span>
-			),
-			cell: ({ row }: { row: Row<Note> }) => (
-				<NoteTypeBadge type={row.original.type} />
-			),
-		},
-		{
-			accessorKey: "content",
-			header: ({ column }: { column: Column<Note, unknown> }) => (
-				<SortableHeader column={column} title="CONTENT" />
-			),
-			cell: ({ row }: { row: Row<Note> }) => {
-				const content = row.original.content || "";
-				// Truncate if very long
-				const truncated =
-					content.length > 80 ? `${content.substring(0, 80)}...` : content;
-				return (
-					<Link
-						to="/projects/$projectId/notes/$id"
-						params={{ projectId: projectIdParam, id: String(row.original.id) }}
-						className="text-left whitespace-pre-wrap break-all hover:text-palm cursor-pointer transition-colors outline-none focus-visible:text-palm font-sans text-xs hover:underline no-underline text-inherit"
-						title="Click to view note details"
-					>
-						{truncated}
-					</Link>
-				);
-			},
-		},
-		{
-			accessorKey: "tags",
-			header: () => (
-				<span className="font-mono text-xs font-bold tracking-wider text-sea-ink/80 px-2">
-					TAGS
-				</span>
-			),
-			cell: ({ row }: { row: Row<Note> }) => {
-				const tags = row.original.tags || [];
-				return (
-					<div className="flex flex-wrap gap-1.5 max-w-[200px] px-2">
-						{tags.length > 0 ? (
-							tags.map((tag) => {
-								const displayColor = tagColorMap.get(tag.toLowerCase()) || "#00f2ff";
-								return (
-									<span
-										key={tag}
-										className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase border"
-										style={{
-											backgroundColor: `${displayColor}12`,
-											borderColor: `${displayColor}35`,
-											color: displayColor,
-										}}
-									>
-										{tag}
-									</span>
-								);
-							})
-						) : (
-							<span className="text-muted-foreground font-mono text-xs italic">
-								-
-							</span>
-						)}
-					</div>
-				);
-			},
-		},
-		{
-			accessorKey: "lat",
-			header: ({ column }: { column: Column<Note, unknown> }) => (
-				<SortableHeader column={column} title="LATITUDE" />
-			),
-			cell: ({ row }: { row: Row<Note> }) => {
-				const lat = row.original.lat;
-				return lat !== null && lat !== undefined ? (
-					<span className="font-mono text-xs">{lat.toFixed(6)}</span>
-				) : (
-					<span className="text-muted-foreground font-mono">-</span>
-				);
-			},
-		},
-		{
-			accessorKey: "lng",
-			header: ({ column }: { column: Column<Note, unknown> }) => (
-				<SortableHeader column={column} title="LONGITUDE" />
-			),
-			cell: ({ row }: { row: Row<Note> }) => {
-				const lng = row.original.lng;
-				return lng !== null && lng !== undefined ? (
-					<span className="font-mono text-xs">{lng.toFixed(6)}</span>
-				) : (
-					<span className="text-muted-foreground font-mono">-</span>
-				);
-			},
-		},
-		{
-			accessorKey: "createdAt",
-			header: ({ column }: { column: Column<Note, unknown> }) => (
-				<SortableHeader column={column} title="CREATED" />
-			),
-			cell: ({ row }: { row: Row<Note> }) => {
-				const date = new Date(row.original.createdAt);
-				return (
-					<span className="font-mono text-xs whitespace-nowrap">
-						{date.toLocaleDateString()}{" "}
-						{date.toLocaleTimeString([], {
-							hour: "2-digit",
-							minute: "2-digit",
-						})}
-					</span>
-				);
-			},
-		},
-		{
-			id: "actions",
-			header: () => (
-				<span className="font-mono text-xs font-bold tracking-wider text-sea-ink/80 px-2">
-					ACTIONS
-				</span>
-			),
-			cell: ({ row }: { row: Row<Note> }) => {
-				const note = row.original;
-				const hasCoords =
-					note.lat !== null &&
-					note.lat !== undefined &&
-					note.lng !== null &&
-					note.lng !== undefined;
-				return (
-					<div className="flex items-center gap-2">
-						<Button
-							variant="outline"
-							size="xs"
-							title="Quick view note"
-							onClick={() => handleViewClick(note)}
-						>
-							<Eye className="h-3 w-3" />
-							<span>View</span>
-						</Button>
+	const handleAddChildClick = (note: Note) => {
+		setCreateParentId(note.id);
+		setIsCreateOpen(true);
+	};
 
-						<Button
-							variant="outline"
-							size="xs"
-							onClick={() => handleEditClick(note)}
-						>
-							<Edit2 className="h-3 w-3" />
-							<span>Edit</span>
-						</Button>
-
-						<ConfirmationButton
-							variant="outline"
-							size="xs"
-							onClick={() => removeNoteMutation.mutate(note.id)}
-							disabled={removeNoteMutation.isPending}
-							title="Delete Note"
-							description={`Are you sure you want to permanently delete note #${note.id}?`}
-							confirmText="Delete"
-						>
-							<Trash2 className="h-3 w-3" />
-							<span>Delete</span>
-						</ConfirmationButton>
-
-						{hasCoords ? (
-							<Link
-								to="/projects/$projectId/map"
-								params={{ projectId: projectIdParam }}
-								className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-palm/10 border border-palm/20 hover:bg-palm/25 text-palm text-xs font-mono font-bold uppercase tracking-wider transition-colors no-underline"
-							>
-								<MapPin className="h-3 w-3" />
-								<span>Locate</span>
-							</Link>
-						) : (
-							<span className="text-muted-foreground font-mono text-xs italic px-2">
-								No coords
-							</span>
-						)}
-					</div>
-				);
-			},
-		},
-	];
-
-	// Cast Notes to Record<string, unknown>[] to satisfy strict DataTable constraint
-	const tableData = notes as unknown as Record<string, unknown>[];
+	const handleAddRootClick = () => {
+		setCreateParentId(null);
+		setIsCreateOpen(true);
+	};
 
 	return (
 		<div className="min-h-full w-full bg-background/50 p-6 flex flex-col gap-6 max-w-7xl mx-auto animate-fade-in">
@@ -307,7 +107,7 @@ function NotesRouteComponent(): JSX.Element {
 						</h1>
 					</div>
 					<p className="text-xs text-muted-foreground">
-						Search, sort, and manage geolocated notes.
+						Search and manage nested, geolocated notes.
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
@@ -328,7 +128,7 @@ function NotesRouteComponent(): JSX.Element {
 					<Button
 						variant="default"
 						size="sm"
-						onClick={() => setIsCreateOpen(true)}
+						onClick={handleAddRootClick}
 					>
 						<Plus className="h-4 w-4" />
 						<span>Add Note</span>
@@ -345,15 +145,14 @@ function NotesRouteComponent(): JSX.Element {
 				</div>
 			) : (
 				<div className="flex-1">
-					<DataTable
-						columns={
-							columns as unknown as ColumnDef<
-								Record<string, unknown>,
-								unknown
-							>[]
-						}
-						data={tableData}
-						searchPlaceholder="Search notes by content..."
+					<NoteTreeView
+						notes={notes}
+						projectIdParam={projectIdParam}
+						tagColorMap={tagColorMap}
+						onView={handleViewClick}
+						onAddChild={handleAddChildClick}
+						onDelete={(note) => removeNoteMutation.mutate(note.id)}
+						isDeletePending={(id) => pendingDeleteIds.has(id)}
 					/>
 				</div>
 			)}
@@ -361,23 +160,17 @@ function NotesRouteComponent(): JSX.Element {
 			{/* View Note Modal */}
 			<ViewNoteModal
 				projectId={projectId}
+				projectIdParam={projectIdParam}
 				note={viewingNote}
 				open={isViewOpen}
 				onOpenChange={setIsViewOpen}
-				onEditClick={handleEditClick}
-			/>
-
-			{/* Edit Note Modal */}
-			<EditNoteModal
-				projectId={projectId}
-				note={editingNote}
-				open={isEditOpen}
-				onOpenChange={setIsEditOpen}
 			/>
 
 			{/* Create Note Modal */}
 			<CreateNoteModal
 				projectId={projectId}
+				notes={notes}
+				defaultParentId={createParentId}
 				open={isCreateOpen}
 				onOpenChange={setIsCreateOpen}
 			/>

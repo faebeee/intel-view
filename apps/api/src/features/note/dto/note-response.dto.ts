@@ -50,6 +50,15 @@ export class NoteResponseDto {
   })
   tags: string[];
 
+  @ApiProperty({
+    description:
+      'ID of the parent note this note is nested under, if any. Null means the note is a top-level (root) note.',
+    required: false,
+    nullable: true,
+    type: 'number',
+  })
+  parentId: number | null;
+
   @ApiProperty()
   createdAt: Date;
 
@@ -67,6 +76,7 @@ export function toNoteResponseDto(note: Note): NoteResponseDto {
     lat: note.lat,
     lng: note.lng,
     tags: note.tags,
+    parentId: note.parentId,
     createdAt: note.createdAt,
     updatedAt: note.updatedAt,
   };

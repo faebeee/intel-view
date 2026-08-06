@@ -62,5 +62,36 @@ describe('NoteController', () => {
       expect(result.type).toBe('markdown');
       expect(result.config).toEqual({ foo: 'bar' });
     });
+
+    it('creates a nested note and maps parentId in the response', async () => {
+      const projectId = 1;
+      const createNoteDto = {
+        content: 'child note',
+        parentId: 5,
+      };
+      const createdNote = {
+        id: 2,
+        projectId,
+        type: 'markdown',
+        content: 'child note',
+        config: null,
+        lat: null,
+        lng: null,
+        tags: [],
+        parentId: 5,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockNoteService.create.mockResolvedValue(createdNote);
+
+      const result = await controller.create(projectId, createNoteDto);
+
+      expect(mockNoteService.create).toHaveBeenCalledWith(
+        projectId,
+        createNoteDto,
+      );
+      expect(result.parentId).toBe(5);
+    });
   });
 });

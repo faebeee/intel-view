@@ -1,5 +1,5 @@
 import { BaseEntity } from '../../database/entities/base.entity';
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Project } from '../../project/entities/project.entity';
 
@@ -68,4 +68,21 @@ export class Note extends BaseEntity {
     required: false,
   })
   tags: string[];
+
+  @Column({ type: 'int', nullable: true })
+  @ApiProperty({
+    description:
+      'ID of the parent note this note is nested under, if any. Null means the note is a top-level (root) note.',
+    required: false,
+    nullable: true,
+    type: 'number',
+  })
+  parentId: number | null;
+
+  @ManyToOne(() => Note, (note) => note.children, { nullable: true })
+  @JoinColumn({ name: 'parentId' })
+  parent: Note | null;
+
+  @OneToMany(() => Note, (note) => note.parent)
+  children: Note[];
 }

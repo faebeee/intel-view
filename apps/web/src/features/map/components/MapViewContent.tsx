@@ -18,6 +18,7 @@ import { MapControls } from "./MapControls";
 import { MapProvider } from "./MapProvider";
 import { MapSearch } from "./MapSearch";
 import { MarkerLayer } from "./MarkerLayer";
+import { NoteConnectionLines } from "./NoteConnectionLines";
 import { TileLayer } from "./TileLayer";
 
 type MapClickHandlerProps = {
@@ -340,6 +341,7 @@ function MapInnerView({ projectId }: { projectId: number }) {
 			<div className="flex-1 h-full min-h-0 relative">
 				<MapContainer center={defaultCenter} zoom={13}>
 					<TileLayer />
+					<NoteConnectionLines data={filteredAssets} />
 					<MarkerLayer data={filteredAssets} />
 					<MapClickHandler onMapClick={handleMapClick} />
 

@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsArray, IsIn, IsObject } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsIn,
+  IsObject,
+  IsInt,
+} from 'class-validator';
 import { NOTE_TYPES } from '../entities/note.entity';
 import type { NoteType } from '../entities/note.entity';
 
@@ -57,4 +64,15 @@ export class CreateNoteDto {
     type: [String],
   })
   tags?: string[];
+
+  @IsInt()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'ID of the parent note this note should be nested under. Omit or set to null for a top-level (root) note.',
+    required: false,
+    type: Number,
+    nullable: true,
+  })
+  parentId?: number | null;
 }

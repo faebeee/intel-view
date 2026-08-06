@@ -17,6 +17,7 @@ import { Route as ProjectsProjectIdNotesRouteImport } from './routes/projects/$p
 import { Route as ProjectsProjectIdTagsRouteImport } from './routes/projects/$projectId/tags'
 import { Route as ProjectsProjectIdNotesIndexRouteImport } from './routes/projects/$projectId/notes/index'
 import { Route as ProjectsProjectIdNotesIdIndexRouteImport } from './routes/projects/$projectId/notes/$id/index'
+import { Route as ProjectsProjectIdNotesIdEditRouteImport } from './routes/projects/$projectId/notes/$id/edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -60,6 +61,12 @@ const ProjectsProjectIdNotesIdIndexRoute =
     path: '/$id/',
     getParentRoute: () => ProjectsProjectIdNotesRoute,
   } as any)
+const ProjectsProjectIdNotesIdEditRoute =
+  ProjectsProjectIdNotesIdEditRouteImport.update({
+    id: '/$id/edit',
+    path: '/$id/edit',
+    getParentRoute: () => ProjectsProjectIdNotesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -69,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/tags': typeof ProjectsProjectIdTagsRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
   '/projects/$projectId/notes/': typeof ProjectsProjectIdNotesIndexRoute
+  '/projects/$projectId/notes/$id/edit': typeof ProjectsProjectIdNotesIdEditRoute
   '/projects/$projectId/notes/$id/': typeof ProjectsProjectIdNotesIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -77,6 +85,7 @@ export interface FileRoutesByTo {
   '/projects/$projectId/tags': typeof ProjectsProjectIdTagsRoute
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
   '/projects/$projectId/notes': typeof ProjectsProjectIdNotesIndexRoute
+  '/projects/$projectId/notes/$id/edit': typeof ProjectsProjectIdNotesIdEditRoute
   '/projects/$projectId/notes/$id': typeof ProjectsProjectIdNotesIdIndexRoute
 }
 export interface FileRoutesById {
@@ -88,6 +97,7 @@ export interface FileRoutesById {
   '/projects/$projectId/tags': typeof ProjectsProjectIdTagsRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
   '/projects/$projectId/notes/': typeof ProjectsProjectIdNotesIndexRoute
+  '/projects/$projectId/notes/$id/edit': typeof ProjectsProjectIdNotesIdEditRoute
   '/projects/$projectId/notes/$id/': typeof ProjectsProjectIdNotesIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/tags'
     | '/projects/$projectId/'
     | '/projects/$projectId/notes/'
+    | '/projects/$projectId/notes/$id/edit'
     | '/projects/$projectId/notes/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -108,6 +119,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/tags'
     | '/projects/$projectId'
     | '/projects/$projectId/notes'
+    | '/projects/$projectId/notes/$id/edit'
     | '/projects/$projectId/notes/$id'
   id:
     | '__root__'
@@ -118,6 +130,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/tags'
     | '/projects/$projectId/'
     | '/projects/$projectId/notes/'
+    | '/projects/$projectId/notes/$id/edit'
     | '/projects/$projectId/notes/$id/'
   fileRoutesById: FileRoutesById
 }
@@ -184,17 +197,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdNotesIdIndexRouteImport
       parentRoute: typeof ProjectsProjectIdNotesRoute
     }
+    '/projects/$projectId/notes/$id/edit': {
+      id: '/projects/$projectId/notes/$id/edit'
+      path: '/$id/edit'
+      fullPath: '/projects/$projectId/notes/$id/edit'
+      preLoaderRoute: typeof ProjectsProjectIdNotesIdEditRouteImport
+      parentRoute: typeof ProjectsProjectIdNotesRoute
+    }
   }
 }
 
 interface ProjectsProjectIdNotesRouteChildren {
   ProjectsProjectIdNotesIndexRoute: typeof ProjectsProjectIdNotesIndexRoute
+  ProjectsProjectIdNotesIdEditRoute: typeof ProjectsProjectIdNotesIdEditRoute
   ProjectsProjectIdNotesIdIndexRoute: typeof ProjectsProjectIdNotesIdIndexRoute
 }
 
 const ProjectsProjectIdNotesRouteChildren: ProjectsProjectIdNotesRouteChildren =
   {
     ProjectsProjectIdNotesIndexRoute: ProjectsProjectIdNotesIndexRoute,
+    ProjectsProjectIdNotesIdEditRoute: ProjectsProjectIdNotesIdEditRoute,
     ProjectsProjectIdNotesIdIndexRoute: ProjectsProjectIdNotesIdIndexRoute,
   }
 

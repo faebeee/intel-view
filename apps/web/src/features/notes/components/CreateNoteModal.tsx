@@ -1,3 +1,4 @@
+import type { NoteResponseDto as Note } from "@repo/sdk";
 import { noteControllerCreate } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
@@ -26,12 +27,18 @@ import {
 	type NoteType,
 } from "#/features/notes/noteTypes.ts";
 
+const ROOT_PARENT_VALUE = "root";
+
 type CreateNoteModalProps = {
 	projectId: number;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	defaultLat?: number;
 	defaultLng?: number;
+	/** Notes available in the project, used to populate the parent selector. */
+	notes?: Note[];
+	/** Pre-selects a parent note (e.g. when adding a sub-note from the tree view). */
+	defaultParentId?: number | null;
 	onSuccess?: () => void;
 };
 
@@ -41,6 +48,8 @@ export function CreateNoteModal({
 	onOpenChange,
 	defaultLat,
 	defaultLng,
+	notes = [],
+	defaultParentId = null,
 	onSuccess,
 }: CreateNoteModalProps) {
 	const [type, setType] = React.useState<NoteType>("markdown");
@@ -49,6 +58,7 @@ export function CreateNoteModal({
 	const [lat, setLat] = React.useState("");
 	const [lng, setLng] = React.useState("");
 	const [tagsInput, setTagsInput] = React.useState("");
+	const [parentId, setParentId] = React.useState<string>(ROOT_PARENT_VALUE);
 	const queryClient = useQueryClient();
 
 	// Update lat and lng state whenever default props change
@@ -57,15 +67,22 @@ export function CreateNoteModal({
 		if (defaultLng !== undefined) setLng(String(defaultLng));
 	}, [defaultLat, defaultLng]);
 
-	// Reset form when modal closes or opens
+	// Reset form when modal closes or opens, pre-filling the parent if provided
 	React.useEffect(() => {
 		if (!open) {
 			setType("markdown");
 			setContent("");
 			setIframeUrl("");
 			setTagsInput("");
+			setParentId(ROOT_PARENT_VALUE);
+		} else {
+			setParentId(
+				defaultParentId !== null && defaultParentId !== undefined
+					? String(defaultParentId)
+					: ROOT_PARENT_VALUE,
+			);
 		}
-	}, [open]);
+	}, [open, defaultParentId]);
 
 	const createNoteMutation = useMutation({
 		mutationFn: async (payload: {
@@ -75,6 +92,7 @@ export function CreateNoteModal({
 			lat: number;
 			lng: number;
 			tags: string[];
+			parentId: number | null;
 		}) => {
 			const res = await noteControllerCreate({
 				path: { projectId },
@@ -147,6 +165,7 @@ export function CreateNoteModal({
 			lat: parsedLat,
 			lng: parsedLng,
 			tags: tagsArray,
+			parentId: parentId === ROOT_PARENT_VALUE ? null : parseInt(parentId, 10),
 		});
 	};
 
@@ -183,6 +202,36 @@ export function CreateNoteModal({
 								{NOTE_TYPE_OPTIONS.map((option) => (
 									<SelectItem key={option.value} value={option.value}>
 										{option.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+
+					{/* Parent Note Selector */}
+					<div className="flex flex-col gap-1.5">
+						<label
+							htmlFor="note-parent"
+							className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
+						>
+							Parent Note (Optional)
+						</label>
+						<Select
+							value={parentId}
+							onValueChange={setParentId}
+							disabled={createNoteMutation.isPending}
+						>
+							<SelectTrigger id="note-parent" className="w-full">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value={ROOT_PARENT_VALUE}>
+									No parent (root note)
+								</SelectItem>
+								{notes.map((n) => (
+									<SelectItem key={n.id} value={String(n.id)}>
+										#{n.id} —{" "}
+										{(n.content || "").slice(0, 40) || "No content"}
 									</SelectItem>
 								))}
 							</SelectContent>

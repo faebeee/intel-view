@@ -15,6 +15,8 @@ export type MapMarkerData = {
 	tags?: { id: string; name: string; color: string }[];
 	type?: NoteType;
 	config?: Record<string, unknown> | null;
+	/** ID of the parent note this note is nested under, if any. */
+	parentId?: number | null;
 };
 
 export type MapConfig = {

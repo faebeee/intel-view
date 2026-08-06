@@ -1,6 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository, IsNull, In } from 'typeorm';
 import {
   paginate,
   PaginateQuery,
@@ -21,6 +25,7 @@ export const notePaginateConfig: PaginateConfig<Note> = {
     content: true,
     lat: true,
     lng: true,
+    parentId: true,
   },
 };
 
@@ -42,8 +47,99 @@ export class NoteService {
     }
   }
 
+  /**
+   * Validates that `parentId` refers to an existing, active note within the
+   * same project, is not the note itself (`excludeId`), and does not create
+   * a cycle in the note hierarchy.
+   */
+  private async assertParentValid(
+    projectId: number,
+    parentId: number,
+    excludeId?: number,
+  ): Promise<void> {
+    if (parentId === excludeId) {
+      throw new BadRequestException('A note cannot be its own parent');
+    }
+
+    const parent = await this.noteRepository.findOne({
+      where: { id: parentId, projectId, deletedAt: IsNull() },
+    });
+    if (!parent) {
+      throw new NotFoundException(
+        `Parent note with ID ${parentId} not found in this project`,
+      );
+    }
+
+    if (excludeId === undefined) {
+      return;
+    }
+
+    // Walk up the ancestor chain of the proposed parent to ensure `excludeId`
+    // (the note being created/updated) is not among its ancestors, which
+    // would otherwise create a cycle.
+    const allNotes = await this.noteRepository.find({
+      where: { projectId, deletedAt: IsNull() },
+      select: { id: true, parentId: true },
+    });
+    const parentById = new Map(allNotes.map((n) => [n.id, n.parentId]));
+
+    let currentId: number | null = parentId;
+    const visited = new Set<number>();
+    while (currentId !== null && currentId !== undefined) {
+      if (currentId === excludeId) {
+        throw new BadRequestException(
+          'Cannot set parent: this would create a circular note hierarchy',
+        );
+      }
+      if (visited.has(currentId)) {
+        break;
+      }
+      visited.add(currentId);
+      currentId = parentById.get(currentId) ?? null;
+    }
+  }
+
+  /**
+   * Collects the IDs of all descendants (children, grandchildren, etc.) of
+   * `rootId` within the given project, based on active (non-deleted) notes.
+   */
+  private async getDescendantIds(
+    projectId: number,
+    rootId: number,
+  ): Promise<number[]> {
+    const allNotes = await this.noteRepository.find({
+      where: { projectId, deletedAt: IsNull() },
+      select: { id: true, parentId: true },
+    });
+
+    const childrenByParent = new Map<number, number[]>();
+    for (const n of allNotes) {
+      if (n.parentId === null || n.parentId === undefined) continue;
+      const siblings = childrenByParent.get(n.parentId) ?? [];
+      siblings.push(n.id);
+      childrenByParent.set(n.parentId, siblings);
+    }
+
+    const descendants: number[] = [];
+    const queue: number[] = [...(childrenByParent.get(rootId) ?? [])];
+    while (queue.length > 0) {
+      const id = queue.shift()!;
+      descendants.push(id);
+      const children = childrenByParent.get(id) ?? [];
+      queue.push(...children);
+    }
+
+    return descendants;
+  }
+
   async create(projectId: number, createNoteDto: CreateNoteDto): Promise<Note> {
     await this.assertProjectExists(projectId);
+    if (
+      createNoteDto.parentId !== undefined &&
+      createNoteDto.parentId !== null
+    ) {
+      await this.assertParentValid(projectId, createNoteDto.parentId);
+    }
     const note = this.noteRepository.create({ ...createNoteDto, projectId });
     return this.noteRepository.save(note);
   }
@@ -78,6 +174,13 @@ export class NoteService {
       return null;
     }
 
+    if (
+      updateNoteDto.parentId !== undefined &&
+      updateNoteDto.parentId !== null
+    ) {
+      await this.assertParentValid(projectId, updateNoteDto.parentId, id);
+    }
+
     // Update primitive fields
     Object.assign(note, updateNoteDto);
 
@@ -90,8 +193,10 @@ export class NoteService {
     if (!note) {
       return false;
     }
+    const descendantIds = await this.getDescendantIds(projectId, id);
+    const idsToDelete = [id, ...descendantIds];
     const result = await this.noteRepository.update(
-      { id, projectId },
+      { id: In(idsToDelete), projectId },
       { deletedAt: new Date() },
     );
     return (result.affected ?? 0) > 0;

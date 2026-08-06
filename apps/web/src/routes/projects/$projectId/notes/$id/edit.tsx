@@ -1,48 +1,53 @@
-import type { NoteResponseDto as Note } from "@repo/sdk";
 import { noteControllerUpdate } from "@repo/sdk";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { RefreshCw } from "lucide-react";
+import { ArrowLeft, RefreshCw } from "lucide-react";
+import type { JSX } from "react";
 import * as React from "react";
 import { toast } from "sonner";
-import { Button } from "#/components/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "#/components/ui/dialog";
-import { Input } from "#/components/ui/input";
+import { Button } from "#/components/ui/button.tsx";
+import { Input } from "#/components/ui/input.tsx";
 import { MarkdownEditor } from "#/components/ui/markdown-editor.tsx";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "#/components/ui/select.tsx";
 import { NoteTypeBadge } from "#/features/notes/components/NoteTypeBadge.tsx";
+import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
+import { useNoteQuery } from "#/features/notes/hooks/useNoteQuery.ts";
 import type { IframeNoteConfig } from "#/features/notes/noteTypes.ts";
+import { getDescendantIds } from "#/features/notes/utils/noteTree.ts";
 
-type EditNoteModalProps = {
-	projectId: number;
-	note: Note | null;
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
-	onSuccess?: () => void;
-};
+const ROOT_PARENT_VALUE = "root";
 
-export function EditNoteModal({
-	projectId,
-	note,
-	open,
-	onOpenChange,
-	onSuccess,
-}: EditNoteModalProps) {
+export const Route = createFileRoute("/projects/$projectId/notes/$id/edit")({
+	component: NoteEditRouteComponent,
+});
+
+function NoteEditRouteComponent(): JSX.Element {
+	const { projectId: projectIdParam, id } = Route.useParams();
+	const projectId = parseInt(projectIdParam, 10);
+	const noteId = parseInt(id, 10);
+	const navigate = useNavigate();
+	const queryClient = useQueryClient();
+
+	const { data: note, isLoading } = useNoteQuery(projectId, noteId);
+	const { data: allNotes = [] } = useAllNotesQuery(projectId);
+
 	const [content, setContent] = React.useState("");
 	const [iframeUrl, setIframeUrl] = React.useState("");
 	const [lat, setLat] = React.useState("");
 	const [lng, setLng] = React.useState("");
 	const [tagsInput, setTagsInput] = React.useState("");
-	const queryClient = useQueryClient();
+	const [parentId, setParentId] = React.useState<string>(ROOT_PARENT_VALUE);
+	const [hasHydrated, setHasHydrated] = React.useState(false);
 
-	// Prefill form states when note changes or modal opens
+	// Prefill form state once the note has loaded
 	React.useEffect(() => {
-		if (note && open) {
+		if (note && !hasHydrated) {
 			setContent(note.content || "");
 			const config = (note.config || {}) as IframeNoteConfig;
 			setIframeUrl(note.type === "iframe" ? config.url || "" : "");
@@ -53,8 +58,26 @@ export function EditNoteModal({
 				note.lng !== null && note.lng !== undefined ? String(note.lng) : "",
 			);
 			setTagsInput((note.tags || []).join(", "));
+			setParentId(
+				note.parentId !== null && note.parentId !== undefined
+					? String(note.parentId)
+					: ROOT_PARENT_VALUE,
+			);
+			setHasHydrated(true);
 		}
-	}, [note, open]);
+	}, [note, hasHydrated]);
+
+	// A note cannot be parented to itself or to any of its own descendants,
+	// as that would create a circular hierarchy.
+	const excludedParentIds = React.useMemo(() => {
+		if (!note) return new Set<number>();
+		return new Set([note.id, ...getDescendantIds(allNotes, note.id)]);
+	}, [allNotes, note]);
+
+	const parentOptions = React.useMemo(
+		() => allNotes.filter((n) => !excludedParentIds.has(n.id)),
+		[allNotes, excludedParentIds],
+	);
 
 	const updateNoteMutation = useMutation({
 		mutationFn: async (payload: {
@@ -63,10 +86,10 @@ export function EditNoteModal({
 			lat: number | null;
 			lng: number | null;
 			tags: string[];
+			parentId: number | null;
 		}) => {
-			if (!note) throw new Error("No note selected");
 			const res = await noteControllerUpdate({
-				path: { projectId, id: note.id },
+				path: { projectId, id: noteId },
 				body: payload,
 			});
 			return res.data;
@@ -75,13 +98,13 @@ export function EditNoteModal({
 			toast.success("Note updated successfully");
 			queryClient.invalidateQueries({ queryKey: ["notes", "all", projectId] });
 			queryClient.invalidateQueries({ queryKey: ["notes", "map", projectId] });
-			if (note) {
-				queryClient.invalidateQueries({
-					queryKey: ["notes", projectId, note.id],
-				});
-			}
-			onOpenChange(false);
-			if (onSuccess) onSuccess();
+			queryClient.invalidateQueries({
+				queryKey: ["notes", projectId, noteId],
+			});
+			navigate({
+				to: "/projects/$projectId/notes/$id",
+				params: { projectId: projectIdParam, id },
+			});
 		},
 		onError: (err) => {
 			console.error("Failed to update note:", err);
@@ -146,25 +169,96 @@ export function EditNoteModal({
 			lat: parsedLat,
 			lng: parsedLng,
 			tags: tagsArray,
+			parentId: parentId === ROOT_PARENT_VALUE ? null : parseInt(parentId, 10),
 		});
 	};
 
-	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="border-line bg-surface-strong/95 backdrop-blur-md text-sea-ink max-w-md md:max-w-3xl lg:max-w-4xl shadow-2xl shadow-black/80 duration-200 transition-all">
-				<DialogHeader className="space-y-1">
-					<DialogTitle className="text-lg font-bold text-sea-ink uppercase tracking-wider font-mono flex items-center gap-2">
-						<span>Edit Note #{note?.id}</span>
-						{note && <NoteTypeBadge type={note.type} />}
-					</DialogTitle>
-					<DialogDescription className="text-xs text-muted-foreground leading-relaxed">
-						Edit note details, tags, and coordinates with markdown preview.
-					</DialogDescription>
-				</DialogHeader>
+	if (isLoading) {
+		return (
+			<div className="min-h-full w-full bg-background/50 p-6 flex flex-col items-center justify-center py-40 font-mono text-xs text-[#00f2ff]">
+				<div className="animate-pulse flex flex-col items-center gap-2">
+					<span>Loading note details...</span>
+				</div>
+			</div>
+		);
+	}
 
-				<form onSubmit={handleSubmit} className="space-y-5 my-2">
+	if (!note) {
+		return (
+			<div className="min-h-full w-full bg-background/50 p-6 flex flex-col items-center justify-center py-40 gap-4">
+				<p className="font-mono text-xs text-red-400">Note #{id} not found.</p>
+				<Link
+					to="/projects/$projectId/notes"
+					params={{ projectId: projectIdParam }}
+				>
+					<Button variant="outline" size="sm">
+						<ArrowLeft className="h-3 w-3" />
+						<span>Back to Notes</span>
+					</Button>
+				</Link>
+			</div>
+		);
+	}
+
+	return (
+		<div className="min-h-full w-full bg-background/50 p-6 flex flex-col gap-6 max-w-4xl mx-auto animate-fade-in">
+			{/* Breadcrumb Navigation */}
+			<div className="flex items-center justify-between border-b border-line pb-4">
+				<Link
+					to="/projects/$projectId/notes/$id"
+					params={{ projectId: projectIdParam, id }}
+				>
+					<Button variant="outline" size="xs">
+						<ArrowLeft className="h-3 w-3" />
+						<span>BACK TO NOTE</span>
+					</Button>
+				</Link>
+			</div>
+
+			{/* Edit Card */}
+			<div className="rounded-lg border border-line bg-surface-strong/90 backdrop-blur-md shadow-2xl shadow-black/80 flex flex-col overflow-hidden">
+				<div className="p-6 border-b border-line pb-5 space-y-1.5">
+					<span className="text-[10px] tracking-wider text-[#00f2ff] uppercase font-bold font-mono">
+						Note Registry
+					</span>
+					<h1 className="text-2xl font-bold text-sea-ink leading-tight font-mono flex items-center gap-2">
+						<span>Edit Note #{note.id}</span>
+						<NoteTypeBadge type={note.type} />
+					</h1>
+				</div>
+
+				<form onSubmit={handleSubmit} className="p-6 space-y-5">
+					{/* Parent Note Selector */}
+					<div className="flex flex-col gap-1.5">
+						<label
+							htmlFor="edit-note-parent"
+							className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
+						>
+							Parent Note (Optional)
+						</label>
+						<Select
+							value={parentId}
+							onValueChange={setParentId}
+							disabled={updateNoteMutation.isPending}
+						>
+							<SelectTrigger id="edit-note-parent" className="w-full">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value={ROOT_PARENT_VALUE}>
+									No parent (root note)
+								</SelectItem>
+								{parentOptions.map((n) => (
+									<SelectItem key={n.id} value={String(n.id)}>
+										#{n.id} — {(n.content || "").slice(0, 40) || "No content"}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+
 					{/* Markdown Live Editor */}
-					{note?.type === "markdown" && (
+					{note.type === "markdown" && (
 						<div className="flex flex-col gap-1.5">
 							<label
 								htmlFor="edit-note-content"
@@ -177,13 +271,13 @@ export function EditNoteModal({
 								onChange={setContent}
 								placeholder="Write markdown details here..."
 								disabled={updateNoteMutation.isPending}
-								minHeight="min-h-36"
+								minHeight="min-h-56"
 							/>
 						</div>
 					)}
 
 					{/* iFrame URL Configuration */}
-					{note?.type === "iframe" && (
+					{note.type === "iframe" && (
 						<div className="flex flex-col gap-3">
 							<div className="flex flex-col gap-1.5">
 								<label
@@ -287,16 +381,20 @@ export function EditNoteModal({
 						</p>
 					</div>
 
-					<DialogFooter className="pt-2 border-t border-line/30">
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							onClick={() => onOpenChange(false)}
-							disabled={updateNoteMutation.isPending}
+					<div className="flex items-center justify-end gap-2 pt-2 border-t border-line/30">
+						<Link
+							to="/projects/$projectId/notes/$id"
+							params={{ projectId: projectIdParam, id }}
 						>
-							Cancel
-						</Button>
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								disabled={updateNoteMutation.isPending}
+							>
+								Cancel
+							</Button>
+						</Link>
 						<Button
 							type="submit"
 							size="sm"
@@ -311,9 +409,9 @@ export function EditNoteModal({
 								"Save Changes"
 							)}
 						</Button>
-					</DialogFooter>
+					</div>
 				</form>
-			</DialogContent>
-		</Dialog>
+			</div>
+		</div>
 	);
 }
