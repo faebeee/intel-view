@@ -1,6 +1,6 @@
 import L from "leaflet";
 import * as React from "react";
-import { Marker, Popup, Tooltip, useMap as useReactLeafletMap } from "react-leaflet";
+import { Marker, Popup, Tooltip } from "react-leaflet";
 import { Markdown } from "#/components/ui/markdown.tsx";
 import type { IframeNoteConfig } from "#/features/notes/noteTypes.ts";
 import { useMap } from "../hooks/useMap";
@@ -68,7 +68,6 @@ const createNeonIcon = (
 
 export function MarkerLayer({ data, onMarkerClick }: MarkerLayerProps) {
 	const { setSelectedMarker, setMarkers } = useMap();
-	const leafletMap = useReactLeafletMap();
 
 	// Keep the context markers state updated for external use (like list views)
 	React.useEffect(() => {
@@ -103,16 +102,10 @@ export function MarkerLayer({ data, onMarkerClick }: MarkerLayerProps) {
 								if (onMarkerClick) {
 									onMarkerClick(markerData);
 								}
-								// Smoothly focus map on marker and let Leaflet's bound Popup
-								// open natively (no custom modal involved).
-								leafletMap.flyTo(
-									[lat, lng],
-									leafletMap.getZoom() < 14 ? 14 : leafletMap.getZoom(),
-									{
-										animate: true,
-										duration: 0.8,
-									},
-								);
+								// Note: the map is intentionally left at its current position/
+								// zoom here; Leaflet's bound Popup still opens natively on
+								// click. Use the detail panel's "Zoom" action to fly to the
+								// marker instead.
 							},
 						}}
 					>

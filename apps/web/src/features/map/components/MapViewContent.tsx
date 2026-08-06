@@ -1,13 +1,10 @@
-import { Link } from "@tanstack/react-router";
 import L from "leaflet";
-import { MapPin, PlusCircle, RefreshCw, Search, X } from "lucide-react";
+import { MapPin, PlusCircle, RefreshCw, Search } from "lucide-react";
 import * as React from "react";
 import { useMapEvents } from "react-leaflet";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
-import { Markdown } from "#/components/ui/markdown.tsx";
 import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal";
-import type { IframeNoteConfig } from "#/features/notes/noteTypes.ts";
 import { useProjectQuery } from "#/features/projects/hooks/useProjectQuery";
 import { useUpdateProject } from "#/features/projects/hooks/useUpdateProject";
 import { useMap } from "../hooks/useMap";
@@ -19,6 +16,7 @@ import { MapProvider } from "./MapProvider";
 import { MapSearch } from "./MapSearch";
 import { MarkerLayer } from "./MarkerLayer";
 import { NoteConnectionLines } from "./NoteConnectionLines";
+import { NoteDetailPanel } from "./NoteDetailPanel";
 import { TileLayer } from "./TileLayer";
 
 type MapClickHandlerProps = {
@@ -218,123 +216,6 @@ function MapInnerView({ projectId }: { projectId: number }) {
 						))
 					)}
 				</div>
-
-				{/* Note Detail Panel */}
-				{selectedMarker && (
-					<div className="p-4 border-t border-line bg-surface/90 backdrop-blur-sm animate-in fade-in slide-in-from-bottom duration-200 shrink-0">
-						<div className="flex items-start justify-between gap-2">
-							<span className="text-[10px] tracking-wider text-[#00f2ff] uppercase font-semibold">
-								Note Details
-							</span>
-							<Button
-								variant="ghost"
-								size="icon-xs"
-								onClick={() => setSelectedMarker(null)}
-							>
-								<X className="h-3 w-3" />
-							</Button>
-						</div>
-
-						<h2 className="font-sans text-sm font-bold text-sea-ink mt-1">
-							{selectedMarker.title}
-						</h2>
-						{selectedMarker.description && (
-							<Markdown
-								content={selectedMarker.description}
-								className="text-xs text-muted-foreground leading-relaxed mt-1.5"
-							/>
-						)}
-
-						{/* iFrame Embed Preview in Detail Panel */}
-						{selectedMarker.type === "iframe" &&
-							(() => {
-								const url = (
-									(selectedMarker.config || {}) as IframeNoteConfig
-								).url;
-								return url ? (
-									<iframe
-										src={url}
-										title={selectedMarker.title}
-										className="mt-2 w-full h-48 rounded border border-line bg-white"
-										sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-									/>
-								) : (
-									<p className="mt-2 text-[10px] italic text-muted-foreground">
-										No iframe URL configured for this note.
-									</p>
-								);
-							})()}
-
-						{/* Assigned Tags in Detail Panel */}
-						{selectedMarker.tags && selectedMarker.tags.length > 0 && (
-							<div className="flex flex-wrap gap-1.5 mt-3">
-								{selectedMarker.tags.map((tag) => {
-									const displayColor = tag.color || "#00f2ff";
-									return (
-										<span
-											key={tag.id}
-											className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase border"
-											style={{
-												backgroundColor: `${displayColor}12`,
-												borderColor: `${displayColor}35`,
-												color: displayColor,
-											}}
-										>
-											{tag.name}
-										</span>
-									);
-								})}
-							</div>
-						)}
-
-						{/* Metadata */}
-						{selectedMarker.metadata && (
-							<div className="mt-3 text-[10px] space-y-1 font-mono text-muted-foreground">
-								<div>Created: {String(selectedMarker.metadata.created)}</div>
-								<div>
-									Lat / Lng: {selectedMarker.lat.toFixed(6)},{" "}
-									{selectedMarker.lng.toFixed(6)}
-								</div>
-							</div>
-						)}
-
-						<div className="mt-3 flex gap-2">
-							<Button
-								variant="outline"
-								size="xs"
-								onClick={() => {
-									if (map) {
-										map.flyTo([selectedMarker.lat, selectedMarker.lng], 16, {
-											animate: true,
-											duration: 0.8,
-										});
-									}
-								}}
-							>
-								Zoom
-							</Button>
-							<Link
-								to="/projects/$projectId/notes/$id"
-								params={{
-									projectId: String(projectId),
-									id: String(selectedMarker.id),
-								}}
-								className="flex-1"
-							>
-								<Button variant="outline" size="xs">
-									Details
-								</Button>
-							</Link>
-							<Button
-								variant="ghost"
-								size="xs"
-								onClick={() => setSelectedMarker(null)}
-							>
-								Close
-							</Button>
-						</div>
-					</div>
-				)}
 			</div>
 
 			{/* Map Container Area */}
@@ -349,6 +230,9 @@ function MapInnerView({ projectId }: { projectId: number }) {
 					<MapControls />
 				</MapContainer>
 			</div>
+
+			{/* Right Sidebar: Note Detail Panel (squeezes the map instead of overlaying it) */}
+			<NoteDetailPanel projectId={projectId} />
 
 			{/* Create Note Modal Overlay */}
 			<CreateNoteModal
