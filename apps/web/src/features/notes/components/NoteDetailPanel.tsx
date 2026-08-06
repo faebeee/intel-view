@@ -13,6 +13,7 @@ import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery";
 import { useNoteQuery } from "#/features/notes/hooks/useNoteQuery";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery";
 import { NoteContentRenderer } from "./NoteContentRenderer";
+import { NoteHistorySection } from "./NoteHistorySection";
 import { NoteTypeBadge } from "./NoteTypeBadge";
 
 type NoteDetailPanelProps = {
@@ -188,9 +189,14 @@ export function NoteDetailPanel({
 						)}
 
 						{/* Content */}
-						<div className="rounded-lg border border-line bg-[#040814]/35 p-4">
+						<div className="rounded-lg border border-line bg-[#040814]/35 p-4 space-y-4">
 							<NoteContentRenderer note={note} />
 						</div>
+
+						{/* History */}
+						{note.type !== "log" && (
+							<NoteHistorySection projectId={projectId} noteId={note.id} />
+						)}
 
 						{/* Sub-notes */}
 						{childNotes.length > 0 && (

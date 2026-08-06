@@ -19,6 +19,7 @@ import { Button } from "#/components/ui/button.tsx";
 import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
 import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal.tsx";
 import { NoteContentRenderer } from "#/features/notes/components/NoteContentRenderer.tsx";
+import { NoteHistorySection } from "#/features/notes/components/NoteHistorySection.tsx";
 import { NoteTypeBadge } from "#/features/notes/components/NoteTypeBadge.tsx";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 import { useNoteQuery } from "#/features/notes/hooks/useNoteQuery.ts";
@@ -261,8 +262,11 @@ function NoteDetailRouteComponent(): JSX.Element {
 				</div>
 
 				{/* Note Content Panel */}
-				<div className="p-6 md:p-8 bg-[#040814]/35 min-h-[300px]">
+				<div className="p-6 md:p-8 bg-[#040814]/35 min-h-[300px] flex flex-col gap-6">
 					<NoteContentRenderer note={note} />
+					{note.type !== "log" && (
+						<NoteHistorySection projectId={projectId} noteId={note.id} />
+					)}
 				</div>
 
 				{/* Sub-notes Section */}

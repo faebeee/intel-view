@@ -15,7 +15,12 @@ import type { PaginateQuery } from 'nestjs-paginate';
 import { NoteService, notePaginateConfig } from './note.service';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
+import { CreateNoteHistoryEntryDto } from './dto/create-note-history-entry.dto';
 import { NoteResponseDto, toNoteResponseDto } from './dto/note-response.dto';
+import {
+  NoteHistoryEntryResponseDto,
+  toNoteHistoryEntryResponseDto,
+} from './dto/note-history-entry-response.dto';
 
 @ApiTags('notes')
 @Controller('projects/:projectId/notes')
@@ -95,6 +100,59 @@ export class NoteController {
       throw new NotFoundException(`Note with ID ${id} not found`);
     }
     return toNoteResponseDto(note);
+  }
+
+  @Get(':id/history')
+  @ApiOperation({
+    summary:
+      'Get the full automatic change history of a note, most recent first',
+  })
+  @ApiResponse({
+    status: 200,
+    description: "The note's change history.",
+    type: [NoteHistoryEntryResponseDto],
+  })
+  @ApiResponse({ status: 404, description: 'Note not found.' })
+  async findHistory(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<NoteHistoryEntryResponseDto[]> {
+    const history = await this.noteService.findHistory(projectId, id);
+    if (!history) {
+      throw new NotFoundException(`Note with ID ${id} not found`);
+    }
+    return history.map(toNoteHistoryEntryResponseDto);
+  }
+
+  @Post(':id/history')
+  @ApiOperation({
+    summary:
+      'Add a manual, freeform history entry to a log note from its detail view',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'The manual history entry has been added.',
+    type: NoteHistoryEntryResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Note not found.' })
+  @ApiResponse({
+    status: 400,
+    description: 'The note is not of type "log".',
+  })
+  async addManualEntry(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() createNoteHistoryEntryDto: CreateNoteHistoryEntryDto,
+  ): Promise<NoteHistoryEntryResponseDto> {
+    const entry = await this.noteService.addManualEntry(
+      projectId,
+      id,
+      createNoteHistoryEntryDto,
+    );
+    if (!entry) {
+      throw new NotFoundException(`Note with ID ${id} not found`);
+    }
+    return toNoteHistoryEntryResponseDto(entry);
   }
 
   @Delete(':id')

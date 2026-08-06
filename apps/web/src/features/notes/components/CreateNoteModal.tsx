@@ -150,7 +150,7 @@ export function CreateNoteModal({
 
 		createNoteMutation.mutate({
 			type,
-			content: content.trim(),
+			content: type === "log" ? "" : content.trim(),
 			config: type === "iframe" ? { url: iframeUrl.trim() } : undefined,
 			lat: parseFloat(lat),
 			lng: parseFloat(lng),
@@ -283,6 +283,15 @@ export function CreateNoteModal({
 									disabled={createNoteMutation.isPending}
 								/>
 							</div>
+						</div>
+					)}
+
+					{/* Log Note Info */}
+					{type === "log" && (
+						<div className="rounded-lg border border-line/50 bg-[#040814]/40 p-3 text-xs text-muted-foreground italic">
+							Log notes have no content of their own. Their detail view directly
+							displays this note's automatic change history, and lets you add
+							your own freeform history entries.
 						</div>
 					)}
 

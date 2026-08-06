@@ -74,7 +74,7 @@ export const CreateNoteDtoSchema = {
         type: {
             type: 'string',
             description: 'The type of note, determines how it is rendered',
-            enum: ['markdown', 'iframe'],
+            enum: ['markdown', 'iframe', 'log'],
             default: 'markdown'
         },
         content: {
@@ -133,7 +133,7 @@ export const NoteResponseDtoSchema = {
         type: {
             type: 'string',
             description: 'The type of note, determines how it is rendered',
-            enum: ['markdown', 'iframe']
+            enum: ['markdown', 'iframe', 'log']
         },
         content: {
             type: 'string',
@@ -233,6 +233,52 @@ export const UpdateNoteDtoSchema = {
             nullable: true
         }
     }
+} as const;
+
+export const NoteHistoryEntryResponseDtoSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'number'
+        },
+        noteId: {
+            type: 'number'
+        },
+        changeType: {
+            type: 'string',
+            description: "The kind of event this entry records: 'created' when the note was made, 'updated' for a subsequent edit, 'manual' for a freeform entry added by the user (log notes only)",
+            enum: ['created', 'updated', 'manual']
+        },
+        changes: {
+            description: "For 'updated' entries, the list of fields that changed in that edit, each with their previous and new value. Null for 'created'/'manual' entries.",
+            nullable: true,
+            type: 'array',
+            items: {
+                type: 'object'
+            }
+        },
+        content: {
+            type: 'string',
+            description: "Freeform markdown content for a 'manual' entry. Null for 'created'/'updated' entries.",
+            nullable: true
+        },
+        createdAt: {
+            format: 'date-time',
+            type: 'string'
+        }
+    },
+    required: ['id', 'noteId', 'changeType', 'createdAt']
+} as const;
+
+export const CreateNoteHistoryEntryDtoSchema = {
+    type: 'object',
+    properties: {
+        content: {
+            type: 'string',
+            description: 'Markdown content of the manual history entry'
+        }
+    },
+    required: ['content']
 } as const;
 
 export const CreateTagDtoSchema = {

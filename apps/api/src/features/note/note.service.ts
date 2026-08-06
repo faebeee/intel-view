@@ -12,8 +12,11 @@ import {
   PaginateConfig,
 } from 'nestjs-paginate';
 import { Note } from './entities/note.entity';
+import { NoteHistoryEntry } from './entities/note-history-entry.entity';
+import type { NoteFieldChange } from './entities/note-history-entry.entity';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
+import { CreateNoteHistoryEntryDto } from './dto/create-note-history-entry.dto';
 import { Project } from '../project/entities/project.entity';
 
 export const notePaginateConfig: PaginateConfig<Note> = {
@@ -29,6 +32,40 @@ export const notePaginateConfig: PaginateConfig<Note> = {
   },
 };
 
+/**
+ * Fields on `Note` that are tracked for automatic history entries when
+ * changed via `update()`. Deliberately excludes `canvasX`/`canvasY`, since
+ * dragging a note on the canvas view fires frequent position updates that
+ * would flood the history with noise unrelated to the note's actual
+ * content.
+ */
+const HISTORY_TRACKED_FIELDS = [
+  'content',
+  'config',
+  'tags',
+  'lat',
+  'lng',
+  'parentId',
+] as const;
+
+/**
+ * Structurally compares two field values for equality, using JSON
+ * serialization for objects/arrays (`config`, `tags`) and strict equality
+ * for primitives.
+ */
+function valuesAreEqual(a: unknown, b: unknown): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (a === null || a === undefined || b === null || b === undefined) {
+    return false;
+  }
+  if (typeof a === 'object' || typeof b === 'object') {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+  return false;
+}
+
 @Injectable()
 export class NoteService {
   constructor(
@@ -36,6 +73,8 @@ export class NoteService {
     private readonly noteRepository: Repository<Note>,
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
+    @InjectRepository(NoteHistoryEntry)
+    private readonly noteHistoryRepository: Repository<NoteHistoryEntry>,
   ) {}
 
   private async assertProjectExists(projectId: number): Promise<void> {
@@ -141,7 +180,17 @@ export class NoteService {
       await this.assertParentValid(projectId, createNoteDto.parentId);
     }
     const note = this.noteRepository.create({ ...createNoteDto, projectId });
-    return this.noteRepository.save(note);
+    const savedNote = await this.noteRepository.save(note);
+
+    await this.noteHistoryRepository.save(
+      this.noteHistoryRepository.create({
+        noteId: savedNote.id,
+        changeType: 'created',
+        changes: null,
+      }),
+    );
+
+    return savedNote;
   }
 
   async findAll(
@@ -159,6 +208,55 @@ export class NoteService {
     return this.noteRepository.findOne({
       where: { id, projectId, deletedAt: IsNull() },
     });
+  }
+
+  /**
+   * Returns the full, chronologically-ordered (most recent first) change
+   * history of a note, or `null` if the note does not exist.
+   */
+  async findHistory(
+    projectId: number,
+    id: number,
+  ): Promise<NoteHistoryEntry[] | null> {
+    const note = await this.findOne(projectId, id);
+    if (!note) {
+      return null;
+    }
+    return this.noteHistoryRepository.find({
+      where: { noteId: id },
+      order: { createdAt: 'DESC', id: 'DESC' },
+    });
+  }
+
+  /**
+   * Adds a freeform 'manual' history entry to a `log` note, added directly
+   * by the user from the note detail view. Only supported for notes of
+   * type `log` — other note types only ever accumulate automatic
+   * 'created'/'updated' entries.
+   */
+  async addManualEntry(
+    projectId: number,
+    id: number,
+    createNoteHistoryEntryDto: CreateNoteHistoryEntryDto,
+  ): Promise<NoteHistoryEntry | null> {
+    const note = await this.findOne(projectId, id);
+    if (!note) {
+      return null;
+    }
+
+    if (note.type !== 'log') {
+      throw new BadRequestException(
+        'Manual history entries can only be added to notes of type "log"',
+      );
+    }
+
+    const entry = this.noteHistoryRepository.create({
+      noteId: id,
+      changeType: 'manual',
+      changes: null,
+      content: createNoteHistoryEntryDto.content,
+    });
+    return this.noteHistoryRepository.save(entry);
   }
 
   async update(
@@ -181,11 +279,49 @@ export class NoteService {
       await this.assertParentValid(projectId, updateNoteDto.parentId, id);
     }
 
-    // Update primitive fields
-    Object.assign(note, updateNoteDto);
+    // Compute field-level diffs for tracked fields before applying the
+    // update, so we can record an automatic history entry for this edit.
+    const changes: NoteFieldChange[] = [];
+    for (const field of HISTORY_TRACKED_FIELDS) {
+      if (!(field in updateNoteDto) || updateNoteDto[field] === undefined) {
+        continue;
+      }
+      const previousValue = note[field];
+      const newValue = updateNoteDto[field];
+      if (!valuesAreEqual(previousValue, newValue)) {
+        changes.push({ field, previousValue, newValue });
+      }
+    }
+
+    // Update only the fields explicitly present in the request. `UpdateNoteDto`
+    // instances have every declared field present as an own property (even
+    // when omitted from the request body, class-transformer/TypeScript's
+    // `useDefineForClassFields` semantics leave it as `undefined` rather than
+    // absent) — a plain `Object.assign(note, updateNoteDto)` would therefore
+    // overwrite every unspecified field on the note with `undefined` (which
+    // TypeORM persists as `NULL`), silently wiping data on partial updates
+    // like canvas-position-only drags. Only copy over properties that were
+    // actually provided.
+    for (const [key, value] of Object.entries(updateNoteDto)) {
+      if (value !== undefined) {
+        (note as unknown as Record<string, unknown>)[key] = value;
+      }
+    }
 
     note.updatedAt = new Date();
-    return this.noteRepository.save(note);
+    const savedNote = await this.noteRepository.save(note);
+
+    if (changes.length > 0) {
+      await this.noteHistoryRepository.save(
+        this.noteHistoryRepository.create({
+          noteId: savedNote.id,
+          changeType: 'updated',
+          changes,
+        }),
+      );
+    }
+
+    return savedNote;
   }
 
   async remove(projectId: number, id: number): Promise<boolean> {

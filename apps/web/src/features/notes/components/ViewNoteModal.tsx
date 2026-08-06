@@ -1,6 +1,6 @@
 import type { NoteResponseDto as Note } from "@repo/sdk";
 import { Link } from "@tanstack/react-router";
-import { Calendar, MapPin, Edit2 } from "lucide-react";
+import { Calendar, Edit2, MapPin } from "lucide-react";
 import * as React from "react";
 import { Button } from "#/components/ui/button";
 import {
@@ -11,9 +11,10 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
-import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 import { NoteContentRenderer } from "#/features/notes/components/NoteContentRenderer.tsx";
+import { NoteHistorySection } from "#/features/notes/components/NoteHistorySection.tsx";
 import { NoteTypeBadge } from "#/features/notes/components/NoteTypeBadge.tsx";
+import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 
 type ViewNoteModalProps = {
 	projectId: number;
@@ -105,7 +106,8 @@ export function ViewNoteModal({
 					{tags.length > 0 && (
 						<div className="flex flex-wrap gap-1.5 pt-1">
 							{tags.map((tag) => {
-								const displayColor = tagColorMap.get(tag.toLowerCase()) || "#00f2ff";
+								const displayColor =
+									tagColorMap.get(tag.toLowerCase()) || "#00f2ff";
 								return (
 									<span
 										key={tag}
@@ -125,8 +127,11 @@ export function ViewNoteModal({
 				</DialogHeader>
 
 				{/* Modal Body / Markdown Content */}
-				<div className="flex-1 overflow-y-auto p-6 min-h-0 bg-[#040814]/30">
+				<div className="flex-1 overflow-y-auto p-6 min-h-0 bg-[#040814]/30 space-y-4">
 					<NoteContentRenderer note={note} />
+					{note.type !== "log" && (
+						<NoteHistorySection projectId={projectId} noteId={note.id} />
+					)}
 				</div>
 
 				{/* Modal Footer */}

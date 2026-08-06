@@ -48,7 +48,7 @@ export type CreateNoteDto = {
     /**
      * The type of note, determines how it is rendered
      */
-    type?: 'markdown' | 'iframe';
+    type?: 'markdown' | 'iframe' | 'log';
     /**
      * The content of the note
      */
@@ -88,7 +88,7 @@ export type CreateNoteDto = {
 /**
  * The type of note, determines how it is rendered
  */
-export type type = 'markdown' | 'iframe';
+export type type = 'markdown' | 'iframe' | 'log';
 
 export type NoteResponseDto = {
     id: number;
@@ -96,7 +96,7 @@ export type NoteResponseDto = {
     /**
      * The type of note, determines how it is rendered
      */
-    type: 'markdown' | 'iframe';
+    type: 'markdown' | 'iframe' | 'log';
     /**
      * Content of the note
      */
@@ -170,6 +170,38 @@ export type UpdateNoteDto = {
      * ID of the parent note this note should be nested under. Set to null to detach and make this a top-level (root) note.
      */
     parentId?: (number) | null;
+};
+
+export type NoteHistoryEntryResponseDto = {
+    id: number;
+    noteId: number;
+    /**
+     * The kind of event this entry records: 'created' when the note was made, 'updated' for a subsequent edit, 'manual' for a freeform entry added by the user (log notes only)
+     */
+    changeType: 'created' | 'updated' | 'manual';
+    /**
+     * For 'updated' entries, the list of fields that changed in that edit, each with their previous and new value. Null for 'created'/'manual' entries.
+     */
+    changes?: Array<{
+        [key: string]: unknown;
+    }> | null;
+    /**
+     * Freeform markdown content for a 'manual' entry. Null for 'created'/'updated' entries.
+     */
+    content?: (string) | null;
+    createdAt: string;
+};
+
+/**
+ * The kind of event this entry records: 'created' when the note was made, 'updated' for a subsequent edit, 'manual' for a freeform entry added by the user (log notes only)
+ */
+export type changeType = 'created' | 'updated' | 'manual';
+
+export type CreateNoteHistoryEntryDto = {
+    /**
+     * Markdown content of the manual history entry
+     */
+    content: string;
 };
 
 export type CreateTagDto = {
@@ -662,6 +694,29 @@ export type NoteControllerRemoveData = {
 export type NoteControllerRemoveResponse = (unknown);
 
 export type NoteControllerRemoveError = (unknown);
+
+export type NoteControllerFindHistoryData = {
+    path: {
+        id: number;
+        projectId: number;
+    };
+};
+
+export type NoteControllerFindHistoryResponse = (Array<NoteHistoryEntryResponseDto>);
+
+export type NoteControllerFindHistoryError = (unknown);
+
+export type NoteControllerAddManualEntryData = {
+    body: CreateNoteHistoryEntryDto;
+    path: {
+        id: number;
+        projectId: number;
+    };
+};
+
+export type NoteControllerAddManualEntryResponse = (NoteHistoryEntryResponseDto);
+
+export type NoteControllerAddManualEntryError = (unknown);
 
 export type TagControllerCreateData = {
     body: CreateTagDto;

@@ -1,5 +1,5 @@
-import { AppWindow, FileText } from "lucide-react";
 import type { NoteResponseDto } from "@repo/sdk";
+import { AppWindow, FileText, History } from "lucide-react";
 
 export type NoteType = NoteResponseDto["type"];
 
@@ -37,6 +37,13 @@ export const NOTE_TYPE_OPTIONS: NoteTypeOption[] = [
 		label: "iFrame",
 		description: "Embeds an external web page inside the note",
 		icon: AppWindow,
+	},
+	{
+		value: "log",
+		label: "Log",
+		description:
+			"Has no content of its own; directly displays the note's automatic change history",
+		icon: History,
 	},
 ];
 

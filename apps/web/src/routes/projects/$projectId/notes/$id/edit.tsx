@@ -1,6 +1,6 @@
 import { noteControllerUpdate } from "@repo/sdk";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import type { JSX } from "react";
 import * as React from "react";
@@ -164,7 +164,7 @@ function NoteEditRouteComponent(): JSX.Element {
 			.filter(Boolean);
 
 		updateNoteMutation.mutate({
-			content: content.trim(),
+			content: note?.type === "log" ? "" : content.trim(),
 			config: note?.type === "iframe" ? { url: iframeUrl.trim() } : undefined,
 			lat: parsedLat,
 			lng: parsedLng,
@@ -313,6 +313,15 @@ function NoteEditRouteComponent(): JSX.Element {
 									disabled={updateNoteMutation.isPending}
 								/>
 							</div>
+						</div>
+					)}
+
+					{/* Log Note Info */}
+					{note.type === "log" && (
+						<div className="rounded-lg border border-line/50 bg-[#040814]/40 p-3 text-xs text-muted-foreground italic">
+							Log notes have no content of their own. Their detail view directly
+							displays this note's automatic change history, and lets you add
+							your own freeform history entries.
 						</div>
 					)}
 

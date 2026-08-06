@@ -1,7 +1,10 @@
 import type { NoteResponseDto as Note } from "@repo/sdk";
 import { AppWindow } from "lucide-react";
 import { Markdown } from "#/components/ui/markdown.tsx";
+import { useNoteHistoryQuery } from "#/features/notes/hooks/useNoteHistoryQuery.ts";
 import type { IframeNoteConfig } from "#/features/notes/noteTypes.ts";
+import { AddHistoryEntryForm } from "./AddHistoryEntryForm";
+import { NoteHistoryEntries } from "./NoteHistoryEntries";
 
 type NoteContentRendererProps = {
 	note: Note;
@@ -40,7 +43,38 @@ export function NoteContentRenderer({ note }: NoteContentRendererProps) {
 				</div>
 			);
 		}
+		case "log": {
+			// 'log' notes have no content of their own; their detail view
+			// directly displays the note's automatic change history as its
+			// primary content, rather than tucking it away in a collapsible
+			// "History" section like other note types (see NoteHistorySection).
+			// Users can also add freeform manual entries directly here.
+			return <LogNoteHistory projectId={note.projectId} noteId={note.id} />;
+		}
 		default:
 			return <Markdown content={note.content} />;
 	}
+}
+
+function LogNoteHistory({
+	projectId,
+	noteId,
+}: {
+	projectId: number;
+	noteId: number;
+}) {
+	const { data: entries = [], isLoading } = useNoteHistoryQuery(
+		projectId,
+		noteId,
+	);
+	return (
+		<div className="flex flex-col gap-4">
+			<AddHistoryEntryForm projectId={projectId} noteId={noteId} />
+			<NoteHistoryEntries
+				entries={entries}
+				isLoading={isLoading}
+				emptyMessage="No history recorded yet."
+			/>
+		</div>
+	);
 }
