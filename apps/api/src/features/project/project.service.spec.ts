@@ -41,6 +41,28 @@ describe('ProjectService', () => {
     expect(service).toBeDefined();
   });
 
+  describe('update', () => {
+    it('persists the mapStyle field on the project', async () => {
+      const existingProject = {
+        id: 1,
+        name: 'Op Blue Horizon',
+        description: null,
+        mapStyle: 'dark',
+      };
+      mockProjectRepository.findOne.mockResolvedValue(existingProject);
+      mockProjectRepository.save.mockImplementation(
+        (project: unknown) => project,
+      );
+
+      const result = await service.update(1, { mapStyle: 'satellite' });
+
+      expect(result).toMatchObject({ mapStyle: 'satellite' });
+      expect(mockProjectRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ mapStyle: 'satellite' }),
+      );
+    });
+  });
+
   describe('remove', () => {
     it('cascades soft-delete to notes and tags in a transaction', async () => {
       mockProjectRepository.findOne.mockResolvedValue({ id: 1 });

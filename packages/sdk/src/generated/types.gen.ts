@@ -9,12 +9,22 @@ export type CreateProjectDto = {
      * A description of the project
      */
     description?: string;
+    /**
+     * Preferred map tile style for this project
+     */
+    mapStyle?: 'dark' | 'light' | 'street' | 'satellite';
 };
+
+/**
+ * Preferred map tile style for this project
+ */
+export type mapStyle = 'dark' | 'light' | 'street' | 'satellite';
 
 export type ProjectResponseDto = {
     id: number;
     name: string;
     description?: (string) | null;
+    mapStyle: 'dark' | 'light' | 'street' | 'satellite';
     createdAt: string;
     updatedAt: string;
 };
@@ -28,6 +38,10 @@ export type UpdateProjectDto = {
      * A description of the project
      */
     description?: string;
+    /**
+     * Preferred map tile style for this project
+     */
+    mapStyle?: 'dark' | 'light' | 'street' | 'satellite';
 };
 
 export type CreateNoteDto = {

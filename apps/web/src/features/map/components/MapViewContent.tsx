@@ -7,9 +7,11 @@ import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Markdown } from "#/components/ui/markdown.tsx";
 import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal";
+import { useProjectQuery } from "#/features/projects/hooks/useProjectQuery";
+import { useUpdateProject } from "#/features/projects/hooks/useUpdateProject";
 import { useMap } from "../hooks/useMap";
 import { useNotesQuery } from "../hooks/useNotesQuery";
-import type { Coordinate, MapMarkerData } from "../types";
+import type { Coordinate, MapMarkerData, MapStyleValue } from "../types";
 import { MapContainer } from "./MapContainer";
 import { MapControls } from "./MapControls";
 import { MapProvider } from "./MapProvider";
@@ -338,8 +340,18 @@ function MapInnerView({ projectId }: { projectId: number }) {
 }
 
 export function MapViewContent({ projectId }: { projectId: number }) {
+	const { data: project } = useProjectQuery(projectId);
+	const updateProjectMutation = useUpdateProject(projectId);
+
+	const handleMapStyleChange = (style: MapStyleValue) => {
+		updateProjectMutation.mutate({ mapStyle: style });
+	};
+
 	return (
-		<MapProvider>
+		<MapProvider
+			initialMapStyle={project?.mapStyle}
+			onMapStyleChange={handleMapStyleChange}
+		>
 			<MapInnerView projectId={projectId} />
 		</MapProvider>
 	);

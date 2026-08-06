@@ -11,6 +11,7 @@ import {
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import { useMap } from "../hooks/useMap";
+import type { MapStyleValue } from "../types";
 
 export function MapControls() {
 	const { mapStyle, setMapStyle } = useMap();
@@ -98,12 +99,10 @@ export function MapControls() {
 						<Layers className="h-5 w-5" />
 					</Button>
 				</DropdownMenuTrigger>
-				<DropdownMenuContent className="w-36 bg-surface-strong border border-line text-sea-ink backdrop-blur-md">
+				<DropdownMenuContent className="z-[1000] w-36 bg-surface-strong border border-line text-sea-ink backdrop-blur-md">
 					<DropdownMenuRadioGroup
 						value={mapStyle}
-						onValueChange={(value) =>
-							setMapStyle(value as "dark" | "light" | "street")
-						}
+						onValueChange={(value) => setMapStyle(value as MapStyleValue)}
 					>
 						<DropdownMenuRadioItem
 							value="dark"
@@ -122,6 +121,12 @@ export function MapControls() {
 							className="focus:bg-line/20 focus:text-lagoon cursor-pointer text-xs"
 						>
 							Standard Street
+						</DropdownMenuRadioItem>
+						<DropdownMenuRadioItem
+							value="satellite"
+							className="focus:bg-line/20 focus:text-lagoon cursor-pointer text-xs"
+						>
+							Satellite
 						</DropdownMenuRadioItem>
 					</DropdownMenuRadioGroup>
 				</DropdownMenuContent>

@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Project } from '../entities/project.entity';
+import { Project, MAP_STYLES } from '../entities/project.entity';
+import type { MapStyle } from '../entities/project.entity';
 
 export class ProjectResponseDto {
   @ApiProperty()
@@ -10,6 +11,9 @@ export class ProjectResponseDto {
 
   @ApiProperty({ type: 'string', nullable: true, required: false })
   description: string | null;
+
+  @ApiProperty({ enum: MAP_STYLES })
+  mapStyle: MapStyle;
 
   @ApiProperty()
   createdAt: Date;
@@ -23,6 +27,7 @@ export function toProjectResponseDto(project: Project): ProjectResponseDto {
     id: project.id,
     name: project.name,
     description: project.description,
+    mapStyle: project.mapStyle,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
   };

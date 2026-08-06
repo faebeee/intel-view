@@ -60,7 +60,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				</TooltipProvider>
 				<TanStackDevtools
 					config={{
-						position: "bottom-right",
+						position: "top-right",
+						hideUntilHover: true,
 					}}
 					plugins={[
 						{

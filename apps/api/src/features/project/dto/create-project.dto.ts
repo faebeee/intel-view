@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsIn } from 'class-validator';
+import { MAP_STYLES } from '../entities/project.entity';
+import type { MapStyle } from '../entities/project.entity';
 
 export class CreateProjectDto {
   @IsString()
@@ -14,4 +16,13 @@ export class CreateProjectDto {
     required: false,
   })
   description?: string;
+
+  @IsIn(MAP_STYLES)
+  @IsOptional()
+  @ApiProperty({
+    description: 'Preferred map tile style for this project',
+    enum: MAP_STYLES,
+    required: false,
+  })
+  mapStyle?: MapStyle;
 }

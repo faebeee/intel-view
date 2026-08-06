@@ -10,6 +10,11 @@ export const CreateProjectDtoSchema = {
         description: {
             type: 'string',
             description: 'A description of the project'
+        },
+        mapStyle: {
+            type: 'string',
+            description: 'Preferred map tile style for this project',
+            enum: ['dark', 'light', 'street', 'satellite']
         }
     },
     required: ['name']
@@ -28,6 +33,10 @@ export const ProjectResponseDtoSchema = {
             type: 'string',
             nullable: true
         },
+        mapStyle: {
+            type: 'string',
+            enum: ['dark', 'light', 'street', 'satellite']
+        },
         createdAt: {
             format: 'date-time',
             type: 'string'
@@ -37,7 +46,7 @@ export const ProjectResponseDtoSchema = {
             type: 'string'
         }
     },
-    required: ['id', 'name', 'createdAt', 'updatedAt']
+    required: ['id', 'name', 'mapStyle', 'createdAt', 'updatedAt']
 } as const;
 
 export const UpdateProjectDtoSchema = {
@@ -50,6 +59,11 @@ export const UpdateProjectDtoSchema = {
         description: {
             type: 'string',
             description: 'A description of the project'
+        },
+        mapStyle: {
+            type: 'string',
+            description: 'Preferred map tile style for this project',
+            enum: ['dark', 'light', 'street', 'satellite']
         }
     }
 } as const;

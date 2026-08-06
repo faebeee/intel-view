@@ -33,7 +33,7 @@ export function MapContainer({
 	center = [48.1351, 11.582],
 	zoom = 13,
 	minZoom = 3,
-	maxZoom = 18,
+	maxZoom,
 	children,
 	className = "w-full h-full min-h-[400px]",
 }: MapContainerProps) {

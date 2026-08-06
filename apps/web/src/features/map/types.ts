@@ -1,5 +1,7 @@
 export type Coordinate = [number, number];
 
+export type MapStyleValue = "dark" | "light" | "street" | "satellite";
+
 export type MapMarkerData = {
 	id: string;
 	lat: number;
