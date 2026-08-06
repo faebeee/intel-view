@@ -10,6 +10,7 @@ import { ConfirmationButton } from "#/features/common/components/ConfirmationBut
 import { Markdown } from "#/components/ui/markdown.tsx";
 import { EditNoteModal } from "#/features/notes/components/EditNoteModal.tsx";
 import { useNoteQuery } from "#/features/notes/hooks/useNoteQuery.ts";
+import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 
 export const Route = createFileRoute("/notes/$id/")({
 	component: NoteDetailRouteComponent,
@@ -22,7 +23,16 @@ function NoteDetailRouteComponent(): JSX.Element {
 	const queryClient = useQueryClient();
 
 	const { data: note, isLoading, refetch } = useNoteQuery(noteId);
+	const { data: availableTags = [] } = useAllTagsQuery();
 	const [isEditOpen, setIsEditOpen] = React.useState(false);
+
+	const tagColorMap = React.useMemo(() => {
+		const map = new Map<string, string>();
+		for (const tag of availableTags) {
+			map.set(tag.name.toLowerCase(), tag.color);
+		}
+		return map;
+	}, [availableTags]);
 
 	const removeNoteMutation = useMutation({
 		mutationFn: async (id: number) => {
@@ -174,7 +184,7 @@ function NoteDetailRouteComponent(): JSX.Element {
 					{tags.length > 0 && (
 						<div className="flex flex-wrap gap-1.5 pt-1">
 							{tags.map((tag) => {
-								const displayColor = "#00f2ff";
+								const displayColor = tagColorMap.get(tag.toLowerCase()) || "#00f2ff";
 								return (
 									<span
 										key={tag}

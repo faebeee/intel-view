@@ -1,5 +1,6 @@
 import type { Note } from "@repo/sdk";
 import { Calendar, MapPin, Edit2 } from "lucide-react";
+import * as React from "react";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -10,6 +11,7 @@ import {
 	DialogTitle,
 } from "#/components/ui/dialog";
 import { Markdown } from "#/components/ui/markdown.tsx";
+import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 
 type ViewNoteModalProps = {
 	note: Note | null;
@@ -24,6 +26,16 @@ export function ViewNoteModal({
 	onOpenChange,
 	onEditClick,
 }: ViewNoteModalProps) {
+	const { data: availableTags = [] } = useAllTagsQuery();
+
+	const tagColorMap = React.useMemo(() => {
+		const map = new Map<string, string>();
+		for (const tag of availableTags) {
+			map.set(tag.name.toLowerCase(), tag.color);
+		}
+		return map;
+	}, [availableTags]);
+
 	if (!note) return null;
 
 	const hasCoords =
@@ -86,7 +98,7 @@ export function ViewNoteModal({
 					{tags.length > 0 && (
 						<div className="flex flex-wrap gap-1.5 pt-1">
 							{tags.map((tag) => {
-								const displayColor = "#00f2ff";
+								const displayColor = tagColorMap.get(tag.toLowerCase()) || "#00f2ff";
 								return (
 									<span
 										key={tag}

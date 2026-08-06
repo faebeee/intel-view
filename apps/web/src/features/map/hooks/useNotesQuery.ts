@@ -1,5 +1,5 @@
-import type { Note } from "@repo/sdk";
-import { noteControllerFindAll } from "@repo/sdk";
+import type { Note, Tag } from "@repo/sdk";
+import { noteControllerFindAll, tagControllerFindAll } from "@repo/sdk";
 import { useQuery } from "@tanstack/react-query";
 import type { PaginatedResponse } from "#/types/note";
 import type { MapMarkerData } from "../types";
@@ -8,15 +8,29 @@ export function useNotesQuery() {
 	return useQuery({
 		queryKey: ["notes", "map"],
 		queryFn: async () => {
-			const response = await noteControllerFindAll({
-				query: {
-					"filter.lat": ["$not:$null"],
-					"filter.lng": ["$not:$null"],
-					limit: 100,
-				},
-			});
+			const [response, tagsResponse] = await Promise.all([
+				noteControllerFindAll({
+					query: {
+						"filter.lat": ["$not:$null"],
+						"filter.lng": ["$not:$null"],
+						limit: 100,
+					},
+				}),
+				tagControllerFindAll({
+					query: {
+						limit: 100,
+					},
+				}),
+			]);
 
 			const paginated = response.data as PaginatedResponse<Note>;
+			const paginatedTags = tagsResponse.data as PaginatedResponse<Tag>;
+			const availableTags = paginatedTags?.data || [];
+
+			const tagColorMap = new Map<string, string>();
+			for (const tag of availableTags) {
+				tagColorMap.set(tag.name.toLowerCase(), tag.color);
+			}
 
 			// Map API Notes to MapMarkerData structure
 			return (paginated?.data || [])
@@ -53,7 +67,7 @@ export function useNotesQuery() {
 						tags: (note.tags || []).map((t) => ({
 							id: t,
 							name: t,
-							color: "#38bdf8",
+							color: tagColorMap.get(t.toLowerCase()) || "#38bdf8",
 						})),
 					};
 				});

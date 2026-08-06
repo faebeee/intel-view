@@ -16,6 +16,8 @@ import { ConfirmationButton } from "#/features/common/components/ConfirmationBut
 import { DataTable, SortableHeader } from "#/components/ui/data-table.tsx";
 import { EditNoteModal } from "#/features/notes/components/EditNoteModal.tsx";
 import { ViewNoteModal } from "#/features/notes/components/ViewNoteModal.tsx";
+import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
+
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 
 export const Route = createFileRoute("/notes/")({
@@ -30,6 +32,15 @@ function NotesRouteComponent(): JSX.Element {
 		isRefetching,
 		refetch,
 	} = useAllNotesQuery();
+	const { data: availableTags = [] } = useAllTagsQuery();
+
+	const tagColorMap = React.useMemo(() => {
+		const map = new Map<string, string>();
+		for (const tag of availableTags) {
+			map.set(tag.name.toLowerCase(), tag.color);
+		}
+		return map;
+	}, [availableTags]);
 	const [editingNote, setEditingNote] = React.useState<Note | null>(null);
 	const [isEditOpen, setIsEditOpen] = React.useState(false);
 
@@ -118,7 +129,7 @@ function NotesRouteComponent(): JSX.Element {
 					<div className="flex flex-wrap gap-1.5 max-w-[200px] px-2">
 						{tags.length > 0 ? (
 							tags.map((tag) => {
-								const displayColor = "#00f2ff";
+								const displayColor = tagColorMap.get(tag.toLowerCase()) || "#00f2ff";
 								return (
 									<span
 										key={tag}
