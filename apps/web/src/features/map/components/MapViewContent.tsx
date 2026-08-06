@@ -1,11 +1,12 @@
+import { Link } from "@tanstack/react-router";
+import L from "leaflet";
 import { MapPin, PlusCircle, RefreshCw, Search, X } from "lucide-react";
 import * as React from "react";
 import { useMapEvents } from "react-leaflet";
-import { Link } from "@tanstack/react-router";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
-import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal";
 import { Markdown } from "#/components/ui/markdown.tsx";
+import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal";
 import { useMap } from "../hooks/useMap";
 import { useNotesQuery } from "../hooks/useNotesQuery";
 import type { Coordinate, MapMarkerData } from "../types";
@@ -42,13 +43,37 @@ function MapInnerView() {
 		lng: number;
 	} | null>(null);
 
-	// Center point defaulted to Munich, or dynamically focus on first note if available
+	// Compute the bounding box of all note markers so the initial view can
+	// show every note. Falls back to a default center/zoom when there are
+	// no notes yet.
+	const notesBounds = React.useMemo(() => {
+		if (notes.length === 0) {
+			return null;
+		}
+		return L.latLngBounds(notes.map((note) => [note.lat, note.lng]));
+	}, [notes]);
+
+	// Center point defaulted to Munich, or the centroid of all notes if available.
+	// This is only used for the initial mount; once the map instance and notes
+	// are ready, `fitBounds` below adjusts the view to fit every marker.
 	const defaultCenter: Coordinate = React.useMemo(() => {
-		if (notes.length > 0) {
-			return [notes[0].lat, notes[0].lng];
+		if (notesBounds) {
+			const center = notesBounds.getCenter();
+			return [center.lat, center.lng];
 		}
 		return [48.1351, 11.582];
-	}, [notes]);
+	}, [notesBounds]);
+
+	// Fit the map to the bounding box of all notes once, when the map opens
+	// and the notes have finished loading, so every marker is visible.
+	const hasFitBoundsRef = React.useRef(false);
+	React.useEffect(() => {
+		if (hasFitBoundsRef.current || !map || !notesBounds) {
+			return;
+		}
+		hasFitBoundsRef.current = true;
+		map.fitBounds(notesBounds, { padding: [120, 120], maxZoom: 15 });
+	}, [map, notesBounds]);
 
 	// Filter notes based on search query
 	const filteredAssets = React.useMemo(() => {
@@ -269,10 +294,7 @@ function MapInnerView() {
 								params={{ id: String(selectedMarker.id) }}
 								className="flex-1"
 							>
-								<Button
-									variant="outline"
-									size="xs"
-								>
+								<Button variant="outline" size="xs">
 									Details
 								</Button>
 							</Link>
@@ -290,7 +312,7 @@ function MapInnerView() {
 
 			{/* Map Container Area */}
 			<div className="flex-1 h-full min-h-0 relative">
-				<MapContainer center={defaultCenter} zoom={1}>
+				<MapContainer center={defaultCenter} zoom={13}>
 					<TileLayer />
 					<MarkerLayer data={filteredAssets} />
 					<MapClickHandler onMapClick={handleMapClick} />
