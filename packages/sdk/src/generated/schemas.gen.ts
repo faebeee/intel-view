@@ -17,11 +17,11 @@ export const CreateNoteDtoSchema = {
             description: 'The longitude coordinate of the note',
             nullable: true
         },
-        tagIds: {
-            description: 'Optional list of Tag IDs to associate with this note',
+        tags: {
+            description: 'Optional list of plain text tags associated with this note',
             type: 'array',
             items: {
-                type: 'number'
+                type: 'string'
             }
         }
     }
@@ -61,14 +61,56 @@ export const NoteSchema = {
             nullable: true
         },
         tags: {
-            description: 'Tags linked to this note',
+            description: 'Plain text tags of the note',
             type: 'array',
             items: {
-                '$ref': '#/components/schemas/Tag'
+                type: 'string'
             }
         }
     },
-    required: ['id', 'createdAt', 'updatedAt', 'deletedAt', 'content', 'tags']
+    required: ['id', 'createdAt', 'updatedAt', 'deletedAt', 'content']
+} as const;
+
+export const UpdateNoteDtoSchema = {
+    type: 'object',
+    properties: {
+        content: {
+            type: 'string',
+            description: 'The content of the note'
+        },
+        lat: {
+            type: 'number',
+            description: 'The latitude coordinate of the note',
+            nullable: true
+        },
+        lng: {
+            type: 'number',
+            description: 'The longitude coordinate of the note',
+            nullable: true
+        },
+        tags: {
+            description: 'Optional list of plain text tags associated with this note',
+            type: 'array',
+            items: {
+                type: 'string'
+            }
+        }
+    }
+} as const;
+
+export const CreateTagDtoSchema = {
+    type: 'object',
+    properties: {
+        name: {
+            type: 'string',
+            description: 'The name of the tag'
+        },
+        color: {
+            type: 'string',
+            description: 'The color of the tag (e.g. HEX value like #FF0000)'
+        }
+    },
+    required: ['name', 'color']
 } as const;
 
 export const TagSchema = {
@@ -97,65 +139,9 @@ export const TagSchema = {
         color: {
             type: 'string',
             description: 'Color of the tag (HEX code or name)'
-        },
-        notes: {
-            description: 'Notes linked to this tag',
-            type: 'array',
-            items: {
-                '$ref': '#/components/schemas/Note'
-            }
         }
     },
-    required: ['id', 'createdAt', 'updatedAt', 'deletedAt', 'name', 'color', 'notes']
-} as const;
-
-export const UpdateNoteDtoSchema = {
-    type: 'object',
-    properties: {
-        content: {
-            type: 'string',
-            description: 'The content of the note'
-        },
-        lat: {
-            type: 'number',
-            description: 'The latitude coordinate of the note',
-            nullable: true
-        },
-        lng: {
-            type: 'number',
-            description: 'The longitude coordinate of the note',
-            nullable: true
-        },
-        tagIds: {
-            description: 'Optional list of Tag IDs to associate with this note',
-            type: 'array',
-            items: {
-                type: 'number'
-            }
-        }
-    }
-} as const;
-
-export const CreateTagDtoSchema = {
-    type: 'object',
-    properties: {
-        name: {
-            type: 'string',
-            description: 'The name of the tag'
-        },
-        color: {
-            type: 'string',
-            description: 'The color of the tag (e.g. HEX value like #FF0000)'
-        },
-        noteIds: {
-            description: 'Optional list of Note IDs to associate with this tag',
-            type: 'array',
-            items: {
-                type: 'number'
-            }
-        }
-    },
-    required: ['name', 'color']
+    required: ['id', 'createdAt', 'updatedAt', 'deletedAt', 'name', 'color']
 } as const;
 
 export const UpdateTagDtoSchema = {
@@ -168,13 +154,6 @@ export const UpdateTagDtoSchema = {
         color: {
             type: 'string',
             description: 'The color of the tag'
-        },
-        noteIds: {
-            description: 'List of Note IDs to associate with this tag',
-            type: 'array',
-            items: {
-                type: 'number'
-            }
         }
     }
 } as const;

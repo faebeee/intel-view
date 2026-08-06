@@ -51,9 +51,9 @@ export function useNotesQuery() {
 							noteId: `#${note.id}`,
 						},
 						tags: (note.tags || []).map((t) => ({
-							id: t.id,
-							name: t.name,
-							color: t.color || "#38bdf8",
+							id: t,
+							name: t,
+							color: "#38bdf8",
 						})),
 					};
 				});

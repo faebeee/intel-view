@@ -86,10 +86,10 @@ export function ViewNoteModal({
 					{tags.length > 0 && (
 						<div className="flex flex-wrap gap-1.5 pt-1">
 							{tags.map((tag) => {
-								const displayColor = tag.color || "#00f2ff";
+								const displayColor = "#00f2ff";
 								return (
 									<span
-										key={tag.id}
+										key={tag}
 										className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border"
 										style={{
 											backgroundColor: `${displayColor}12`,
@@ -97,7 +97,7 @@ export function ViewNoteModal({
 											color: displayColor,
 										}}
 									>
-										{tag.name}
+										{tag}
 									</span>
 								);
 							})}

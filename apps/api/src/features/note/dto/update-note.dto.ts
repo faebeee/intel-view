@@ -26,12 +26,12 @@ export class UpdateNoteDto {
   lng?: number | null;
 
   @IsArray()
+  @IsString({ each: true })
   @IsOptional()
-  @IsNumber({}, { each: true })
   @ApiProperty({
-    description: 'Optional list of Tag IDs to associate with this note',
+    description: 'Optional list of plain text tags associated with this note',
     required: false,
-    type: [Number],
+    type: [String],
   })
-  tagIds?: number[];
+  tags?: string[];
 }

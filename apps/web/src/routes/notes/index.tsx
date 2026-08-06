@@ -118,10 +118,10 @@ function NotesRouteComponent(): JSX.Element {
 					<div className="flex flex-wrap gap-1.5 max-w-[200px] px-2">
 						{tags.length > 0 ? (
 							tags.map((tag) => {
-								const displayColor = tag.color || "#00f2ff";
+								const displayColor = "#00f2ff";
 								return (
 									<span
-										key={tag.id}
+										key={tag}
 										className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase border"
 										style={{
 											backgroundColor: `${displayColor}12`,
@@ -129,7 +129,7 @@ function NotesRouteComponent(): JSX.Element {
 											color: displayColor,
 										}}
 									>
-										{tag.name}
+										{tag}
 									</span>
 								);
 							})

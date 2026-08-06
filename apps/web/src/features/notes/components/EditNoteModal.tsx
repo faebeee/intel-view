@@ -15,7 +15,6 @@ import {
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { MarkdownEditor } from "#/components/ui/markdown-editor.tsx";
-import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 
 type EditNoteModalProps = {
 	note: Note | null;
@@ -33,10 +32,8 @@ export function EditNoteModal({
 	const [content, setContent] = React.useState("");
 	const [lat, setLat] = React.useState("");
 	const [lng, setLng] = React.useState("");
-	const [selectedTagIds, setSelectedTagIds] = React.useState<number[]>([]);
+	const [tagsInput, setTagsInput] = React.useState("");
 	const queryClient = useQueryClient();
-
-	const { data: availableTags = [] } = useAllTagsQuery();
 
 	// Prefill form states when note changes or modal opens
 	React.useEffect(() => {
@@ -48,7 +45,7 @@ export function EditNoteModal({
 			setLng(
 				note.lng !== null && note.lng !== undefined ? String(note.lng) : "",
 			);
-			setSelectedTagIds((note.tags || []).map((t) => t.id));
+			setTagsInput((note.tags || []).join(", "));
 		}
 	}, [note, open]);
 
@@ -57,7 +54,7 @@ export function EditNoteModal({
 			content: string;
 			lat: number | null;
 			lng: number | null;
-			tagIds: number[];
+			tags: string[];
 		}) => {
 			if (!note) throw new Error("No note selected");
 			const res = await noteControllerUpdate({
@@ -85,14 +82,6 @@ export function EditNoteModal({
 		},
 	});
 
-	const handleTagToggle = (tagId: number) => {
-		setSelectedTagIds((prev) =>
-			prev.includes(tagId)
-				? prev.filter((id) => id !== tagId)
-				: [...prev, tagId],
-		);
-	};
-
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 
@@ -119,11 +108,16 @@ export function EditNoteModal({
 			}
 		}
 
+		const tagsArray = tagsInput
+			.split(",")
+			.map((t) => t.trim())
+			.filter(Boolean);
+
 		updateNoteMutation.mutate({
 			content: content.trim(),
 			lat: parsedLat,
 			lng: parsedLng,
-			tagIds: selectedTagIds,
+			tags: tagsArray,
 		});
 	};
 
@@ -157,49 +151,23 @@ export function EditNoteModal({
 						/>
 					</div>
 
-					{/* Tag Assosication Selector */}
+					{/* Tags Input */}
 					<div className="flex flex-col gap-1.5">
-						<span className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1">
-							Tags
-						</span>
-						<div className="flex flex-wrap gap-2 p-3 bg-[#040814]/40 border border-line/50 rounded-lg">
-							{availableTags.length > 0 ? (
-								availableTags.map((tag) => {
-									const isSelected = selectedTagIds.includes(tag.id);
-									const displayColor = tag.color || "#00f2ff";
-									return (
-										<button
-											key={tag.id}
-											type="button"
-											onClick={() => handleTagToggle(tag.id)}
-											className="inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-mono font-bold uppercase border transition-all duration-200 cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-palm"
-											style={{
-												backgroundColor: isSelected
-													? `${displayColor}20`
-													: "transparent",
-												borderColor: isSelected
-													? displayColor
-													: "rgba(0, 242, 255, 0.16)",
-												color: isSelected
-													? displayColor
-													: "rgba(240, 249, 255, 0.4)",
-												boxShadow: isSelected
-													? `0 0 10px ${displayColor}18`
-													: "none",
-											}}
-										>
-											{isSelected && <Check className="h-3 w-3" />}
-											<span>{tag.name}</span>
-										</button>
-									);
-								})
-							) : (
-								<p className="text-[10px] text-muted-foreground italic font-mono pl-1 py-1">
-									No tags configured. Create tags in the Tags tab to organize
-									notes.
-								</p>
-							)}
-						</div>
+						<label
+							htmlFor="edit-note-tags"
+							className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
+						>
+							Tags (separated by commas)
+						</label>
+						<Input
+							id="edit-note-tags"
+							type="text"
+							placeholder="e.g. location, family"
+							className="bg-[#040814]/40 border border-line/50 rounded-lg p-3 text-xs font-mono h-auto text-palm placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-palm"
+							value={tagsInput}
+							onChange={(e) => setTagsInput(e.target.value)}
+							disabled={updateNoteMutation.isPending}
+						/>
 					</div>
 
 					{/* 2-column Lat/Lng prefilled inputs */}

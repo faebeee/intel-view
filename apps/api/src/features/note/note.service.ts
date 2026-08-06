@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull, In } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import {
   paginate,
   PaginateQuery,
@@ -8,7 +8,6 @@ import {
   PaginateConfig,
 } from 'nestjs-paginate';
 import { Note } from './entities/note.entity';
-import { Tag } from '../tag/entities/tag.entity';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 
@@ -29,22 +28,10 @@ export class NoteService {
   constructor(
     @InjectRepository(Note)
     private readonly noteRepository: Repository<Note>,
-    @InjectRepository(Tag)
-    private readonly tagRepository: Repository<Tag>,
   ) {}
 
   async create(createNoteDto: CreateNoteDto): Promise<Note> {
-    const { tagIds, ...noteData } = createNoteDto;
-    const note = this.noteRepository.create(noteData);
-
-    if (tagIds && tagIds.length > 0) {
-      note.tags = await this.tagRepository.find({
-        where: { id: In(tagIds), deletedAt: IsNull() },
-      });
-    } else {
-      note.tags = [];
-    }
-
+    const note = this.noteRepository.create(createNoteDto);
     return this.noteRepository.save(note);
   }
 
@@ -52,42 +39,26 @@ export class NoteService {
     return paginate(query, this.noteRepository, {
       ...notePaginateConfig,
       where: { deletedAt: IsNull() },
-      relations: ['tags'],
     });
   }
 
   async findOne(id: number): Promise<Note | null> {
     return this.noteRepository.findOne({
       where: { id, deletedAt: IsNull() },
-      relations: { tags: true },
     });
   }
 
   async update(id: number, updateNoteDto: UpdateNoteDto): Promise<Note | null> {
     const note = await this.noteRepository.findOne({
       where: { id, deletedAt: IsNull() },
-      relations: { tags: true },
     });
 
     if (!note) {
       return null;
     }
 
-    const { tagIds, ...noteData } = updateNoteDto;
-
     // Update primitive fields
-    Object.assign(note, noteData);
-
-    // Update relations if tagIds are provided
-    if (tagIds !== undefined) {
-      if (tagIds.length > 0) {
-        note.tags = await this.tagRepository.find({
-          where: { id: In(tagIds), deletedAt: IsNull() },
-        });
-      } else {
-        note.tags = [];
-      }
-    }
+    Object.assign(note, updateNoteDto);
 
     note.updatedAt = new Date();
     return this.noteRepository.save(note);

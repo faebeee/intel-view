@@ -14,9 +14,9 @@ export type CreateNoteDto = {
      */
     lng?: (number) | null;
     /**
-     * Optional list of Tag IDs to associate with this note
+     * Optional list of plain text tags associated with this note
      */
-    tagIds?: Array<(number)>;
+    tags?: Array<(string)>;
 };
 
 export type Note = {
@@ -37,28 +37,9 @@ export type Note = {
      */
     lng?: (number) | null;
     /**
-     * Tags linked to this note
+     * Plain text tags of the note
      */
-    tags: Array<Tag>;
-};
-
-export type Tag = {
-    id: number;
-    createdAt: string;
-    updatedAt: string;
-    deletedAt: (string) | null;
-    /**
-     * Name of the tag
-     */
-    name: string;
-    /**
-     * Color of the tag (HEX code or name)
-     */
-    color: string;
-    /**
-     * Notes linked to this tag
-     */
-    notes: Array<Note>;
+    tags?: Array<(string)>;
 };
 
 export type UpdateNoteDto = {
@@ -75,9 +56,9 @@ export type UpdateNoteDto = {
      */
     lng?: (number) | null;
     /**
-     * Optional list of Tag IDs to associate with this note
+     * Optional list of plain text tags associated with this note
      */
-    tagIds?: Array<(number)>;
+    tags?: Array<(string)>;
 };
 
 export type CreateTagDto = {
@@ -89,10 +70,21 @@ export type CreateTagDto = {
      * The color of the tag (e.g. HEX value like #FF0000)
      */
     color: string;
+};
+
+export type Tag = {
+    id: number;
+    createdAt: string;
+    updatedAt: string;
+    deletedAt: (string) | null;
     /**
-     * Optional list of Note IDs to associate with this tag
+     * Name of the tag
      */
-    noteIds?: Array<(number)>;
+    name: string;
+    /**
+     * Color of the tag (HEX code or name)
+     */
+    color: string;
 };
 
 export type UpdateTagDto = {
@@ -104,10 +96,6 @@ export type UpdateTagDto = {
      * The color of the tag
      */
     color?: string;
-    /**
-     * List of Note IDs to associate with this tag
-     */
-    noteIds?: Array<(number)>;
 };
 
 export type NoteControllerCreateData = {

@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { TagService } from './tag.service';
 import { Tag } from './entities/tag.entity';
-import { Note } from '../note/entities/note.entity';
 
 describe('TagService', () => {
   let service: TagService;
@@ -14,10 +13,6 @@ describe('TagService', () => {
     update: jest.fn(),
   };
 
-  const mockNoteRepository = {
-    find: jest.fn(),
-  };
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -25,10 +20,6 @@ describe('TagService', () => {
         {
           provide: getRepositoryToken(Tag),
           useValue: mockTagRepository,
-        },
-        {
-          provide: getRepositoryToken(Note),
-          useValue: mockNoteRepository,
         },
       ],
     }).compile();
