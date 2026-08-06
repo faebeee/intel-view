@@ -12,6 +12,7 @@ import {
 import { PlusCircle, RefreshCw } from "lucide-react";
 import * as React from "react";
 import { Button } from "#/components/ui/button.tsx";
+import { NoteDetailPanel } from "#/features/notes/components/NoteDetailPanel.tsx";
 import type { NoteType } from "#/features/notes/noteTypes.ts";
 import { useCanvasNotesQuery } from "../hooks/useCanvasNotesQuery";
 import { useCreateInlineNote } from "../hooks/useCreateInlineNote";
@@ -78,6 +79,9 @@ function CanvasInnerView({ projectId }: { projectId: number }) {
 
 	const [nodes, setNodes] = React.useState<Node[]>([]);
 	const [draft, setDraft] = React.useState<DraftNote | null>(null);
+	const [selectedNoteId, setSelectedNoteId] = React.useState<number | null>(
+		null,
+	);
 
 	// `useMutation` results are not referentially stable across renders, so
 	// route the delete call through a ref to keep `handleDeleteNote`'s
@@ -87,6 +91,10 @@ function CanvasInnerView({ projectId }: { projectId: number }) {
 	deleteNoteMutationRef.current = deleteNoteMutation;
 	const handleDeleteNote = React.useCallback((id: number) => {
 		deleteNoteMutationRef.current.mutate(id);
+	}, []);
+
+	const handleViewNote = React.useCallback((id: number) => {
+		setSelectedNoteId(id);
 	}, []);
 
 	// Keep React Flow nodes in sync with the notes fetched from the API,
@@ -107,7 +115,11 @@ function CanvasInnerView({ projectId }: { projectId: number }) {
 						? { x: note.canvasX, y: note.canvasY }
 						: (existing?.position ?? fallback);
 
-				const data: NoteNodeData = { note, onDelete: handleDeleteNote };
+				const data: NoteNodeData = {
+					note,
+					onDelete: handleDeleteNote,
+					onView: handleViewNote,
+				};
 
 				return {
 					id,
@@ -118,7 +130,7 @@ function CanvasInnerView({ projectId }: { projectId: number }) {
 				};
 			});
 		});
-	}, [notes, handleDeleteNote]);
+	}, [notes, handleDeleteNote, handleViewNote]);
 
 	const edges: Edge[] = React.useMemo(() => {
 		const idsPresent = new Set(notes.map((n) => n.id));
@@ -283,40 +295,51 @@ function CanvasInnerView({ projectId }: { projectId: number }) {
 				</div>
 			</div>
 
-			<div className="flex-1 min-h-0 relative">
-				{isLoading ? (
-					<div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground font-mono">
-						Loading notes...
-					</div>
-				) : (
-					// biome-ignore lint/a11y/noStaticElementInteractions: react-flow pane handles its own interaction model
-					<div
-						className="h-full w-full"
-						onDoubleClick={(e) => {
-							const target = e.target as HTMLElement;
-							if (target.closest(".react-flow__node")) return;
-							onPaneDoubleClick(e);
-						}}
-					>
-						<ReactFlow
-							nodes={renderedNodes}
-							edges={edges}
-							nodeTypes={nodeTypes}
-							onNodesChange={onNodesChange}
-							onNodeDragStop={onNodeDragStop}
-							onConnect={onConnect}
-							onEdgesDelete={onEdgesDelete}
-							zoomOnDoubleClick={false}
-							fitView
-							colorMode="dark"
-							proOptions={{ hideAttribution: true }}
+			<div className="flex-1 min-h-0 flex flex-row divide-x divide-line">
+				<div className="flex-1 min-h-0 relative">
+					{isLoading ? (
+						<div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground font-mono">
+							Loading notes...
+						</div>
+					) : (
+						// biome-ignore lint/a11y/noStaticElementInteractions: react-flow pane handles its own interaction model
+						<div
+							className="h-full w-full"
+							onDoubleClick={(e) => {
+								const target = e.target as HTMLElement;
+								if (target.closest(".react-flow__node")) return;
+								onPaneDoubleClick(e);
+							}}
 						>
-							<Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-							<Controls />
-							<MiniMap pannable zoomable className="!bg-[#040814]" />
-						</ReactFlow>
-					</div>
-				)}
+							<ReactFlow
+								nodes={renderedNodes}
+								edges={edges}
+								nodeTypes={nodeTypes}
+								onNodesChange={onNodesChange}
+								onNodeDragStop={onNodeDragStop}
+								onConnect={onConnect}
+								onEdgesDelete={onEdgesDelete}
+								zoomOnDoubleClick={false}
+								fitView
+								colorMode="dark"
+								proOptions={{ hideAttribution: true }}
+							>
+								<Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+								<Controls />
+								<MiniMap pannable zoomable className="!bg-[#040814]" />
+							</ReactFlow>
+						</div>
+					)}
+				</div>
+
+				{/* Right Sidebar: Note Detail Panel (squeezes the canvas instead of
+				 * overlaying it, and lets the user view full note details without
+				 * leaving the canvas). */}
+				<NoteDetailPanel
+					projectId={projectId}
+					noteId={selectedNoteId}
+					onClose={() => setSelectedNoteId(null)}
+				/>
 			</div>
 		</div>
 	);

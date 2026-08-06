@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import type { NodeProps } from "@xyflow/react";
 import { Handle, Position } from "@xyflow/react";
 import { Trash2 } from "lucide-react";
@@ -79,16 +78,16 @@ export function NoteNode({ data, selected }: NoteNodeProps) {
 						<span className="text-[9px] font-mono text-muted-foreground/60">
 							#{note.id}
 						</span>
-						<Link
-							to="/projects/$projectId/notes/$id"
-							params={{
-								projectId: String(note.projectId),
-								id: String(note.id),
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation();
+								data.onView?.(note.id);
 							}}
 							className="text-[9px] font-mono uppercase tracking-wider text-palm hover:underline"
 						>
 							Details
-						</Link>
+						</button>
 					</div>
 				</div>
 			</ContextMenuTrigger>

@@ -143,16 +143,6 @@ export function CreateNoteModal({
 			}
 		}
 
-		const parsedLat = parseFloat(lat);
-		const parsedLng = parseFloat(lng);
-
-		if (Number.isNaN(parsedLat) || Number.isNaN(parsedLng)) {
-			toast.warning("Invalid coordinates", {
-				description: "Ensure latitude and longitude values are valid decimals.",
-			});
-			return;
-		}
-
 		const tagsArray = tagsInput
 			.split(",")
 			.map((t) => t.trim())
@@ -162,8 +152,8 @@ export function CreateNoteModal({
 			type,
 			content: content.trim(),
 			config: type === "iframe" ? { url: iframeUrl.trim() } : undefined,
-			lat: parsedLat,
-			lng: parsedLng,
+			lat: parseFloat(lat),
+			lng: parseFloat(lng),
 			tags: tagsArray,
 			parentId: parentId === ROOT_PARENT_VALUE ? null : parseInt(parentId, 10),
 		});
@@ -230,8 +220,7 @@ export function CreateNoteModal({
 								</SelectItem>
 								{notes.map((n) => (
 									<SelectItem key={n.id} value={String(n.id)}>
-										#{n.id} —{" "}
-										{(n.content || "").slice(0, 40) || "No content"}
+										#{n.id} — {(n.content || "").slice(0, 40) || "No content"}
 									</SelectItem>
 								))}
 							</SelectContent>
@@ -336,7 +325,6 @@ export function CreateNoteModal({
 									value={lat}
 									onChange={(e) => setLat(e.target.value)}
 									disabled={createNoteMutation.isPending}
-									required
 								/>
 							</div>
 							<div className="flex flex-col gap-1 border-l border-line/30 pl-3">
@@ -353,7 +341,6 @@ export function CreateNoteModal({
 									value={lng}
 									onChange={(e) => setLng(e.target.value)}
 									disabled={createNoteMutation.isPending}
-									required
 								/>
 							</div>
 						</div>

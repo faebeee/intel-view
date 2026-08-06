@@ -5,6 +5,7 @@ import { useMapEvents } from "react-leaflet";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal";
+import { NoteDetailPanel } from "#/features/notes/components/NoteDetailPanel";
 import { useProjectQuery } from "#/features/projects/hooks/useProjectQuery";
 import { useUpdateProject } from "#/features/projects/hooks/useUpdateProject";
 import { useMap } from "../hooks/useMap";
@@ -16,7 +17,6 @@ import { MapProvider } from "./MapProvider";
 import { MapSearch } from "./MapSearch";
 import { MarkerLayer } from "./MarkerLayer";
 import { NoteConnectionLines } from "./NoteConnectionLines";
-import { NoteDetailPanel } from "./NoteDetailPanel";
 import { TileLayer } from "./TileLayer";
 
 type MapClickHandlerProps = {
@@ -232,7 +232,16 @@ function MapInnerView({ projectId }: { projectId: number }) {
 			</div>
 
 			{/* Right Sidebar: Note Detail Panel (squeezes the map instead of overlaying it) */}
-			<NoteDetailPanel projectId={projectId} />
+			<NoteDetailPanel
+				projectId={projectId}
+				noteId={selectedMarker ? Number(selectedMarker.id) : null}
+				onClose={() => setSelectedMarker(null)}
+				onZoomToCoordinates={(lat, lng) => {
+					if (map) {
+						map.flyTo([lat, lng], 16, { animate: true, duration: 0.8 });
+					}
+				}}
+			/>
 
 			{/* Create Note Modal Overlay */}
 			<CreateNoteModal

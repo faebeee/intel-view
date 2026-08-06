@@ -9,35 +9,51 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { Button } from "#/components/ui/button";
-import { NoteContentRenderer } from "#/features/notes/components/NoteContentRenderer";
-import { NoteTypeBadge } from "#/features/notes/components/NoteTypeBadge";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery";
 import { useNoteQuery } from "#/features/notes/hooks/useNoteQuery";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery";
-import { useMap } from "../hooks/useMap";
+import { NoteContentRenderer } from "./NoteContentRenderer";
+import { NoteTypeBadge } from "./NoteTypeBadge";
 
 type NoteDetailPanelProps = {
 	projectId: number;
+	/** ID of the note to show details for. `null` keeps the panel closed. */
+	noteId: number | null;
+	/** Called when the user closes the panel (X button). */
+	onClose: () => void;
+	/**
+	 * Optional callback invoked when the user clicks "Zoom", with the note's
+	 * coordinates. Only rendered when the note is geolocated. Pass this from
+	 * contexts that have a way to focus a location (e.g. the map view); omit
+	 * it (e.g. on the canvas view) to hide the zoom action entirely.
+	 */
+	onZoomToCoordinates?: (lat: number, lng: number) => void;
 };
 
 /**
- * Persistent right-side detail panel showing the full details of the
- * currently selected map marker/note (fetched fresh via `useNoteQuery` so it
- * always has the complete note, not just the trimmed `MapMarkerData` used
- * for rendering pins).
+ * Persistent, reusable right-side detail panel showing the full details of
+ * a note (fetched fresh via `useNoteQuery` so it always has the complete
+ * note data). Used by both the map view (driven by the selected marker) and
+ * the canvas view (driven by the selected node), so users never have to
+ * leave either view to see full note details.
  *
  * Unlike a modal/sheet overlay, this panel is a regular flex sibling of the
- * map area: when it opens it squeezes the map's width rather than covering
- * it with a blocking backdrop, so the map (and the rest of the page) stays
- * fully interactive while the panel is open.
+ * surrounding view: when it opens it squeezes the view's width rather than
+ * covering it with a blocking backdrop, so the underlying view stays fully
+ * interactive while the panel is open.
  */
-export function NoteDetailPanel({ projectId }: NoteDetailPanelProps) {
-	const { selectedMarker, setSelectedMarker, map } = useMap();
+export function NoteDetailPanel({
+	projectId,
+	noteId,
+	onClose,
+	onZoomToCoordinates,
+}: NoteDetailPanelProps) {
+	const open = noteId !== null;
 
-	const noteId = selectedMarker ? Number(selectedMarker.id) : Number.NaN;
-	const open = selectedMarker !== null;
-
-	const { data: note, isLoading } = useNoteQuery(projectId, noteId);
+	const { data: note, isLoading } = useNoteQuery(
+		projectId,
+		noteId ?? Number.NaN,
+	);
 	const { data: availableTags = [] } = useAllTagsQuery(projectId);
 	const { data: allNotes = [] } = useAllNotesQuery(projectId);
 
@@ -102,7 +118,7 @@ export function NoteDetailPanel({ projectId }: NoteDetailPanelProps) {
 							<Button
 								variant="ghost"
 								size="icon-xs"
-								onClick={() => setSelectedMarker(null)}
+								onClick={onClose}
 								title="Close"
 							>
 								<X className="h-3 w-3" />
@@ -214,22 +230,24 @@ export function NoteDetailPanel({ projectId }: NoteDetailPanelProps) {
 
 					{/* Actions */}
 					<div className="border-t border-line p-4 flex gap-2 shrink-0">
-						<Button
-							variant="outline"
-							size="xs"
-							onClick={() => {
-								if (map && hasCoords) {
-									map.flyTo([note.lat as number, note.lng as number], 16, {
-										animate: true,
-										duration: 0.8,
-									});
-								}
-							}}
-							disabled={!hasCoords}
-						>
-							<Compass className="h-3 w-3" />
-							<span>Zoom</span>
-						</Button>
+						{onZoomToCoordinates && (
+							<Button
+								variant="outline"
+								size="xs"
+								onClick={() => {
+									if (hasCoords) {
+										onZoomToCoordinates(
+											note.lat as number,
+											note.lng as number,
+										);
+									}
+								}}
+								disabled={!hasCoords}
+							>
+								<Compass className="h-3 w-3" />
+								<span>Zoom</span>
+							</Button>
+						)}
 						<Link
 							to="/projects/$projectId/notes/$id/edit"
 							params={{ projectId: projectIdParam, id: String(note.id) }}

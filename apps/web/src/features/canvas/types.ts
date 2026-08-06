@@ -4,6 +4,7 @@ import type { NoteResponseDto as Note } from "@repo/sdk";
 export type NoteNodeData = {
 	note: Note;
 	onDelete?: (id: number) => void;
+	onView?: (id: number) => void;
 	[key: string]: unknown;
 };
 
