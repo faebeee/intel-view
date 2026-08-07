@@ -19,15 +19,32 @@ import {
 	ListOrdered,
 	Quote,
 	Redo2,
+	AtSign,
 	Strikethrough,
 	Undo2,
 } from "lucide-react";
 import * as React from "react";
 import { Markdown as MarkdownExtension } from "tiptap-markdown";
+import { NoteReference } from "#/components/ui/markdown-editor/note-reference-node.ts";
 import { cn } from "#/lib/utils.ts";
 import { Button } from "./button";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "./command";
 import { Markdown } from "./markdown";
+import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { Tabs, TabsList, TabsTrigger } from "./tabs";
+
+export type MarkdownEditorNoteOption = {
+	id: number;
+	/** Short human-readable label shown in the reference picker (notes have no title, so this is typically a truncated content snippet). */
+	label: string;
+};
 
 type MarkdownEditorProps = {
 	value: string;
@@ -36,6 +53,18 @@ type MarkdownEditorProps = {
 	disabled?: boolean;
 	className?: string;
 	minHeight?: string;
+	/**
+	 * When provided, enables the "Reference note" toolbar button, letting
+	 * users pick one of these notes to insert as a `[[NOTE_ID]]` reference.
+	 * Omit to hide the button (e.g. when this editor isn't editing note
+	 * content, or the note list isn't available).
+	 */
+	notes?: MarkdownEditorNoteOption[];
+	/**
+	 * Called when the user clicks a `[[NOTE_ID]]` reference chip in the
+	 * Preview pane. See `Markdown`'s `onNoteReferenceClick` prop.
+	 */
+	onReferenceClick?: (noteId: number) => void;
 };
 
 function ToolbarButton({
@@ -73,9 +102,11 @@ function ToolbarButton({
 function EditorToolbar({
 	editor,
 	disabled,
+	notes,
 }: {
 	editor: Editor | null;
 	disabled?: boolean;
+	notes?: MarkdownEditorNoteOption[];
 }) {
 	if (!editor) return null;
 
@@ -194,6 +225,13 @@ function EditorToolbar({
 			>
 				<LinkIcon className="h-3 w-3" />
 			</ToolbarButton>
+			{notes && (
+				<NoteReferencePicker
+					editor={editor}
+					disabled={disabled}
+					notes={notes}
+				/>
+			)}
 
 			<span className="mx-1 h-4 w-px bg-line/40" />
 
@@ -212,6 +250,67 @@ function EditorToolbar({
 				<Redo2 className="h-3 w-3" />
 			</ToolbarButton>
 		</div>
+	);
+}
+
+/**
+ * Toolbar control letting users search the project's notes and insert a
+ * `[[NOTE_ID]]` reference to one of them at the cursor position. Notes have
+ * no title, so each entry is labelled with a short content snippet.
+ */
+function NoteReferencePicker({
+	editor,
+	disabled,
+	notes,
+}: {
+	editor: Editor;
+	disabled?: boolean;
+	notes: MarkdownEditorNoteOption[];
+}) {
+	const [open, setOpen] = React.useState(false);
+
+	const handleSelect = (noteId: number) => {
+		editor.chain().focus().insertNoteReference(noteId).run();
+		setOpen(false);
+	};
+
+	return (
+		<Popover open={open} onOpenChange={setOpen}>
+			<PopoverTrigger asChild>
+				<span>
+					<ToolbarButton
+						title="Reference note"
+						disabled={disabled}
+						active={open}
+						onClick={() => setOpen((prev) => !prev)}
+					>
+						<AtSign className="h-3 w-3" />
+					</ToolbarButton>
+				</span>
+			</PopoverTrigger>
+			<PopoverContent className="w-80 p-0" align="start">
+				<Command>
+					<CommandInput placeholder="Search notes by content..." />
+					<CommandList>
+						<CommandEmpty>No notes found.</CommandEmpty>
+						<CommandGroup>
+							{notes.map((note) => (
+								<CommandItem
+									key={note.id}
+									value={`${note.id} ${note.label}`}
+									onSelect={() => handleSelect(note.id)}
+								>
+									<span className="font-mono text-xs font-bold text-palm shrink-0">
+										#{note.id}
+									</span>
+									<span className="truncate">{note.label}</span>
+								</CommandItem>
+							))}
+						</CommandGroup>
+					</CommandList>
+				</Command>
+			</PopoverContent>
+		</Popover>
 	);
 }
 
@@ -245,6 +344,7 @@ function useMarkdownEditor({
 			StarterKit,
 			LinkExtension.configure({ openOnClick: false, autolink: true }),
 			Placeholder.configure({ placeholder }),
+			NoteReference,
 			MarkdownExtension.configure({
 				html: false,
 				transformCopiedText: true,
@@ -286,6 +386,8 @@ export function MarkdownEditor({
 	disabled = false,
 	className,
 	minHeight = "min-h-32",
+	notes,
+	onReferenceClick,
 }: MarkdownEditorProps) {
 	const [mode, setMode] = React.useState<"tabbed" | "split">("tabbed");
 	const [activeTab, setActiveTab] = React.useState("write");
@@ -294,7 +396,7 @@ export function MarkdownEditor({
 
 	const writePane = (
 		<div className="flex flex-col gap-2">
-			<EditorToolbar editor={editor} disabled={disabled} />
+			<EditorToolbar editor={editor} disabled={disabled} notes={notes} />
 			<div
 				className={cn(
 					"bg-[#040814]/60 border border-line rounded-lg px-3 py-2 overflow-y-auto",
@@ -321,7 +423,7 @@ export function MarkdownEditor({
 			)}
 		>
 			{value.trim() ? (
-				<Markdown content={value} />
+				<Markdown content={value} onNoteReferenceClick={onReferenceClick} />
 			) : (
 				<span className="text-xs text-muted-foreground font-mono italic">
 					No content entered. Write in the editor to preview.

@@ -217,6 +217,7 @@ export function CreateNoteModal({
 
 					{/* Type-conditional content fields (markdown / iframe / log) */}
 					<NoteContentFields
+						projectId={projectId}
 						type={type}
 						content={content}
 						onContentChange={setContent}

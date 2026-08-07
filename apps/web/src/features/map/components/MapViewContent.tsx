@@ -17,6 +17,7 @@ import { MapProvider } from "./MapProvider";
 import { MapSearch } from "./MapSearch";
 import { MarkerLayer } from "./MarkerLayer";
 import { NoteConnectionLines } from "./NoteConnectionLines";
+import { NoteReferenceLines } from "./NoteReferenceLines";
 import { TileLayer } from "./TileLayer";
 
 type MapClickHandlerProps = {
@@ -223,12 +224,31 @@ function MapInnerView({ projectId }: { projectId: number }) {
 				<MapContainer center={defaultCenter} zoom={13}>
 					<TileLayer />
 					<NoteConnectionLines data={filteredAssets} />
+					<NoteReferenceLines data={filteredAssets} />
 					<MarkerLayer data={filteredAssets} />
 					<MapClickHandler onMapClick={handleMapClick} />
 
 					<MapSearch onCreateNote={handleMapClick} />
 					<MapControls />
 				</MapContainer>
+
+				{/* Connection line legend */}
+				<div className="absolute bottom-3 left-3 z-[1000] flex flex-col gap-1 rounded-md border border-line/50 bg-surface-strong/90 backdrop-blur-md px-2.5 py-2 text-[10px] font-mono text-muted-foreground pointer-events-none">
+					<span className="flex items-center gap-1.5">
+						<span className="h-0.5 w-4 rounded-full bg-lagoon" />
+						<span>Parent / child</span>
+					</span>
+					<span className="flex items-center gap-1.5">
+						<span
+							className="h-0.5 w-4 rounded-full"
+							style={{
+								backgroundImage:
+									"repeating-linear-gradient(90deg, var(--reference-link) 0 3px, transparent 3px 6px)",
+							}}
+						/>
+						<span>[[Note]] reference</span>
+					</span>
+				</div>
 			</div>
 
 			{/* Right Sidebar: Note Detail Panel (squeezes the map instead of overlaying it) */}

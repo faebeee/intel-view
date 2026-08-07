@@ -239,6 +239,7 @@ function NoteEditRouteComponent(): JSX.Element {
 
 					{/* Type-conditional content fields (markdown / iframe / log) */}
 					<NoteContentFields
+						projectId={projectId}
 						type={note.type}
 						content={content}
 						onContentChange={setContent}

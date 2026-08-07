@@ -1,6 +1,7 @@
 import type { NoteResponseDto as Note } from "@repo/sdk";
 import { AppWindow } from "lucide-react";
 import { Markdown } from "#/components/ui/markdown.tsx";
+import { useNoteReference } from "#/features/notes/context/NoteReferenceContext.tsx";
 import { useNoteHistoryQuery } from "#/features/notes/hooks/useNoteHistoryQuery.ts";
 import type { IframeNoteConfig } from "#/features/notes/noteTypes.ts";
 import { AddHistoryEntryForm } from "./AddHistoryEntryForm";
@@ -16,9 +17,16 @@ type NoteContentRendererProps = {
  * are implemented (e.g. a live IP address location using `note.config.ip`).
  */
 export function NoteContentRenderer({ note }: NoteContentRendererProps) {
+	const { openNoteReference } = useNoteReference();
+
 	switch (note.type) {
 		case "markdown":
-			return <Markdown content={note.content} />;
+			return (
+				<Markdown
+					content={note.content}
+					onNoteReferenceClick={openNoteReference}
+				/>
+			);
 		case "iframe": {
 			const config = (note.config || {}) as IframeNoteConfig;
 			if (!config.url) {
@@ -33,7 +41,12 @@ export function NoteContentRenderer({ note }: NoteContentRendererProps) {
 			}
 			return (
 				<div className="flex flex-col gap-2">
-					{note.content && <Markdown content={note.content} />}
+					{note.content && (
+						<Markdown
+							content={note.content}
+							onNoteReferenceClick={openNoteReference}
+						/>
+					)}
 					<iframe
 						src={config.url}
 						title={`Note #${note.id} embedded content`}
@@ -52,7 +65,12 @@ export function NoteContentRenderer({ note }: NoteContentRendererProps) {
 			return <LogNoteHistory projectId={note.projectId} noteId={note.id} />;
 		}
 		default:
-			return <Markdown content={note.content} />;
+			return (
+				<Markdown
+					content={note.content}
+					onNoteReferenceClick={openNoteReference}
+				/>
+			);
 	}
 }
 

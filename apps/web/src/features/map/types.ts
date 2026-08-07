@@ -17,6 +17,8 @@ export type MapMarkerData = {
 	config?: Record<string, unknown> | null;
 	/** ID of the parent note this note is nested under, if any. */
 	parentId?: number | null;
+	/** Raw note markdown content, used to detect `[[NOTE_ID]]` references. */
+	content?: string;
 };
 
 export type MapConfig = {

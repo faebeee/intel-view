@@ -1,25 +1,55 @@
 import * as React from "react";
 import { parseMarkdown, renderHtml } from "@tanstack/markdown";
+import { noteReferenceMarkdownExtension } from "#/components/ui/markdown/note-reference-extension.ts";
 import { cn } from "#/lib/utils.ts";
 
 type MarkdownProps = {
 	content: string;
 	className?: string;
+	/**
+	 * Called when the user clicks a `[[NOTE_ID]]` reference chip rendered
+	 * inline in the markdown. When omitted, reference chips are still
+	 * displayed but are inert (not clickable).
+	 */
+	onNoteReferenceClick?: (noteId: number) => void;
 };
 
-export function Markdown({ content, className }: MarkdownProps) {
+const MARKDOWN_EXTENSIONS = [noteReferenceMarkdownExtension()];
+
+export function Markdown({
+	content,
+	className,
+	onNoteReferenceClick,
+}: MarkdownProps) {
 	const html = React.useMemo(() => {
 		try {
-			const parsed = parseMarkdown(content);
-			return renderHtml(parsed);
+			const parsed = parseMarkdown(content, { extensions: MARKDOWN_EXTENSIONS });
+			return renderHtml(parsed, { extensions: MARKDOWN_EXTENSIONS });
 		} catch (err) {
 			console.error("Failed to parse markdown:", err);
 			return content;
 		}
 	}, [content]);
 
+	const handleClick = React.useCallback(
+		(event: React.MouseEvent<HTMLDivElement>) => {
+			if (!onNoteReferenceClick) return;
+			const target = event.target as HTMLElement;
+			const chip = target.closest<HTMLElement>("[data-note-reference]");
+			if (!chip) return;
+			const noteId = Number(chip.dataset.noteId);
+			if (Number.isNaN(noteId)) return;
+			event.preventDefault();
+			onNoteReferenceClick(noteId);
+		},
+		[onNoteReferenceClick],
+	);
+
 	return (
+		// biome-ignore lint/a11y/noStaticElementInteractions: onClick only delegates to native <button> reference chips within the rendered HTML, which are already keyboard-accessible on their own
+		// biome-ignore lint/a11y/useKeyWithClickEvents: see above - delegated target elements are real <button>s
 		<div
+			onClick={handleClick}
 			className={cn(
 				// This app has no light-mode variant (no `.dark` class is ever toggled
 				// on the document), so `prose-invert` is applied unconditionally

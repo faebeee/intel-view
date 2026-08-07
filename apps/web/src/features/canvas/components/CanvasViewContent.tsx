@@ -5,6 +5,7 @@ import {
 	BackgroundVariant,
 	Controls,
 	MiniMap,
+	Panel,
 	ReactFlow,
 	ReactFlowProvider,
 	useReactFlow,
@@ -15,6 +16,7 @@ import { useTheme } from "#/components/theme-provider";
 import { Button } from "#/components/ui/button.tsx";
 import { NoteDetailPanel } from "#/features/notes/components/NoteDetailPanel.tsx";
 import type { NoteType } from "#/features/notes/noteTypes.ts";
+import { extractNoteReferenceIds } from "#/lib/note-references.ts";
 import { useCanvasNotesQuery } from "../hooks/useCanvasNotesQuery";
 import { useCreateInlineNote } from "../hooks/useCreateInlineNote";
 import { useDeleteNote } from "../hooks/useDeleteNote";
@@ -136,7 +138,7 @@ function CanvasInnerView({ projectId }: { projectId: number }) {
 
 	const edges: Edge[] = React.useMemo(() => {
 		const idsPresent = new Set(notes.map((n) => n.id));
-		return notes
+		const parentChildEdges: Edge[] = notes
 			.filter(
 				(note) =>
 					note.parentId !== null &&
@@ -150,6 +152,31 @@ function CanvasInnerView({ projectId }: { projectId: number }) {
 				animated: true,
 				style: { stroke: "var(--lagoon)", strokeWidth: 1.5 },
 			}));
+
+		// `[[NOTE_ID]]` references found in markdown content, drawn as a
+		// second, visually distinct set of connections (dashed amber) so
+		// they can't be confused with the explicit parent/child hierarchy
+		// above. These aren't user-draggable/deletable via the canvas UI
+		// (only editing the note's content changes them), so they're
+		// excluded from `onConnect`/`onEdgesDelete` handling below.
+		const referenceEdges: Edge[] = notes.flatMap((note) =>
+			extractNoteReferenceIds(note.content)
+				.filter((refId) => refId !== note.id && idsPresent.has(refId))
+				.map((refId) => ({
+					id: `ref-${note.id}-${refId}`,
+					source: String(note.id),
+					target: String(refId),
+					deletable: false,
+					selectable: false,
+					style: {
+						stroke: "var(--reference-link)",
+						strokeWidth: 1.5,
+						strokeDasharray: "4 4",
+					},
+				})),
+		);
+
+		return [...parentChildEdges, ...referenceEdges];
 	}, [notes]);
 
 	const onNodesChange = React.useCallback((changes: NodeChange[]) => {
@@ -329,6 +356,25 @@ function CanvasInnerView({ projectId }: { projectId: number }) {
 								<Background variant={BackgroundVariant.Dots} gap={16} size={1} />
 								<Controls />
 								<MiniMap pannable zoomable className="!bg-surface-strong" />
+								<Panel
+									position="bottom-left"
+									className="flex flex-col gap-1 rounded-md border border-line/50 bg-surface-strong/90 backdrop-blur-md px-2.5 py-2 text-[10px] font-mono text-muted-foreground"
+								>
+									<span className="flex items-center gap-1.5">
+										<span className="h-0.5 w-4 rounded-full bg-lagoon" />
+										<span>Parent / child</span>
+									</span>
+									<span className="flex items-center gap-1.5">
+										<span
+											className="h-0.5 w-4 rounded-full"
+											style={{
+												backgroundImage:
+													"repeating-linear-gradient(90deg, var(--reference-link) 0 3px, transparent 3px 6px)",
+											}}
+										/>
+										<span>[[Note]] reference</span>
+									</span>
+								</Panel>
 							</ReactFlow>
 						</div>
 					)}

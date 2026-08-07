@@ -25,6 +25,7 @@
 	--lagoon: #0891b2;
 	--lagoon-deep: #0369a1;
 	--palm: #0ea5e9;
+	--reference-link: #f5a623;
 	--sand: #e0f2fe;
 	--foam: #f0f9ff;
 	--surface: rgba(255, 255, 255, 0.7);
@@ -82,6 +83,7 @@
 	--lagoon: #00f2ff;
 	--lagoon-deep: #0084ff;
 	--palm: #38bdf8;
+	--reference-link: #f5a623;
 	--sand: #070e1c;
 	--foam: #040814;
 	--surface: rgba(10, 20, 38, 0.7);
@@ -137,6 +139,7 @@
 	--lagoon: #059669;
 	--lagoon-deep: #047857;
 	--palm: #34d399;
+	--reference-link: #f5a623;
 	--sand: #dcfce7;
 	--foam: #f0fdf4;
 	--surface: rgba(255, 255, 255, 0.7);
@@ -193,6 +196,7 @@
 	--lagoon: #10f2b0;
 	--lagoon-deep: #00c98a;
 	--palm: #34d399;
+	--reference-link: #f5a623;
 	--sand: #06150f;
 	--foam: #030d09;
 	--surface: rgba(8, 28, 22, 0.7);
@@ -248,6 +252,7 @@
 	--lagoon: #9333ea;
 	--lagoon-deep: #7c3aed;
 	--palm: #a78bfa;
+	--reference-link: #f5a623;
 	--sand: #f3e8ff;
 	--foam: #faf5ff;
 	--surface: rgba(255, 255, 255, 0.7);
@@ -304,6 +309,7 @@
 	--lagoon: #b070ff;
 	--lagoon-deep: #7c3aed;
 	--palm: #a78bfa;
+	--reference-link: #f5a623;
 	--sand: #150a20;
 	--foam: #0a0614;
 	--surface: rgba(22, 10, 34, 0.7);
@@ -360,6 +366,7 @@
   --color-lagoon: var(--lagoon);
   --color-lagoon-deep: var(--lagoon-deep);
   --color-palm: var(--palm);
+  --color-reference-link: var(--reference-link);
   --color-sand: var(--sand);
   --color-foam: var(--foam);
   --color-surface: var(--surface);

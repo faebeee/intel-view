@@ -64,6 +64,7 @@ export function useNotesQuery(projectId: number) {
 						type: note.type,
 						config: note.config,
 						parentId: note.parentId,
+						content: note.content,
 						metadata: {
 							classification: "Restricted",
 							created: new Date(note.createdAt).toLocaleDateString(),

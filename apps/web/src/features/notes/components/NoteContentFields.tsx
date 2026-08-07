@@ -4,9 +4,14 @@ import {
 } from "#/components/ui/form-field.tsx";
 import { Input } from "#/components/ui/input.tsx";
 import { MarkdownEditor } from "#/components/ui/markdown-editor.tsx";
+import { useNoteReference } from "#/features/notes/context/NoteReferenceContext.tsx";
+import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 import type { NoteType } from "#/features/notes/noteTypes.ts";
 
+const NOTE_LABEL_MAX_LENGTH = 60;
+
 type NoteContentFieldsProps = {
+	projectId: number;
 	type: NoteType;
 	content: string;
 	onContentChange: (value: string) => void;
@@ -24,6 +29,7 @@ type NoteContentFieldsProps = {
  * and the note edit route so the two forms don't drift.
  */
 export function NoteContentFields({
+	projectId,
 	type,
 	content,
 	onContentChange,
@@ -33,7 +39,15 @@ export function NoteContentFields({
 	idPrefix = "note",
 	markdownMinHeight = "min-h-36",
 }: NoteContentFieldsProps) {
+	const { openNoteReference } = useNoteReference();
+	const { data: allNotes = [] } = useAllNotesQuery(projectId);
+
 	if (type === "markdown") {
+		const noteOptions = allNotes.map((n) => ({
+			id: n.id,
+			label: (n.content || "").slice(0, NOTE_LABEL_MAX_LENGTH) || "No content",
+		}));
+
 		return (
 			<FormField
 				label="Content (Markdown Supported)"
@@ -45,6 +59,8 @@ export function NoteContentFields({
 					placeholder="Write content here..."
 					disabled={disabled}
 					minHeight={markdownMinHeight}
+					notes={noteOptions}
+					onReferenceClick={openNoteReference}
 				/>
 			</FormField>
 		);
