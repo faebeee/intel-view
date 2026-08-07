@@ -41,7 +41,7 @@ export function NoteConnectionLines({ data }: NoteConnectionLinesProps) {
 						[child.lat, child.lng],
 					]}
 					pathOptions={{
-						color: "#00f2ff",
+						color: "var(--lagoon)",
 						weight: 2,
 						opacity: 0.55,
 						dashArray: "6 6",

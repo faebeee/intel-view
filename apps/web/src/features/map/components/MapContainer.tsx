@@ -38,7 +38,7 @@ export function MapContainer({
 	className = "w-full h-full min-h-[400px]",
 }: MapContainerProps) {
 	return (
-		<div className="relative isolate w-full h-full flex-1 min-h-0 bg-[#030712]">
+		<div className="relative isolate w-full h-full flex-1 min-h-0 bg-background">
 			<LeafletMapContainer
 				center={center}
 				zoom={zoom}

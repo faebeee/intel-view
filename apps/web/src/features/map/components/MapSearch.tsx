@@ -124,7 +124,7 @@ export function MapSearch({ onCreateNote }: MapSearchProps) {
 				className="absolute left-4 top-4 z-1000 w-72 sm:w-80 md:w-96 flex flex-col gap-1.5"
 			>
 				<div className="relative flex items-center bg-surface-strong/95 border border-line rounded-lg backdrop-blur-md shadow-lg shadow-black/40 p-1">
-					<Search className="absolute left-3.5 h-4 w-4 text-[#00f2ff] pointer-events-none" />
+					<Search className="absolute left-3.5 h-4 w-4 text-lagoon pointer-events-none" />
 					<Input
 						type="text"
 						placeholder="Search any address / location..."
@@ -161,7 +161,7 @@ export function MapSearch({ onCreateNote }: MapSearchProps) {
 							<button
 								key={result.place_id}
 								type="button"
-								className="w-full p-2.5 text-left text-xs text-sea-ink hover:bg-line/20 hover:text-[#00f2ff] transition-all flex items-start gap-2"
+								className="w-full p-2.5 text-left text-xs text-sea-ink hover:bg-line/20 hover:text-lagoon transition-all flex items-start gap-2"
 								onClick={() => handleSelectResult(result)}
 							>
 								<MapPin className="h-3.5 w-3.5 shrink-0 text-palm mt-0.5" />

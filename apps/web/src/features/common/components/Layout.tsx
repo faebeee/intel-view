@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { JSX, ReactNode } from "react";
 import ParaglideLocaleSwitcher from "../../../components/LocaleSwitcher";
+import { ThemeSwitcher } from "../../../components/theme-switcher";
 import { useProjectQuery } from "../../projects/hooks/useProjectQuery";
 
 type LayoutProps = {
@@ -86,6 +87,7 @@ export function Layout({ children }: LayoutProps): JSX.Element {
 					)}
 
 					<div className="flex items-center gap-3">
+						<ThemeSwitcher />
 						<ParaglideLocaleSwitcher />
 					</div>
 				</div>

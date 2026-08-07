@@ -47,7 +47,7 @@ export function InlineNoteCard({
 	};
 
 	return (
-		<div className="w-64 rounded-lg border border-palm shadow-[0_0_16px_rgba(0,242,255,0.2)] bg-[#040814]/95 backdrop-blur-sm p-3 nodrag nowheel cursor-default">
+		<div className="w-64 rounded-lg border border-palm shadow-[0_0_16px_rgba(0,242,255,0.2)] bg-surface-strong/95 backdrop-blur-sm p-3 nodrag nowheel cursor-default">
 			<div className="flex items-center justify-between gap-2 mb-2">
 				<Select
 					value={type}
@@ -79,7 +79,7 @@ export function InlineNoteCard({
 			<Textarea
 				ref={textareaRef}
 				placeholder="Write your note..."
-				className="min-h-20 text-xs bg-[#040814]/60"
+				className="min-h-20 text-xs bg-surface/60"
 				value={content}
 				disabled={pending}
 				onChange={(e) => setContent(e.target.value)}

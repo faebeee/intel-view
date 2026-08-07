@@ -11,6 +11,7 @@ import {
 } from "@xyflow/react";
 import { PlusCircle, RefreshCw } from "lucide-react";
 import * as React from "react";
+import { useTheme } from "#/components/theme-provider";
 import { Button } from "#/components/ui/button.tsx";
 import { NoteDetailPanel } from "#/features/notes/components/NoteDetailPanel.tsx";
 import type { NoteType } from "#/features/notes/noteTypes.ts";
@@ -66,6 +67,7 @@ function gridPosition(index: number): { x: number; y: number } {
 }
 
 function CanvasInnerView({ projectId }: { projectId: number }) {
+	const { resolvedMode } = useTheme();
 	const { data, isLoading, refetch } = useCanvasNotesQuery(projectId);
 	// Stabilize the notes reference: `data` only changes identity when the
 	// query result actually changes, whereas a `data = []` default parameter
@@ -146,7 +148,7 @@ function CanvasInnerView({ projectId }: { projectId: number }) {
 				source: String(note.parentId),
 				target: String(note.id),
 				animated: true,
-				style: { stroke: "#00f2ff", strokeWidth: 1.5 },
+				style: { stroke: "var(--lagoon)", strokeWidth: 1.5 },
 			}));
 	}, [notes]);
 
@@ -270,7 +272,7 @@ function CanvasInnerView({ projectId }: { projectId: number }) {
 	]);
 
 	return (
-		<div className="flex flex-col h-full w-full min-h-0 bg-[#030712]">
+		<div className="flex flex-col h-full w-full min-h-0 bg-background">
 			<div className="flex items-center justify-between gap-3 p-3 border-b border-line bg-surface-strong/95 backdrop-blur-md shrink-0">
 				<div>
 					<h1 className="text-lg font-bold text-sea-ink">Canvas</h1>
@@ -321,12 +323,12 @@ function CanvasInnerView({ projectId }: { projectId: number }) {
 								onEdgesDelete={onEdgesDelete}
 								zoomOnDoubleClick={false}
 								fitView
-								colorMode="dark"
+								colorMode={resolvedMode}
 								proOptions={{ hideAttribution: true }}
 							>
 								<Background variant={BackgroundVariant.Dots} gap={16} size={1} />
 								<Controls />
-								<MiniMap pannable zoomable className="!bg-[#040814]" />
+								<MiniMap pannable zoomable className="!bg-surface-strong" />
 							</ReactFlow>
 						</div>
 					)}

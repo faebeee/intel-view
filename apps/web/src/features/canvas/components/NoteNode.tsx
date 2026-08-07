@@ -31,7 +31,7 @@ export function NoteNode({ data, selected }: NoteNodeProps) {
 		<ContextMenu>
 			<ContextMenuTrigger asChild>
 				<div
-					className={`w-60 rounded-lg border bg-[#040814]/90 backdrop-blur-sm p-3 shadow-lg transition-colors ${
+					className={`w-60 rounded-lg border bg-surface-strong/90 backdrop-blur-sm p-3 shadow-lg transition-colors ${
 						selected
 							? "border-palm shadow-[0_0_12px_rgba(0,242,255,0.15)]"
 							: "border-line/60 hover:border-palm/50"

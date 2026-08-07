@@ -47,7 +47,7 @@ const createNeonIcon = (
 		} else if (category === "iframe") {
 			color = "#a855f7";
 		} else {
-			color = "#00f2ff"; // Default cyan
+			color = "var(--lagoon)"; // Default accent
 		}
 		backgroundStyle = `background-color: ${color}`;
 		shadowStyle = `box-shadow: 0 0 10px ${color}`;
@@ -122,7 +122,7 @@ export function MarkerLayer({ data, onMarkerClick }: MarkerLayerProps) {
 							maxWidth={isIframe ? 360 : 320}
 						>
 							<div className="p-1 font-sans text-sea-ink">
-								<h3 className="text-xs font-bold border-b border-line pb-1 mb-1 text-[#00f2ff] uppercase tracking-wider font-mono">
+								<h3 className="text-xs font-bold border-b border-line pb-1 mb-1 text-lagoon uppercase tracking-wider font-mono">
 									{title}
 								</h3>
 								{description && (

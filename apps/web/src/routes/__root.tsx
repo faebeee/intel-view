@@ -7,7 +7,9 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { ThemeProvider } from "#/components/theme-provider";
 import { TooltipProvider } from "#/components/ui/tooltip";
+import { getThemeCookies } from "#/lib/theme-cookies";
 import { getLocale } from "#/paraglide/runtime";
 import { Layout } from "../features/common/components/Layout";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
@@ -26,8 +28,9 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 		}
 	},
 
-	loader: () => ({
+	loader: async () => ({
 		API_URL: process.env.VITE_API_URL || "http://localhost:4010",
+		...(await getThemeCookies()),
 	}),
 	head: () => ({
 		meta: [
@@ -57,15 +60,29 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 	client.setConfig({
 		baseUrl: config.API_URL,
 	});
+	// "system" mode can't be resolved on the server, so we default to the
+	// dark class (the site's original look) and let ThemeProvider correct it
+	// client-side after hydration if the OS preference is actually light.
+	const htmlClassName = config.mode === "light" ? "" : "dark";
 	return (
-		<html lang={getLocale()}>
+		<html
+			lang={getLocale()}
+			className={htmlClassName}
+			data-theme={config.colorTheme}
+			suppressHydrationWarning
+		>
 			<head>
 				<HeadContent />
 			</head>
 			<body>
-				<TooltipProvider>
-					<Layout>{children}</Layout>
-				</TooltipProvider>
+				<ThemeProvider
+					initialMode={config.mode}
+					initialColorTheme={config.colorTheme}
+				>
+					<TooltipProvider>
+						<Layout>{children}</Layout>
+					</TooltipProvider>
+				</ThemeProvider>
 				<TanStackDevtools
 					config={{
 						position: "top-right",

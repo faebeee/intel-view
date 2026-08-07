@@ -17,7 +17,7 @@ export function MapView({ projectId }: MapViewProps) {
 
 	if (!mounted) {
 		return (
-			<div className="h-full w-full flex flex-col items-center justify-center bg-[#030712] font-mono text-xs text-[#00f2ff] p-4">
+			<div className="h-full w-full flex flex-col items-center justify-center bg-background font-mono text-xs text-lagoon p-4">
 				<div className="animate-pulse flex flex-col items-center gap-2">
 					<span>INITIALIZING SECURE LINK...</span>
 				</div>
@@ -28,7 +28,7 @@ export function MapView({ projectId }: MapViewProps) {
 	return (
 		<React.Suspense
 			fallback={
-				<div className="h-full w-full flex flex-col items-center justify-center bg-[#030712] font-mono text-xs text-[#00f2ff] p-4">
+				<div className="h-full w-full flex flex-col items-center justify-center bg-background font-mono text-xs text-lagoon p-4">
 					<div className="animate-pulse flex flex-col items-center gap-2">
 						<span>BOOTING GEOSPATIAL SYSTEMS...</span>
 					</div>

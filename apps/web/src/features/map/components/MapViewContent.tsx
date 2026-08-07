@@ -132,7 +132,7 @@ function MapInnerView({ projectId }: { projectId: number }) {
 						<Input
 							type="text"
 							placeholder="Search notes..."
-							className="pl-9 bg-[#040814]/60 border-line text-xs h-9"
+							className="pl-9 bg-surface/60 border-line text-xs h-9"
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
 						/>
@@ -150,7 +150,7 @@ function MapInnerView({ projectId }: { projectId: number }) {
 						<span>Add Note</span>
 					</Button>
 
-					<div className="text-[10px] text-muted-foreground leading-normal font-sans bg-[#040814]/30 border border-line/30 rounded p-2 text-center select-none">
+					<div className="text-[10px] text-muted-foreground leading-normal font-sans bg-surface/30 border border-line/30 rounded p-2 text-center select-none">
 						Click anywhere on the map to add a note at those coordinates.
 					</div>
 				</div>
@@ -172,15 +172,15 @@ function MapInnerView({ projectId }: { projectId: number }) {
 								onClick={() => handleFocusAsset(asset)}
 								className={`w-full group p-3 rounded-lg border text-left cursor-pointer transition-all ${
 									selectedMarker?.id === asset.id
-										? "border-palm bg-[#00f2ff]/5 shadow-[0_0_12px_rgba(0,242,255,0.1)]"
-										: "border-line/60 bg-[#040814]/30 hover:border-palm/50 hover:bg-[#040814]/60"
+										? "border-palm bg-lagoon/5 shadow-[0_0_12px_rgba(0,242,255,0.1)]"
+										: "border-line/60 bg-surface/30 hover:border-palm/50 hover:bg-surface/60"
 								}`}
 							>
 								<div className="flex items-start justify-between gap-2">
-									<h3 className="font-sans text-xs font-bold text-sea-ink group-hover:text-[#00f2ff] transition-colors">
+									<h3 className="font-sans text-xs font-bold text-sea-ink group-hover:text-lagoon transition-colors">
 										{asset.title}
 									</h3>
-									<MapPin className="h-3.5 w-3.5 text-[#00f2ff] shrink-0" />
+									<MapPin className="h-3.5 w-3.5 text-lagoon shrink-0" />
 								</div>
 								<p className="text-[11px] text-muted-foreground leading-relaxed mt-1 line-clamp-2">
 									{asset.description}
@@ -195,7 +195,7 @@ function MapInnerView({ projectId }: { projectId: number }) {
 								{asset.tags && asset.tags.length > 0 && (
 									<div className="flex flex-wrap gap-1 mt-2">
 										{asset.tags.map((tag) => {
-											const displayColor = tag.color || "#00f2ff";
+											const displayColor = tag.color || "var(--lagoon)";
 											return (
 												<span
 													key={tag.id}
