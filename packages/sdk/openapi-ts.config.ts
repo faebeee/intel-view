@@ -1,7 +1,10 @@
 import { defineConfig } from "@hey-api/openapi-ts";
+require('dotenv').config()
 
 export default defineConfig({
-	client: "@hey-api/client-fetch",
-	input: "http://localhost:4010/docs-json",
-	output: "./src/generated",
+  input: `${process.env.API_URL}/docs-json`,
+  client: {
+    name: '@hey-api/client-fetch'
+  },
+  output: "./client",
 });

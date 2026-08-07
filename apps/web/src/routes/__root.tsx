@@ -1,3 +1,4 @@
+import { client } from "@repo/sdk/services.gen";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 import {
@@ -25,6 +26,9 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 		}
 	},
 
+	loader: () => ({
+		API_URL: process.env.VITE_API_URL || "http://localhost:4010",
+	}),
 	head: () => ({
 		meta: [
 			{
@@ -49,6 +53,10 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+	const config = Route.useLoaderData();
+	client.setConfig({
+		baseUrl: config.API_URL,
+	});
 	return (
 		<html lang={getLocale()}>
 			<head>
