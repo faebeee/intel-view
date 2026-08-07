@@ -1,22 +1,24 @@
+import type { TagResponseDto as Tag } from "@repo/sdk";
+import { tagControllerRemove } from "@repo/sdk";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import * as React from "react";
-import type { JSX } from "react";
-import { Tag as TagIcon, RefreshCw, Plus, Edit2, Trash2 } from "lucide-react";
 import type {
-	LegacyColumnDef as ColumnDef,
 	LegacyColumn as Column,
+	LegacyColumnDef as ColumnDef,
 	LegacyRow as Row,
 } from "@tanstack/react-table/legacy";
-import { tagControllerRemove } from "@repo/sdk";
-import type { TagResponseDto as Tag } from "@repo/sdk";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Edit2, Plus, RefreshCw, Tag as TagIcon, Trash2 } from "lucide-react";
+import type { JSX } from "react";
+import * as React from "react";
 import { toast } from "sonner";
-
-import { DataTable, SortableHeader } from "#/components/ui/data-table.tsx";
-import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 import { Button } from "#/components/ui/button.tsx";
-import { CreateTagModal } from "#/features/tags/components/CreateTagModal.tsx";
-import { EditTagModal } from "#/features/tags/components/EditTagModal.tsx";
+import { DataTable, SortableHeader } from "#/components/ui/data-table.tsx";
+import { LoadingState } from "#/components/ui/loading-state.tsx";
+import { TagChip } from "#/components/ui/tag-chip.tsx";
+import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
+import { TagModal } from "#/features/tags/components/TagModal.tsx";
+import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
+import { toastApiError } from "#/lib/api-error.ts";
 
 export const Route = createFileRoute("/projects/$projectId/tags")({
 	component: TagsRouteComponent,
@@ -54,24 +56,8 @@ function TagsRouteComponent(): JSX.Element {
 			toast.success("Tag deleted successfully");
 			queryClient.invalidateQueries({ queryKey: ["tags", "all", projectId] });
 		},
-		onError: (err) => {
-			console.error("Failed to delete tag:", err);
-			toast.error("Failed to delete tag", {
-				description:
-					err instanceof Error ? err.message : "Ensure the api is online.",
-			});
-		},
+		onError: toastApiError("delete tag"),
 	});
-
-	const handleDeleteClick = (tag: Tag) => {
-		if (
-			window.confirm(
-				`Are you sure you want to permanently delete tag "${tag.name}"?`,
-			)
-		) {
-			removeTagMutation.mutate(tag.id);
-		}
-	};
 
 	const columns: ColumnDef<Tag, unknown>[] = [
 		{
@@ -92,19 +78,8 @@ function TagsRouteComponent(): JSX.Element {
 			),
 			cell: ({ row }: { row: Row<Tag> }) => {
 				const tag = row.original;
-				const displayColor = tag.color || "#00f2ff";
 				return (
-					<span
-						className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-mono font-bold uppercase border transition-all duration-200"
-						style={{
-							backgroundColor: `${displayColor}12`,
-							borderColor: `${displayColor}40`,
-							color: displayColor,
-							boxShadow: `0 0 8px ${displayColor}10`,
-						}}
-					>
-						{tag.name}
-					</span>
+					<TagChip tag={tag.name} color={tag.color || "#00f2ff"} size="sm" />
 				);
 			},
 		},
@@ -157,15 +132,18 @@ function TagsRouteComponent(): JSX.Element {
 							<span>Edit</span>
 						</Button>
 
-						<Button
+						<ConfirmationButton
 							variant="outline"
 							size="xs"
-							onClick={() => handleDeleteClick(tag)}
+							onClick={() => removeTagMutation.mutate(tag.id)}
 							disabled={removeTagMutation.isPending}
+							title="Delete Tag"
+							description={`Are you sure you want to permanently delete tag "${tag.name}"?`}
+							confirmText="Delete"
 						>
 							<Trash2 className="h-3 w-3" />
 							<span>Delete</span>
-						</Button>
+						</ConfirmationButton>
 					</div>
 				);
 			},
@@ -220,11 +198,7 @@ function TagsRouteComponent(): JSX.Element {
 
 			{/* Main Content Area */}
 			{isLoading && !isRefetching ? (
-				<div className="flex-1 flex flex-col items-center justify-center py-20 font-mono text-xs text-[#00f2ff]">
-					<div className="animate-pulse flex flex-col items-center gap-2">
-						<span>Loading tags...</span>
-					</div>
-				</div>
+				<LoadingState label="Loading tags..." compact />
 			) : (
 				<div className="flex-1">
 					<DataTable
@@ -241,14 +215,14 @@ function TagsRouteComponent(): JSX.Element {
 			)}
 
 			{/* Create Tag Modal */}
-			<CreateTagModal
+			<TagModal
 				projectId={projectId}
 				open={isCreateOpen}
 				onOpenChange={setIsCreateOpen}
 			/>
 
 			{/* Edit Tag Modal */}
-			<EditTagModal
+			<TagModal
 				projectId={projectId}
 				tag={editingTag}
 				open={isEditOpen}

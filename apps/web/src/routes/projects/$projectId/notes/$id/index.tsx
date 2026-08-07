@@ -1,3 +1,5 @@
+import { noteControllerRemove } from "@repo/sdk";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
 	ArrowLeft,
@@ -10,12 +12,12 @@ import {
 	Plus,
 	Trash2,
 } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { noteControllerRemove } from "@repo/sdk";
 import type { JSX } from "react";
 import * as React from "react";
+import { toast } from "sonner";
 import { Button } from "#/components/ui/button.tsx";
+import { LoadingState, NotFoundState } from "#/components/ui/loading-state.tsx";
+import { TagChipList } from "#/components/ui/tag-chip.tsx";
 import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
 import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal.tsx";
 import { NoteContentRenderer } from "#/features/notes/components/NoteContentRenderer.tsx";
@@ -23,7 +25,10 @@ import { NoteHistorySection } from "#/features/notes/components/NoteHistorySecti
 import { NoteTypeBadge } from "#/features/notes/components/NoteTypeBadge.tsx";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 import { useNoteQuery } from "#/features/notes/hooks/useNoteQuery.ts";
+import { invalidateNoteQueries } from "#/features/notes/utils/invalidateNoteQueries.ts";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
+import { useTagColorMap } from "#/features/tags/hooks/useTagColorMap.ts";
+import { toastApiError } from "#/lib/api-error.ts";
 
 export const Route = createFileRoute("/projects/$projectId/notes/$id/")({
 	component: NoteDetailRouteComponent,
@@ -41,13 +46,7 @@ function NoteDetailRouteComponent(): JSX.Element {
 	const { data: allNotes = [] } = useAllNotesQuery(projectId);
 	const [isCreateChildOpen, setIsCreateChildOpen] = React.useState(false);
 
-	const tagColorMap = React.useMemo(() => {
-		const map = new Map<string, string>();
-		for (const tag of availableTags) {
-			map.set(tag.name.toLowerCase(), tag.color);
-		}
-		return map;
-	}, [availableTags]);
+	const tagColorMap = useTagColorMap(availableTags);
 
 	const removeNoteMutation = useMutation({
 		mutationFn: async (id: number) => {
@@ -58,49 +57,27 @@ function NoteDetailRouteComponent(): JSX.Element {
 		},
 		onSuccess: () => {
 			toast.success("Note deleted successfully");
-			queryClient.invalidateQueries({ queryKey: ["notes", "all", projectId] });
-			queryClient.invalidateQueries({ queryKey: ["notes", "map", projectId] });
+			invalidateNoteQueries(queryClient, projectId);
 			navigate({
 				to: "/projects/$projectId/notes",
 				params: { projectId: projectIdParam },
 			});
 		},
-		onError: (err) => {
-			console.error("Failed to delete note:", err);
-			toast.error("Failed to delete note", {
-				description:
-					err instanceof Error ? err.message : "Ensure the api is online.",
-			});
-		},
+		onError: toastApiError("delete note"),
 	});
 
 	if (isLoading) {
-		return (
-			<div className="min-h-full w-full bg-background/50 p-6 flex flex-col items-center justify-center py-40 font-mono text-xs text-[#00f2ff]">
-				<div className="animate-pulse flex flex-col items-center gap-2">
-					<span>Loading note details...</span>
-				</div>
-			</div>
-		);
+		return <LoadingState label="Loading note details..." />;
 	}
 
 	if (!note) {
 		return (
-			<div className="min-h-full w-full bg-background/50 p-6 flex flex-col items-center justify-center py-40 gap-4">
-				<p className="font-mono text-xs text-red-400">Note #{id} not found.</p>
-				<Link
-					to="/projects/$projectId/notes"
-					params={{ projectId: projectIdParam }}
-				>
-					<Button
-						variant="outline"
-						size="sm"
-					>
-						<ArrowLeft className="h-3 w-3" />
-						<span>Back to Notes</span>
-					</Button>
-				</Link>
-			</div>
+			<NotFoundState
+				message={`Note #${id} not found.`}
+				backTo="/projects/$projectId/notes"
+				backParams={{ projectId: projectIdParam }}
+				backLabel="Back to Notes"
+			/>
 		);
 	}
 
@@ -134,10 +111,7 @@ function NoteDetailRouteComponent(): JSX.Element {
 					to="/projects/$projectId/notes"
 					params={{ projectId: projectIdParam }}
 				>
-					<Button
-						variant="outline"
-						size="xs"
-					>
+					<Button variant="outline" size="xs">
 						<ArrowLeft className="h-3 w-3" />
 						<span>BACK TO LIST</span>
 					</Button>
@@ -151,11 +125,7 @@ function NoteDetailRouteComponent(): JSX.Element {
 						<Plus className="h-3 w-3" />
 						<span>ADD SUB-NOTE</span>
 					</Button>
-					<Button
-						variant="outline"
-						size="xs"
-						asChild
-					>
+					<Button variant="outline" size="xs" asChild>
 						<Link
 							to="/projects/$projectId/notes/$id/edit"
 							params={{ projectId: projectIdParam, id }}
@@ -239,26 +209,12 @@ function NoteDetailRouteComponent(): JSX.Element {
 					</div>
 
 					{/* Tag chips */}
-					{tags.length > 0 && (
-						<div className="flex flex-wrap gap-1.5 pt-1">
-							{tags.map((tag) => {
-								const displayColor = tagColorMap.get(tag.toLowerCase()) || "#00f2ff";
-								return (
-									<span
-										key={tag}
-										className="inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase border shadow-sm"
-										style={{
-											backgroundColor: `${displayColor}12`,
-											borderColor: `${displayColor}35`,
-											color: displayColor,
-										}}
-									>
-										{tag}
-									</span>
-								);
-							})}
-						</div>
-					)}
+					<TagChipList
+						tags={tags}
+						tagColorMap={tagColorMap}
+						size="sm"
+						className="pt-1"
+					/>
 				</div>
 
 				{/* Note Content Panel */}
@@ -275,8 +231,7 @@ function NoteDetailRouteComponent(): JSX.Element {
 						<h2 className="text-xs font-bold uppercase tracking-wider text-sea-ink flex items-center gap-2">
 							<FileText className="h-4 w-4 text-palm" />
 							<span>
-								Sub-notes{" "}
-								{childNotes.length > 0 && `(${childNotes.length})`}
+								Sub-notes {childNotes.length > 0 && `(${childNotes.length})`}
 							</span>
 						</h2>
 						<Button

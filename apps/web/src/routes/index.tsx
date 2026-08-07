@@ -23,10 +23,11 @@ import {
 	CardHeader,
 	CardTitle,
 } from "#/components/ui/card";
+import { LoadingState } from "#/components/ui/loading-state.tsx";
 import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
-import { CreateProjectModal } from "#/features/projects/components/CreateProjectModal.tsx";
-import { EditProjectModal } from "#/features/projects/components/EditProjectModal.tsx";
+import { ProjectModal } from "#/features/projects/components/ProjectModal.tsx";
 import { useAllProjectsQuery } from "#/features/projects/hooks/useAllProjectsQuery.ts";
+import { toastApiError } from "#/lib/api-error.ts";
 
 export const Route = createFileRoute("/")({ component: ProjectsOverview });
 
@@ -55,13 +56,7 @@ function ProjectsOverview(): JSX.Element {
 			toast.success("Project deleted successfully");
 			queryClient.invalidateQueries({ queryKey: ["projects", "all"] });
 		},
-		onError: (err) => {
-			console.error("Failed to delete project:", err);
-			toast.error("Failed to delete project", {
-				description:
-					err instanceof Error ? err.message : "Ensure the api is online.",
-			});
-		},
+		onError: toastApiError("delete project"),
 	});
 
 	const handleEditClick = (project: ProjectResponseDto) => {
@@ -112,11 +107,7 @@ function ProjectsOverview(): JSX.Element {
 
 			{/* Main Content Area */}
 			{isLoading && !isRefetching ? (
-				<div className="flex-1 flex flex-col items-center justify-center py-20 font-mono text-xs text-[#00f2ff]">
-					<div className="animate-pulse flex flex-col items-center gap-2">
-						<span>Loading projects...</span>
-					</div>
-				</div>
+				<LoadingState label="Loading projects..." compact />
 			) : projects.length === 0 ? (
 				<div className="flex-1 flex flex-col items-center justify-center py-20 gap-4 text-center">
 					<FolderKanban className="h-10 w-10 text-muted-foreground/40" />
@@ -204,10 +195,10 @@ function ProjectsOverview(): JSX.Element {
 			)}
 
 			{/* Create Project Modal */}
-			<CreateProjectModal open={isCreateOpen} onOpenChange={setIsCreateOpen} />
+			<ProjectModal open={isCreateOpen} onOpenChange={setIsCreateOpen} />
 
 			{/* Edit Project Modal */}
-			<EditProjectModal
+			<ProjectModal
 				project={editingProject}
 				open={isEditOpen}
 				onOpenChange={setIsEditOpen}

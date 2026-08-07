@@ -1,7 +1,6 @@
 import type { NoteResponseDto as Note } from "@repo/sdk";
 import { Link } from "@tanstack/react-router";
 import { Calendar, Edit2, MapPin } from "lucide-react";
-import * as React from "react";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -11,10 +10,12 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
+import { TagChipList } from "#/components/ui/tag-chip.tsx";
 import { NoteContentRenderer } from "#/features/notes/components/NoteContentRenderer.tsx";
 import { NoteHistorySection } from "#/features/notes/components/NoteHistorySection.tsx";
 import { NoteTypeBadge } from "#/features/notes/components/NoteTypeBadge.tsx";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
+import { useTagColorMap } from "#/features/tags/hooks/useTagColorMap.ts";
 
 type ViewNoteModalProps = {
 	projectId: number;
@@ -32,14 +33,7 @@ export function ViewNoteModal({
 	onOpenChange,
 }: ViewNoteModalProps) {
 	const { data: availableTags = [] } = useAllTagsQuery(projectId);
-
-	const tagColorMap = React.useMemo(() => {
-		const map = new Map<string, string>();
-		for (const tag of availableTags) {
-			map.set(tag.name.toLowerCase(), tag.color);
-		}
-		return map;
-	}, [availableTags]);
+	const tagColorMap = useTagColorMap(availableTags);
 
 	if (!note) return null;
 
@@ -103,27 +97,12 @@ export function ViewNoteModal({
 					</DialogDescription>
 
 					{/* Tag Chips in Header */}
-					{tags.length > 0 && (
-						<div className="flex flex-wrap gap-1.5 pt-1">
-							{tags.map((tag) => {
-								const displayColor =
-									tagColorMap.get(tag.toLowerCase()) || "#00f2ff";
-								return (
-									<span
-										key={tag}
-										className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border"
-										style={{
-											backgroundColor: `${displayColor}12`,
-											borderColor: `${displayColor}35`,
-											color: displayColor,
-										}}
-									>
-										{tag}
-									</span>
-								);
-							})}
-						</div>
-					)}
+					<TagChipList
+						tags={tags}
+						tagColorMap={tagColorMap}
+						size="sm"
+						className="pt-1"
+					/>
 				</DialogHeader>
 
 				{/* Modal Body / Markdown Content */}

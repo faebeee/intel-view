@@ -1,8 +1,9 @@
 import type { NoteResponseDto as Note } from "@repo/sdk";
 import { noteControllerCreate } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import type { NoteType } from "#/features/notes/noteTypes.ts";
+import { invalidateNoteQueries } from "#/features/notes/utils/invalidateNoteQueries.ts";
+import { toastApiError } from "#/lib/api-error.ts";
 
 export type CreateInlineNotePayload = {
 	type: NoteType;
@@ -29,18 +30,8 @@ export function useCreateInlineNote(projectId: number) {
 			return res.data as Note;
 		},
 		onSuccess: () => {
-			queryClient.invalidateQueries({
-				queryKey: ["notes", "canvas", projectId],
-			});
-			queryClient.invalidateQueries({ queryKey: ["notes", "all", projectId] });
-			queryClient.invalidateQueries({ queryKey: ["notes", "map", projectId] });
+			invalidateNoteQueries(queryClient, projectId);
 		},
-		onError: (err) => {
-			console.error("Failed to create note:", err);
-			toast.error("Failed to add note", {
-				description:
-					err instanceof Error ? err.message : "Ensure the api is online.",
-			});
-		},
+		onError: toastApiError("add note"),
 	});
 }

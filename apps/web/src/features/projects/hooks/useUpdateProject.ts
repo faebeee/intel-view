@@ -1,6 +1,7 @@
 import type { ProjectResponseDto, UpdateProjectDto } from "@repo/sdk";
 import { projectControllerUpdate } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toastApiError } from "#/lib/api-error.ts";
 
 export function useUpdateProject(id: number) {
 	const queryClient = useQueryClient();
@@ -17,5 +18,6 @@ export function useUpdateProject(id: number) {
 			queryClient.setQueryData(["projects", id], project);
 			queryClient.invalidateQueries({ queryKey: ["projects", "all"] });
 		},
+		onError: toastApiError("update project"),
 	});
 }

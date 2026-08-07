@@ -1,6 +1,8 @@
 import { noteControllerRemove } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { invalidateNoteQueries } from "#/features/notes/utils/invalidateNoteQueries.ts";
+import { toastApiError } from "#/lib/api-error.ts";
 
 /** Deletes a note from the canvas (soft delete), matching the notes tree view convention. */
 export function useDeleteNote(projectId: number) {
@@ -15,18 +17,8 @@ export function useDeleteNote(projectId: number) {
 		},
 		onSuccess: () => {
 			toast.success("Note deleted successfully");
-			queryClient.invalidateQueries({
-				queryKey: ["notes", "canvas", projectId],
-			});
-			queryClient.invalidateQueries({ queryKey: ["notes", "all", projectId] });
-			queryClient.invalidateQueries({ queryKey: ["notes", "map", projectId] });
+			invalidateNoteQueries(queryClient, projectId);
 		},
-		onError: (err) => {
-			console.error("Failed to delete note:", err);
-			toast.error("Failed to delete note", {
-				description:
-					err instanceof Error ? err.message : "Ensure the api is online.",
-			});
-		},
+		onError: toastApiError("delete note"),
 	});
 }

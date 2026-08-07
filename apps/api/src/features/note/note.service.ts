@@ -17,7 +17,7 @@ import type { NoteFieldChange } from './entities/note-history-entry.entity';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { CreateNoteHistoryEntryDto } from './dto/create-note-history-entry.dto';
-import { Project } from '../project/entities/project.entity';
+import { ProjectAccessService } from '../project/project-access.service';
 
 export const notePaginateConfig: PaginateConfig<Note> = {
   sortableColumns: ['id', 'createdAt', 'updatedAt'],
@@ -71,19 +71,13 @@ export class NoteService {
   constructor(
     @InjectRepository(Note)
     private readonly noteRepository: Repository<Note>,
-    @InjectRepository(Project)
-    private readonly projectRepository: Repository<Project>,
     @InjectRepository(NoteHistoryEntry)
     private readonly noteHistoryRepository: Repository<NoteHistoryEntry>,
+    private readonly projectAccessService: ProjectAccessService,
   ) {}
 
   private async assertProjectExists(projectId: number): Promise<void> {
-    const project = await this.projectRepository.findOne({
-      where: { id: projectId, deletedAt: IsNull() },
-    });
-    if (!project) {
-      throw new NotFoundException(`Project with ID ${projectId} not found`);
-    }
+    await this.projectAccessService.assertExists(projectId);
   }
 
   /**

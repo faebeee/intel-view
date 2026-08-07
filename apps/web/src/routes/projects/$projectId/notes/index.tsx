@@ -1,18 +1,21 @@
-import { noteControllerRemove } from "@repo/sdk";
 import type { NoteResponseDto as Note } from "@repo/sdk";
+import { noteControllerRemove } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { createFileRoute } from "@tanstack/react-router";
 import { FileText, Plus, RefreshCw } from "lucide-react";
 import type { JSX } from "react";
 import * as React from "react";
+import { toast } from "sonner";
 import { Button } from "#/components/ui/button.tsx";
+import { LoadingState } from "#/components/ui/loading-state.tsx";
 import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal.tsx";
 import { NoteTreeView } from "#/features/notes/components/NoteTreeView.tsx";
 import { ViewNoteModal } from "#/features/notes/components/ViewNoteModal.tsx";
-import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
-
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
+import { invalidateNoteQueries } from "#/features/notes/utils/invalidateNoteQueries.ts";
+import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
+import { useTagColorMap } from "#/features/tags/hooks/useTagColorMap.ts";
+import { toastApiError } from "#/lib/api-error.ts";
 
 export const Route = createFileRoute("/projects/$projectId/notes/")({
 	component: NotesRouteComponent,
@@ -30,13 +33,7 @@ function NotesRouteComponent(): JSX.Element {
 	} = useAllNotesQuery(projectId);
 	const { data: availableTags = [] } = useAllTagsQuery(projectId);
 
-	const tagColorMap = React.useMemo(() => {
-		const map = new Map<string, string>();
-		for (const tag of availableTags) {
-			map.set(tag.name.toLowerCase(), tag.color);
-		}
-		return map;
-	}, [availableTags]);
+	const tagColorMap = useTagColorMap(availableTags);
 	const [viewingNote, setViewingNote] = React.useState<Note | null>(null);
 	const [isViewOpen, setIsViewOpen] = React.useState(false);
 
@@ -61,16 +58,9 @@ function NotesRouteComponent(): JSX.Element {
 		},
 		onSuccess: () => {
 			toast.success("Note deleted successfully");
-			queryClient.invalidateQueries({ queryKey: ["notes", "all", projectId] });
-			queryClient.invalidateQueries({ queryKey: ["notes", "map", projectId] });
+			invalidateNoteQueries(queryClient, projectId);
 		},
-		onError: (err) => {
-			console.error("Failed to delete note:", err);
-			toast.error("Failed to delete note", {
-				description:
-					err instanceof Error ? err.message : "Ensure the api is online.",
-			});
-		},
+		onError: toastApiError("delete note"),
 		onSettled: (_data, _err, id) => {
 			setPendingDeleteIds((prev) => {
 				const next = new Set(prev);
@@ -125,11 +115,7 @@ function NotesRouteComponent(): JSX.Element {
 						</span>
 					</Button>
 
-					<Button
-						variant="default"
-						size="sm"
-						onClick={handleAddRootClick}
-					>
+					<Button variant="default" size="sm" onClick={handleAddRootClick}>
 						<Plus className="h-4 w-4" />
 						<span>Add Note</span>
 					</Button>
@@ -138,11 +124,7 @@ function NotesRouteComponent(): JSX.Element {
 
 			{/* Main Content Area */}
 			{isLoading && !isRefetching ? (
-				<div className="flex-1 flex flex-col items-center justify-center py-20 font-mono text-xs text-[#00f2ff]">
-					<div className="animate-pulse flex flex-col items-center gap-2">
-						<span>Loading notes...</span>
-					</div>
-				</div>
+				<LoadingState label="Loading notes..." compact />
 			) : (
 				<div className="flex-1">
 					<NoteTreeView

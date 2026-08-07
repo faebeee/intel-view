@@ -2,6 +2,7 @@ import { RefreshCw, Send } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button.tsx";
+import { FIELD_LABEL_CLASS } from "#/components/ui/form-field.tsx";
 import { MarkdownEditor } from "#/components/ui/markdown-editor.tsx";
 import { useAddManualHistoryEntry } from "#/features/notes/hooks/useAddManualHistoryEntry.ts";
 
@@ -42,9 +43,7 @@ export function AddHistoryEntryForm({
 			onSubmit={handleSubmit}
 			className="flex flex-col gap-2 p-3 rounded-lg border border-line/50 bg-[#040814]/30"
 		>
-			<span className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1">
-				Add History Entry
-			</span>
+			<span className={FIELD_LABEL_CLASS}>Add History Entry</span>
 			<MarkdownEditor
 				value={content}
 				onChange={setContent}

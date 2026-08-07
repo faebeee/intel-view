@@ -13,8 +13,11 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
+import {
+	FormField,
+	TERMINAL_INPUT_CLASS,
+} from "#/components/ui/form-field.tsx";
 import { Input } from "#/components/ui/input";
-import { MarkdownEditor } from "#/components/ui/markdown-editor.tsx";
 import {
 	Select,
 	SelectContent,
@@ -22,10 +25,14 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select.tsx";
+import { CoordinateInputs } from "#/features/notes/components/CoordinateInputs.tsx";
+import { NoteContentFields } from "#/features/notes/components/NoteContentFields.tsx";
 import {
 	NOTE_TYPE_OPTIONS,
 	type NoteType,
 } from "#/features/notes/noteTypes.ts";
+import { invalidateNoteQueries } from "#/features/notes/utils/invalidateNoteQueries.ts";
+import { toastApiError } from "#/lib/api-error.ts";
 
 const ROOT_PARENT_VALUE = "root";
 
@@ -102,18 +109,11 @@ export function CreateNoteModal({
 		},
 		onSuccess: () => {
 			toast.success("Note added successfully");
-			queryClient.invalidateQueries({ queryKey: ["notes", "map", projectId] });
-			queryClient.invalidateQueries({ queryKey: ["notes", "all", projectId] });
+			invalidateNoteQueries(queryClient, projectId);
 			onOpenChange(false);
 			if (onSuccess) onSuccess();
 		},
-		onError: (err) => {
-			console.error("Failed to create note:", err);
-			toast.error("Failed to add note", {
-				description:
-					err instanceof Error ? err.message : "Ensure the api is online.",
-			});
-		},
+		onError: toastApiError("add note"),
 	});
 
 	const handleSubmit = (e: React.FormEvent) => {
@@ -173,13 +173,7 @@ export function CreateNoteModal({
 
 				<form onSubmit={handleSubmit} className="space-y-5 my-2">
 					{/* Note Type Selector */}
-					<div className="flex flex-col gap-1.5">
-						<label
-							htmlFor="note-type"
-							className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
-						>
-							Note Type
-						</label>
+					<FormField label="Note Type" htmlFor="note-type">
 						<Select
 							value={type}
 							onValueChange={(value) => setType(value as NoteType)}
@@ -196,16 +190,10 @@ export function CreateNoteModal({
 								))}
 							</SelectContent>
 						</Select>
-					</div>
+					</FormField>
 
 					{/* Parent Note Selector */}
-					<div className="flex flex-col gap-1.5">
-						<label
-							htmlFor="note-parent"
-							className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
-						>
-							Parent Note (Optional)
-						</label>
+					<FormField label="Parent Note (Optional)" htmlFor="note-parent">
 						<Select
 							value={parentId}
 							onValueChange={setParentId}
@@ -225,135 +213,40 @@ export function CreateNoteModal({
 								))}
 							</SelectContent>
 						</Select>
-					</div>
+					</FormField>
 
-					{/* Markdown Live Editor */}
-					{type === "markdown" && (
-						<div className="flex flex-col gap-1.5">
-							<label
-								htmlFor="note-content"
-								className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
-							>
-								Content (Markdown Supported)
-							</label>
-							<MarkdownEditor
-								value={content}
-								onChange={setContent}
-								placeholder="Write content here..."
-								disabled={createNoteMutation.isPending}
-								minHeight="min-h-36"
-							/>
-						</div>
-					)}
-
-					{/* iFrame URL Configuration */}
-					{type === "iframe" && (
-						<div className="flex flex-col gap-3">
-							<div className="flex flex-col gap-1.5">
-								<label
-									htmlFor="note-iframe-url"
-									className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
-								>
-									iFrame URL
-								</label>
-								<Input
-									id="note-iframe-url"
-									type="url"
-									placeholder="https://example.com"
-									className="bg-[#040814]/40 border border-line/50 rounded-lg p-3 text-xs font-mono h-auto text-palm placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-palm"
-									value={iframeUrl}
-									onChange={(e) => setIframeUrl(e.target.value)}
-									disabled={createNoteMutation.isPending}
-								/>
-							</div>
-							<div className="flex flex-col gap-1.5">
-								<label
-									htmlFor="note-content"
-									className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
-								>
-									Caption (Optional)
-								</label>
-								<Input
-									id="note-content"
-									type="text"
-									placeholder="Short description shown alongside the embed"
-									className="bg-[#040814]/40 border border-line/50 rounded-lg p-3 text-xs font-mono h-auto text-palm placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-palm"
-									value={content}
-									onChange={(e) => setContent(e.target.value)}
-									disabled={createNoteMutation.isPending}
-								/>
-							</div>
-						</div>
-					)}
-
-					{/* Log Note Info */}
-					{type === "log" && (
-						<div className="rounded-lg border border-line/50 bg-[#040814]/40 p-3 text-xs text-muted-foreground italic">
-							Log notes have no content of their own. Their detail view directly
-							displays this note's automatic change history, and lets you add
-							your own freeform history entries.
-						</div>
-					)}
+					{/* Type-conditional content fields (markdown / iframe / log) */}
+					<NoteContentFields
+						type={type}
+						content={content}
+						onContentChange={setContent}
+						iframeUrl={iframeUrl}
+						onIframeUrlChange={setIframeUrl}
+						disabled={createNoteMutation.isPending}
+						markdownMinHeight="min-h-36"
+					/>
 
 					{/* Tags Input */}
-					<div className="flex flex-col gap-1.5">
-						<label
-							htmlFor="note-tags"
-							className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
-						>
-							Tags (separated by commas)
-						</label>
+					<FormField label="Tags (separated by commas)" htmlFor="note-tags">
 						<Input
 							id="note-tags"
 							type="text"
 							placeholder="e.g. location, family"
-							className="bg-[#040814]/40 border border-line/50 rounded-lg p-3 text-xs font-mono h-auto text-palm placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-palm"
+							className={TERMINAL_INPUT_CLASS}
 							value={tagsInput}
 							onChange={(e) => setTagsInput(e.target.value)}
 							disabled={createNoteMutation.isPending}
 						/>
-					</div>
+					</FormField>
 
-					{/* 2-column Lat/Lng prefilled inputs */}
-					<div className="flex flex-col gap-1.5 max-w-md">
-						<span className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1">
-							Coordinates
-						</span>
-						<div className="grid grid-cols-2 gap-3 p-3 bg-[#040814]/40 border border-line/50 rounded-lg">
-							<div className="flex flex-col gap-1">
-								<label
-									htmlFor="note-lat"
-									className="text-[9px] uppercase font-mono text-muted-foreground"
-								>
-									Latitude
-								</label>
-								<Input
-									id="note-lat"
-									type="text"
-									className="bg-transparent border-none p-0 text-xs font-mono h-auto text-palm focus-visible:ring-0"
-									value={lat}
-									onChange={(e) => setLat(e.target.value)}
-									disabled={createNoteMutation.isPending}
-								/>
-							</div>
-							<div className="flex flex-col gap-1 border-l border-line/30 pl-3">
-								<label
-									htmlFor="note-lng"
-									className="text-[9px] uppercase font-mono text-muted-foreground"
-								>
-									Longitude
-								</label>
-								<Input
-									id="note-lng"
-									type="text"
-									className="bg-transparent border-none p-0 text-xs font-mono h-auto text-palm focus-visible:ring-0"
-									value={lng}
-									onChange={(e) => setLng(e.target.value)}
-									disabled={createNoteMutation.isPending}
-								/>
-							</div>
-						</div>
-					</div>
+					{/* Coordinates */}
+					<CoordinateInputs
+						lat={lat}
+						lng={lng}
+						onLatChange={setLat}
+						onLngChange={setLng}
+						disabled={createNoteMutation.isPending}
+					/>
 
 					<DialogFooter className="pt-2 border-t border-line/30">
 						<Button

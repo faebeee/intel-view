@@ -6,8 +6,12 @@ import type { JSX } from "react";
 import * as React from "react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button.tsx";
+import {
+	FormField,
+	TERMINAL_INPUT_CLASS,
+} from "#/components/ui/form-field.tsx";
 import { Input } from "#/components/ui/input.tsx";
-import { MarkdownEditor } from "#/components/ui/markdown-editor.tsx";
+import { LoadingState, NotFoundState } from "#/components/ui/loading-state.tsx";
 import {
 	Select,
 	SelectContent,
@@ -15,11 +19,15 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select.tsx";
+import { CoordinateInputs } from "#/features/notes/components/CoordinateInputs.tsx";
+import { NoteContentFields } from "#/features/notes/components/NoteContentFields.tsx";
 import { NoteTypeBadge } from "#/features/notes/components/NoteTypeBadge.tsx";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 import { useNoteQuery } from "#/features/notes/hooks/useNoteQuery.ts";
 import type { IframeNoteConfig } from "#/features/notes/noteTypes.ts";
+import { invalidateNoteQueries } from "#/features/notes/utils/invalidateNoteQueries.ts";
 import { getDescendantIds } from "#/features/notes/utils/noteTree.ts";
+import { toastApiError } from "#/lib/api-error.ts";
 
 const ROOT_PARENT_VALUE = "root";
 
@@ -96,23 +104,13 @@ function NoteEditRouteComponent(): JSX.Element {
 		},
 		onSuccess: () => {
 			toast.success("Note updated successfully");
-			queryClient.invalidateQueries({ queryKey: ["notes", "all", projectId] });
-			queryClient.invalidateQueries({ queryKey: ["notes", "map", projectId] });
-			queryClient.invalidateQueries({
-				queryKey: ["notes", projectId, noteId],
-			});
+			invalidateNoteQueries(queryClient, projectId, noteId);
 			navigate({
 				to: "/projects/$projectId/notes/$id",
 				params: { projectId: projectIdParam, id },
 			});
 		},
-		onError: (err) => {
-			console.error("Failed to update note:", err);
-			toast.error("Failed to update note", {
-				description:
-					err instanceof Error ? err.message : "Ensure the api is online.",
-			});
-		},
+		onError: toastApiError("update note"),
 	});
 
 	const handleSubmit = (e: React.FormEvent) => {
@@ -174,29 +172,17 @@ function NoteEditRouteComponent(): JSX.Element {
 	};
 
 	if (isLoading) {
-		return (
-			<div className="min-h-full w-full bg-background/50 p-6 flex flex-col items-center justify-center py-40 font-mono text-xs text-[#00f2ff]">
-				<div className="animate-pulse flex flex-col items-center gap-2">
-					<span>Loading note details...</span>
-				</div>
-			</div>
-		);
+		return <LoadingState label="Loading note details..." />;
 	}
 
 	if (!note) {
 		return (
-			<div className="min-h-full w-full bg-background/50 p-6 flex flex-col items-center justify-center py-40 gap-4">
-				<p className="font-mono text-xs text-red-400">Note #{id} not found.</p>
-				<Link
-					to="/projects/$projectId/notes"
-					params={{ projectId: projectIdParam }}
-				>
-					<Button variant="outline" size="sm">
-						<ArrowLeft className="h-3 w-3" />
-						<span>Back to Notes</span>
-					</Button>
-				</Link>
-			</div>
+			<NotFoundState
+				message={`Note #${id} not found.`}
+				backTo="/projects/$projectId/notes"
+				backParams={{ projectId: projectIdParam }}
+				backLabel="Back to Notes"
+			/>
 		);
 	}
 
@@ -229,13 +215,7 @@ function NoteEditRouteComponent(): JSX.Element {
 
 				<form onSubmit={handleSubmit} className="p-6 space-y-5">
 					{/* Parent Note Selector */}
-					<div className="flex flex-col gap-1.5">
-						<label
-							htmlFor="edit-note-parent"
-							className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
-						>
-							Parent Note (Optional)
-						</label>
+					<FormField label="Parent Note (Optional)" htmlFor="edit-note-parent">
 						<Select
 							value={parentId}
 							onValueChange={setParentId}
@@ -255,140 +235,45 @@ function NoteEditRouteComponent(): JSX.Element {
 								))}
 							</SelectContent>
 						</Select>
-					</div>
+					</FormField>
 
-					{/* Markdown Live Editor */}
-					{note.type === "markdown" && (
-						<div className="flex flex-col gap-1.5">
-							<label
-								htmlFor="edit-note-content"
-								className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
-							>
-								Content (Markdown Supported)
-							</label>
-							<MarkdownEditor
-								value={content}
-								onChange={setContent}
-								placeholder="Write markdown details here..."
-								disabled={updateNoteMutation.isPending}
-								minHeight="min-h-56"
-							/>
-						</div>
-					)}
-
-					{/* iFrame URL Configuration */}
-					{note.type === "iframe" && (
-						<div className="flex flex-col gap-3">
-							<div className="flex flex-col gap-1.5">
-								<label
-									htmlFor="edit-note-iframe-url"
-									className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
-								>
-									iFrame URL
-								</label>
-								<Input
-									id="edit-note-iframe-url"
-									type="url"
-									placeholder="https://example.com"
-									className="bg-[#040814]/40 border border-line/50 rounded-lg p-3 text-xs font-mono h-auto text-palm placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-palm"
-									value={iframeUrl}
-									onChange={(e) => setIframeUrl(e.target.value)}
-									disabled={updateNoteMutation.isPending}
-								/>
-							</div>
-							<div className="flex flex-col gap-1.5">
-								<label
-									htmlFor="edit-note-content"
-									className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
-								>
-									Caption (Optional)
-								</label>
-								<Input
-									id="edit-note-content"
-									type="text"
-									placeholder="Short description shown alongside the embed"
-									className="bg-[#040814]/40 border border-line/50 rounded-lg p-3 text-xs font-mono h-auto text-palm placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-palm"
-									value={content}
-									onChange={(e) => setContent(e.target.value)}
-									disabled={updateNoteMutation.isPending}
-								/>
-							</div>
-						</div>
-					)}
-
-					{/* Log Note Info */}
-					{note.type === "log" && (
-						<div className="rounded-lg border border-line/50 bg-[#040814]/40 p-3 text-xs text-muted-foreground italic">
-							Log notes have no content of their own. Their detail view directly
-							displays this note's automatic change history, and lets you add
-							your own freeform history entries.
-						</div>
-					)}
+					{/* Type-conditional content fields (markdown / iframe / log) */}
+					<NoteContentFields
+						type={note.type}
+						content={content}
+						onContentChange={setContent}
+						iframeUrl={iframeUrl}
+						onIframeUrlChange={setIframeUrl}
+						disabled={updateNoteMutation.isPending}
+						idPrefix="edit-note"
+						markdownMinHeight="min-h-56"
+					/>
 
 					{/* Tags Input */}
-					<div className="flex flex-col gap-1.5">
-						<label
-							htmlFor="edit-note-tags"
-							className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
-						>
-							Tags (separated by commas)
-						</label>
+					<FormField
+						label="Tags (separated by commas)"
+						htmlFor="edit-note-tags"
+					>
 						<Input
 							id="edit-note-tags"
 							type="text"
 							placeholder="e.g. location, family"
-							className="bg-[#040814]/40 border border-line/50 rounded-lg p-3 text-xs font-mono h-auto text-palm placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-palm"
+							className={TERMINAL_INPUT_CLASS}
 							value={tagsInput}
 							onChange={(e) => setTagsInput(e.target.value)}
 							disabled={updateNoteMutation.isPending}
 						/>
-					</div>
+					</FormField>
 
-					{/* 2-column Lat/Lng prefilled inputs */}
-					<div className="flex flex-col gap-1.5 max-w-md">
-						<span className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1">
-							Coordinates (Optional)
-						</span>
-						<div className="grid grid-cols-2 gap-3 p-3 bg-[#040814]/40 border border-line/50 rounded-lg">
-							<div className="flex flex-col gap-1">
-								<label
-									htmlFor="edit-note-lat"
-									className="text-[9px] uppercase font-mono text-muted-foreground"
-								>
-									Latitude
-								</label>
-								<Input
-									id="edit-note-lat"
-									type="text"
-									placeholder="e.g. 48.1351"
-									className="bg-transparent border-none p-0 text-xs font-mono h-auto text-palm focus-visible:ring-0 placeholder:text-muted-foreground/30"
-									value={lat}
-									onChange={(e) => setLat(e.target.value)}
-									disabled={updateNoteMutation.isPending}
-								/>
-							</div>
-							<div className="flex flex-col gap-1 border-l border-line/30 pl-3">
-								<label
-									htmlFor="edit-note-lng"
-									className="text-[9px] uppercase font-mono text-muted-foreground"
-								>
-									Longitude
-								</label>
-								<Input
-									id="edit-note-lng"
-									type="text"
-									placeholder="e.g. 11.5820"
-									className="bg-transparent border-none p-0 text-xs font-mono h-auto text-palm focus-visible:ring-0 placeholder:text-muted-foreground/30"
-									value={lng}
-									onChange={(e) => setLng(e.target.value)}
-									disabled={updateNoteMutation.isPending}
-								/>
-							</div>
-						</div>
-						<p className="text-[9px] text-muted-foreground italic pl-1">
-							Leave coordinates blank to save as a non-geolocated note.
-						</p>
-					</div>
+					{/* Coordinates */}
+					<CoordinateInputs
+						lat={lat}
+						lng={lng}
+						onLatChange={setLat}
+						onLngChange={setLng}
+						disabled={updateNoteMutation.isPending}
+						hint="Leave coordinates blank to save as a non-geolocated note."
+					/>
 
 					<div className="flex items-center justify-end gap-2 pt-2 border-t border-line/30">
 						<Link

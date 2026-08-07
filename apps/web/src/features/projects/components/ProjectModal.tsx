@@ -1,4 +1,5 @@
-import { projectControllerCreate } from "@repo/sdk";
+import type { ProjectResponseDto } from "@repo/sdk";
+import { projectControllerCreate, projectControllerUpdate } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import * as React from "react";
@@ -12,52 +13,75 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
+import { FormField, HUD_INPUT_CLASS } from "#/components/ui/form-field.tsx";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
+import { toastApiError } from "#/lib/api-error.ts";
 
-type CreateProjectModalProps = {
+type ProjectModalProps = {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	/** Project being edited. `null`/omitted puts the modal in "create" mode. */
+	project?: ProjectResponseDto | null;
 	onSuccess?: () => void;
 };
 
-export function CreateProjectModal({
+/**
+ * Single modal handling both project creation and editing. Which mutation
+ * runs (and whether the form starts blank or prefilled) is derived entirely
+ * from whether a `project` was passed in, so the two flows can't drift apart.
+ */
+export function ProjectModal({
 	open,
 	onOpenChange,
+	project = null,
 	onSuccess,
-}: CreateProjectModalProps) {
+}: ProjectModalProps) {
+	const isEditing = project !== null;
 	const [name, setName] = React.useState("");
 	const [description, setDescription] = React.useState("");
 	const queryClient = useQueryClient();
 
-	// Reset form when modal closes or opens
+	// Reset (create mode) or prefill (edit mode) the form whenever the modal
+	// opens, or the project being edited changes.
 	React.useEffect(() => {
-		if (!open) {
+		if (!open) return;
+		if (project) {
+			setName(project.name || "");
+			setDescription(project.description || "");
+		} else {
 			setName("");
 			setDescription("");
 		}
-	}, [open]);
+	}, [open, project]);
 
-	const createProjectMutation = useMutation({
+	const saveProjectMutation = useMutation({
 		mutationFn: async (payload: { name: string; description?: string }) => {
-			const res = await projectControllerCreate({
-				body: payload,
-			});
+			if (isEditing) {
+				if (!project) throw new Error("No project selected");
+				const res = await projectControllerUpdate({
+					path: { id: project.id },
+					body: payload,
+				});
+				return res.data;
+			}
+			const res = await projectControllerCreate({ body: payload });
 			return res.data;
 		},
 		onSuccess: () => {
-			toast.success("Project created successfully");
+			toast.success(
+				isEditing
+					? "Project updated successfully"
+					: "Project created successfully",
+			);
 			queryClient.invalidateQueries({ queryKey: ["projects", "all"] });
+			if (isEditing && project) {
+				queryClient.invalidateQueries({ queryKey: ["projects", project.id] });
+			}
 			onOpenChange(false);
 			if (onSuccess) onSuccess();
 		},
-		onError: (err) => {
-			console.error("Failed to create project:", err);
-			toast.error("Failed to create project", {
-				description:
-					err instanceof Error ? err.message : "Ensure the api is online.",
-			});
-		},
+		onError: toastApiError(isEditing ? "update project" : "create project"),
 	});
 
 	const handleSubmit = (e: React.FormEvent) => {
@@ -70,7 +94,7 @@ export function CreateProjectModal({
 			return;
 		}
 
-		createProjectMutation.mutate({
+		saveProjectMutation.mutate({
 			name: name.trim(),
 			description: description.trim() || undefined,
 		});
@@ -81,49 +105,42 @@ export function CreateProjectModal({
 			<DialogContent className="border-line bg-surface-strong/95 backdrop-blur-md text-sea-ink max-w-md shadow-2xl shadow-black/80">
 				<DialogHeader className="space-y-1">
 					<DialogTitle className="text-lg font-bold text-sea-ink uppercase tracking-wider font-mono">
-						Create Project
+						{isEditing ? `Edit Project #${project?.id}` : "Create Project"}
 					</DialogTitle>
 					<DialogDescription className="text-xs text-muted-foreground leading-relaxed">
-						Projects group related notes and tags together.
+						{isEditing
+							? "Update the project name and description."
+							: "Projects group related notes and tags together."}
 					</DialogDescription>
 				</DialogHeader>
 
 				<form onSubmit={handleSubmit} className="space-y-4 my-2">
-					<div className="flex flex-col gap-1.5">
-						<label
-							htmlFor="project-name"
-							className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
-						>
-							Project Name
-						</label>
+					<FormField label="Project Name" htmlFor="project-name">
 						<Input
 							id="project-name"
 							placeholder="e.g. Operation Blue Horizon"
-							className="bg-[#040814]/60 border-line text-xs focus-visible:ring-palm/30"
+							className={HUD_INPUT_CLASS}
 							value={name}
 							onChange={(e) => setName(e.target.value)}
-							disabled={createProjectMutation.isPending}
+							disabled={saveProjectMutation.isPending}
 							maxLength={150}
 							required
 						/>
-					</div>
+					</FormField>
 
-					<div className="flex flex-col gap-1.5">
-						<label
-							htmlFor="project-description"
-							className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
-						>
-							Description (optional)
-						</label>
+					<FormField
+						label="Description (optional)"
+						htmlFor="project-description"
+					>
 						<Textarea
 							id="project-description"
 							placeholder="Briefly describe this project..."
-							className="bg-[#040814]/60 border-line text-xs focus-visible:ring-palm/30 min-h-20"
+							className={`${HUD_INPUT_CLASS} min-h-20`}
 							value={description}
 							onChange={(e) => setDescription(e.target.value)}
-							disabled={createProjectMutation.isPending}
+							disabled={saveProjectMutation.isPending}
 						/>
-					</div>
+					</FormField>
 
 					<DialogFooter className="pt-2">
 						<Button
@@ -131,7 +148,7 @@ export function CreateProjectModal({
 							variant="outline"
 							size="sm"
 							onClick={() => onOpenChange(false)}
-							disabled={createProjectMutation.isPending}
+							disabled={saveProjectMutation.isPending}
 						>
 							Cancel
 						</Button>
@@ -139,13 +156,15 @@ export function CreateProjectModal({
 							type="submit"
 							variant="default"
 							size="sm"
-							disabled={createProjectMutation.isPending}
+							disabled={saveProjectMutation.isPending}
 						>
-							{createProjectMutation.isPending ? (
+							{saveProjectMutation.isPending ? (
 								<>
 									<RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" />
-									Creating...
+									{isEditing ? "Saving..." : "Creating..."}
 								</>
+							) : isEditing ? (
+								"Save Changes"
 							) : (
 								"Create Project"
 							)}

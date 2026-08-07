@@ -1,4 +1,5 @@
-import { tagControllerCreate } from "@repo/sdk";
+import type { TagResponseDto as Tag } from "@repo/sdk";
+import { tagControllerCreate, tagControllerUpdate } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import * as React from "react";
@@ -12,14 +13,9 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
+import { FormField, HUD_INPUT_CLASS } from "#/components/ui/form-field.tsx";
 import { Input } from "#/components/ui/input";
-
-type CreateTagModalProps = {
-	projectId: number;
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
-	onSuccess?: () => void;
-};
+import { toastApiError } from "#/lib/api-error.ts";
 
 const PRESET_COLORS = [
 	{ name: "Tactical Red", value: "#ef4444" },
@@ -31,48 +27,72 @@ const PRESET_COLORS = [
 	{ name: "Stealth Slate", value: "#64748b" },
 ];
 
-export function CreateTagModal({
+const DEFAULT_COLOR = "#00f2ff";
+
+type TagModalProps = {
+	projectId: number;
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	/** Tag being edited. `null`/omitted puts the modal in "create" mode. */
+	tag?: Tag | null;
+	onSuccess?: () => void;
+};
+
+/**
+ * Single modal handling both tag creation and editing. Which mutation runs
+ * (and whether the form starts blank or prefilled) is derived entirely from
+ * whether a `tag` was passed in, so the two flows can't drift apart.
+ */
+export function TagModal({
 	projectId,
 	open,
 	onOpenChange,
+	tag = null,
 	onSuccess,
-}: CreateTagModalProps) {
+}: TagModalProps) {
+	const isEditing = tag !== null;
 	const [name, setName] = React.useState("");
-	const [color, setColor] = React.useState("#00f2ff");
+	const [color, setColor] = React.useState(DEFAULT_COLOR);
 	const queryClient = useQueryClient();
 
-	// Reset form when modal closes or opens
+	// Reset (create mode) or prefill (edit mode) the form whenever the modal
+	// opens, or the tag being edited changes.
 	React.useEffect(() => {
-		if (!open) {
+		if (!open) return;
+		if (tag) {
+			setName(tag.name || "");
+			setColor(tag.color || DEFAULT_COLOR);
+		} else {
 			setName("");
-			setColor("#00f2ff");
+			setColor(DEFAULT_COLOR);
 		}
-	}, [open]);
+	}, [open, tag]);
 
-	const createTagMutation = useMutation({
+	const saveTagMutation = useMutation({
 		mutationFn: async (payload: { name: string; color: string }) => {
+			if (isEditing) {
+				if (!tag) throw new Error("No tag selected");
+				const res = await tagControllerUpdate({
+					path: { projectId, id: tag.id },
+					body: payload,
+				});
+				return res.data;
+			}
 			const res = await tagControllerCreate({
 				path: { projectId },
-				body: {
-					name: payload.name,
-					color: payload.color,
-				},
+				body: payload,
 			});
 			return res.data;
 		},
 		onSuccess: () => {
-			toast.success("Tag created successfully");
+			toast.success(
+				isEditing ? "Tag updated successfully" : "Tag created successfully",
+			);
 			queryClient.invalidateQueries({ queryKey: ["tags", "all", projectId] });
 			onOpenChange(false);
 			if (onSuccess) onSuccess();
 		},
-		onError: (err) => {
-			console.error("Failed to create tag:", err);
-			toast.error("Failed to create tag", {
-				description:
-					err instanceof Error ? err.message : "Ensure the api is online.",
-			});
-		},
+		onError: toastApiError(isEditing ? "update tag" : "create tag"),
 	});
 
 	const handleSubmit = (e: React.FormEvent) => {
@@ -92,7 +112,7 @@ export function CreateTagModal({
 			return;
 		}
 
-		createTagMutation.mutate({
+		saveTagMutation.mutate({
 			name: name.trim(),
 			color: color.trim(),
 		});
@@ -103,51 +123,41 @@ export function CreateTagModal({
 			<DialogContent className="border-line bg-surface-strong/95 backdrop-blur-md text-sea-ink max-w-sm shadow-2xl shadow-black/80">
 				<DialogHeader className="space-y-1">
 					<DialogTitle className="text-lg font-bold text-sea-ink uppercase tracking-wider font-mono">
-						Create Tag
+						{isEditing ? `Edit Tag #${tag?.id}` : "Create Tag"}
 					</DialogTitle>
 					<DialogDescription className="text-xs text-muted-foreground leading-relaxed">
-						Define a new categorical tag with a name and display color.
+						{isEditing
+							? "Modify tag details and preview colors dynamically."
+							: "Define a new categorical tag with a name and display color."}
 					</DialogDescription>
 				</DialogHeader>
 
 				<form onSubmit={handleSubmit} className="space-y-4 my-2">
 					{/* Tag Name Input */}
-					<div className="flex flex-col gap-1.5">
-						<label
-							htmlFor="tag-name"
-							className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
-						>
-							Tag Name
-						</label>
+					<FormField label="Tag Name" htmlFor="tag-name">
 						<Input
 							id="tag-name"
 							placeholder="e.g. CONFIDENTIAL"
-							className="bg-[#040814]/60 border-line text-xs focus-visible:ring-palm/30"
+							className={HUD_INPUT_CLASS}
 							value={name}
 							onChange={(e) => setName(e.target.value)}
-							disabled={createTagMutation.isPending}
+							disabled={saveTagMutation.isPending}
 							maxLength={50}
 							required
 						/>
-					</div>
+					</FormField>
 
 					{/* Tag Color Input */}
-					<div className="flex flex-col gap-2">
-						<label
-							htmlFor="tag-color"
-							className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft pl-1"
-						>
-							Tag Color
-						</label>
+					<FormField label="Tag Color" htmlFor="tag-color" className="gap-2">
 						<div className="flex items-center gap-2">
 							<Input
 								id="tag-color"
 								type="text"
 								placeholder="#00f2ff"
-								className="bg-[#040814]/60 border-line text-xs font-mono focus-visible:ring-palm/30 flex-1"
+								className={`${HUD_INPUT_CLASS} font-mono flex-1`}
 								value={color}
 								onChange={(e) => setColor(e.target.value)}
-								disabled={createTagMutation.isPending}
+								disabled={saveTagMutation.isPending}
 								required
 							/>
 							<div
@@ -174,7 +184,7 @@ export function CreateTagModal({
 								</button>
 							))}
 						</div>
-					</div>
+					</FormField>
 
 					<DialogFooter className="pt-2">
 						<Button
@@ -182,7 +192,7 @@ export function CreateTagModal({
 							variant="outline"
 							size="sm"
 							onClick={() => onOpenChange(false)}
-							disabled={createTagMutation.isPending}
+							disabled={saveTagMutation.isPending}
 						>
 							Cancel
 						</Button>
@@ -190,13 +200,15 @@ export function CreateTagModal({
 							type="submit"
 							variant="default"
 							size="sm"
-							disabled={createTagMutation.isPending}
+							disabled={saveTagMutation.isPending}
 						>
-							{createTagMutation.isPending ? (
+							{saveTagMutation.isPending ? (
 								<>
 									<RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" />
-									Creating...
+									{isEditing ? "Saving..." : "Creating..."}
 								</>
+							) : isEditing ? (
+								"Save Changes"
 							) : (
 								"Create Tag"
 							)}

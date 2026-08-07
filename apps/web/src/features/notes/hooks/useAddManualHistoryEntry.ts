@@ -2,6 +2,7 @@ import type { NoteHistoryEntryResponseDto } from "@repo/sdk";
 import { noteControllerAddManualEntry } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastApiError } from "#/lib/api-error.ts";
 
 /**
  * Adds a freeform 'manual' history entry to a `log` note, from the note
@@ -25,12 +26,6 @@ export function useAddManualHistoryEntry(projectId: number, noteId: number) {
 				queryKey: ["notes", projectId, noteId, "history"],
 			});
 		},
-		onError: (err) => {
-			console.error("Failed to add history entry:", err);
-			toast.error("Failed to add history entry", {
-				description:
-					err instanceof Error ? err.message : "Ensure the api is online.",
-			});
-		},
+		onError: toastApiError("add history entry"),
 	});
 }

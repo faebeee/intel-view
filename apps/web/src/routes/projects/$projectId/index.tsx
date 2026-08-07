@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Map as MapIcon, StickyNote, Tag as TagIcon } from "lucide-react";
+import { Map as MapIcon, StickyNote, Tag as TagIcon } from "lucide-react";
 import type { JSX } from "react";
+import { LoadingState, NotFoundState } from "#/components/ui/loading-state.tsx";
 import { useProjectQuery } from "#/features/projects/hooks/useProjectQuery.ts";
 
 export const Route = createFileRoute("/projects/$projectId/")({
@@ -13,26 +14,16 @@ function ProjectDashboardComponent(): JSX.Element {
 	const { data: project, isLoading } = useProjectQuery(id);
 
 	if (isLoading) {
-		return (
-			<div className="min-h-full w-full bg-background/50 p-6 flex flex-col items-center justify-center py-40 font-mono text-xs text-[#00f2ff]">
-				<div className="animate-pulse flex flex-col items-center gap-2">
-					<span>Loading project...</span>
-				</div>
-			</div>
-		);
+		return <LoadingState label="Loading project..." />;
 	}
 
 	if (!project) {
 		return (
-			<div className="min-h-full w-full bg-background/50 p-6 flex flex-col items-center justify-center py-40 gap-4">
-				<p className="font-mono text-xs text-red-400">
-					Project #{projectId} not found.
-				</p>
-				<Link to="/" className="nav-link text-sm font-bold flex items-center gap-1.5">
-					<ArrowLeft className="h-3 w-3" />
-					<span>Back to Projects</span>
-				</Link>
-			</div>
+			<NotFoundState
+				message={`Project #${projectId} not found.`}
+				backTo="/"
+				backLabel="Back to Projects"
+			/>
 		);
 	}
 

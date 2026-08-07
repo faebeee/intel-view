@@ -11,6 +11,7 @@ import {
 	Trash2,
 } from "lucide-react";
 import { Button } from "#/components/ui/button.tsx";
+import { TagChipList } from "#/components/ui/tag-chip.tsx";
 import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
 import { NoteTypeBadge } from "#/features/notes/components/NoteTypeBadge.tsx";
 import type { NoteTreeNode } from "#/features/notes/utils/noteTree.ts";
@@ -53,7 +54,8 @@ export function NoteTreeItem({
 		note.lng !== undefined;
 
 	const content = note.content || "";
-	const truncated = content.length > 100 ? `${content.substring(0, 100)}...` : content;
+	const truncated =
+		content.length > 100 ? `${content.substring(0, 100)}...` : content;
 	const tags = note.tags || [];
 
 	return (
@@ -103,26 +105,11 @@ export function NoteTreeItem({
 					)}
 				</Link>
 
-				{tags.length > 0 && (
-					<div className="flex flex-wrap gap-1 shrink-0">
-						{tags.map((tag) => {
-							const displayColor = tagColorMap.get(tag.toLowerCase()) || "#00f2ff";
-							return (
-								<span
-									key={tag}
-									className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase border"
-									style={{
-										backgroundColor: `${displayColor}12`,
-										borderColor: `${displayColor}35`,
-										color: displayColor,
-									}}
-								>
-									{tag}
-								</span>
-							);
-						})}
-					</div>
-				)}
+				<TagChipList
+					tags={tags}
+					tagColorMap={tagColorMap}
+					className="shrink-0"
+				/>
 
 				{hasChildren && (
 					<span
@@ -142,12 +129,7 @@ export function NoteTreeItem({
 					>
 						<Eye className="h-3 w-3" />
 					</Button>
-					<Button
-						variant="outline"
-						size="xs"
-						title="Edit note"
-						asChild
-					>
+					<Button variant="outline" size="xs" title="Edit note" asChild>
 						<Link
 							to="/projects/$projectId/notes/$id/edit"
 							params={{ projectId: projectIdParam, id: String(note.id) }}

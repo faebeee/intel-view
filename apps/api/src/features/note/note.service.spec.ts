@@ -4,7 +4,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { NoteService } from './note.service';
 import { Note } from './entities/note.entity';
 import { NoteHistoryEntry } from './entities/note-history-entry.entity';
-import { Project } from '../project/entities/project.entity';
+import { ProjectAccessService } from '../project/project-access.service';
 
 describe('NoteService', () => {
   let service: NoteService;
@@ -15,8 +15,8 @@ describe('NoteService', () => {
     findOne: jest.fn(),
     update: jest.fn(),
   };
-  const mockProjectRepository = {
-    findOne: jest.fn(),
+  const mockProjectAccessService = {
+    assertExists: jest.fn(),
   };
   const mockNoteHistoryRepository = {
     create: jest.fn(),
@@ -33,8 +33,8 @@ describe('NoteService', () => {
           useValue: mockNoteRepository,
         },
         {
-          provide: getRepositoryToken(Project),
-          useValue: mockProjectRepository,
+          provide: ProjectAccessService,
+          useValue: mockProjectAccessService,
         },
         {
           provide: getRepositoryToken(NoteHistoryEntry),
@@ -44,6 +44,11 @@ describe('NoteService', () => {
     }).compile();
 
     service = module.get<NoteService>(NoteService);
+
+    // Default: the project referenced by `projectId` always exists, so
+    // tests only need to override this when specifically testing the
+    // project-not-found path.
+    mockProjectAccessService.assertExists.mockResolvedValue(undefined);
 
     // Default pass-through behavior for the history repository, so tests
     // that don't care about history assertions don't need to stub it.
@@ -77,7 +82,6 @@ describe('NoteService', () => {
         ...createNoteDto,
       } as unknown as Note;
 
-      mockProjectRepository.findOne.mockResolvedValue({ id: projectId });
       mockNoteRepository.create.mockReturnValue(createdNote);
       mockNoteRepository.save.mockResolvedValue(createdNote);
 
@@ -102,7 +106,6 @@ describe('NoteService', () => {
         config: null,
       } as unknown as Note;
 
-      mockProjectRepository.findOne.mockResolvedValue({ id: projectId });
       mockNoteRepository.create.mockReturnValue(createdNote);
       mockNoteRepository.save.mockResolvedValue(createdNote);
 
@@ -126,7 +129,6 @@ describe('NoteService', () => {
         config: null,
       } as unknown as Note;
 
-      mockProjectRepository.findOne.mockResolvedValue({ id: projectId });
       mockNoteRepository.create.mockReturnValue(createdNote);
       mockNoteRepository.save.mockResolvedValue(createdNote);
 
@@ -394,7 +396,6 @@ describe('NoteService', () => {
         parentId: 5,
       } as unknown as Note;
 
-      mockProjectRepository.findOne.mockResolvedValue({ id: projectId });
       mockNoteRepository.findOne.mockResolvedValue({
         id: 5,
         projectId,
@@ -412,7 +413,6 @@ describe('NoteService', () => {
       const projectId = 1;
       const createNoteDto = { content: 'child note', parentId: 5 };
 
-      mockProjectRepository.findOne.mockResolvedValue({ id: projectId });
       mockNoteRepository.findOne.mockResolvedValue(null);
 
       await expect(service.create(projectId, createNoteDto)).rejects.toThrow(

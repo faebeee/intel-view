@@ -7,11 +7,12 @@ import {
 	MapPin,
 	X,
 } from "lucide-react";
-import * as React from "react";
 import { Button } from "#/components/ui/button";
+import { TagChipList } from "#/components/ui/tag-chip.tsx";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery";
 import { useNoteQuery } from "#/features/notes/hooks/useNoteQuery";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery";
+import { useTagColorMap } from "#/features/tags/hooks/useTagColorMap";
 import { NoteContentRenderer } from "./NoteContentRenderer";
 import { NoteHistorySection } from "./NoteHistorySection";
 import { NoteTypeBadge } from "./NoteTypeBadge";
@@ -58,21 +59,13 @@ export function NoteDetailPanel({
 	const { data: availableTags = [] } = useAllTagsQuery(projectId);
 	const { data: allNotes = [] } = useAllNotesQuery(projectId);
 
-	const tagColorMap = React.useMemo(() => {
-		const colorMap = new Map<string, string>();
-		for (const tag of availableTags) {
-			colorMap.set(tag.name.toLowerCase(), tag.color);
-		}
-		return colorMap;
-	}, [availableTags]);
+	const tagColorMap = useTagColorMap(availableTags);
 
 	const parentNote =
 		note?.parentId !== null && note?.parentId !== undefined
 			? allNotes.find((n) => n.id === note.parentId)
 			: undefined;
-	const childNotes = note
-		? allNotes.filter((n) => n.parentId === note.id)
-		: [];
+	const childNotes = note ? allNotes.filter((n) => n.parentId === note.id) : [];
 
 	const hasCoords =
 		note?.lat !== null &&
@@ -154,8 +147,8 @@ export function NoteDetailPanel({
 								<MapPin className="h-3.5 w-3.5 text-palm" />
 								{hasCoords ? (
 									<span className="font-mono">
-										Coordinates: [{note.lat?.toFixed(6)},{" "}
-										{note.lng?.toFixed(6)}]
+										Coordinates: [{note.lat?.toFixed(6)}, {note.lng?.toFixed(6)}
+										]
 									</span>
 								) : (
 									<span className="italic text-muted-foreground/60">
@@ -166,27 +159,7 @@ export function NoteDetailPanel({
 						</div>
 
 						{/* Tags */}
-						{tags.length > 0 && (
-							<div className="flex flex-wrap gap-1.5">
-								{tags.map((tag) => {
-									const displayColor =
-										tagColorMap.get(tag.toLowerCase()) || "#00f2ff";
-									return (
-										<span
-											key={tag}
-											className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border shadow-sm"
-											style={{
-												backgroundColor: `${displayColor}12`,
-												borderColor: `${displayColor}35`,
-												color: displayColor,
-											}}
-										>
-											{tag}
-										</span>
-									);
-								})}
-							</div>
-						)}
+						<TagChipList tags={tags} tagColorMap={tagColorMap} size="sm" />
 
 						{/* Content */}
 						<div className="rounded-lg border border-line bg-[#040814]/35 p-4 space-y-4">
@@ -242,10 +215,7 @@ export function NoteDetailPanel({
 								size="xs"
 								onClick={() => {
 									if (hasCoords) {
-										onZoomToCoordinates(
-											note.lat as number,
-											note.lng as number,
-										);
+										onZoomToCoordinates(note.lat as number, note.lng as number);
 									}
 								}}
 								disabled={!hasCoords}

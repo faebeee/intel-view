@@ -4,10 +4,10 @@ import { NoteController } from './note.controller';
 import { NoteService } from './note.service';
 import { Note } from './entities/note.entity';
 import { NoteHistoryEntry } from './entities/note-history-entry.entity';
-import { Project } from '../project/entities/project.entity';
+import { ProjectModule } from '../project/project.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Note, NoteHistoryEntry, Project])],
+  imports: [TypeOrmModule.forFeature([Note, NoteHistoryEntry]), ProjectModule],
   controllers: [NoteController],
   providers: [NoteService],
 })
