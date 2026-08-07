@@ -6,6 +6,9 @@ It's built as a Turborepo monorepo with a decoupled [TanStack Start](https://tan
 
 > **Status:** Early-stage / actively developed. APIs and data models may change without notice.
 
+![Map Dark](./docs/map-dark.png)
+![Map Bright](./docs/map-light.png)
+
 ---
 
 ## Table of Contents
@@ -89,9 +92,9 @@ npm run dev
 
 This runs both `apps/web` and `apps/api` in parallel via Turborepo:
 
-- Web app: http://localhost:4000
-- API: http://localhost:4010
-- Swagger docs: http://localhost:4010/docs
+- Web app: <http://localhost:4000>
+- API: <http://localhost:4010>
+- Swagger docs: <http://localhost:4010/docs>
 
 > The API uses `synchronize: true` for its TypeORM connection in development, so the schema is created automatically from entities on first boot — no manual migration step is required to get started.
 
