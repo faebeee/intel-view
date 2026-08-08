@@ -17,6 +17,12 @@ type NoteContentFieldsProps = {
 	onContentChange: (value: string) => void;
 	iframeUrl: string;
 	onIframeUrlChange: (value: string) => void;
+	socialPlatform: string;
+	onSocialPlatformChange: (value: string) => void;
+	socialUsername: string;
+	onSocialUsernameChange: (value: string) => void;
+	socialProfileUrl: string;
+	onSocialProfileUrlChange: (value: string) => void;
 	disabled?: boolean;
 	/** Distinguishes label/id wording between the create modal and edit route. */
 	idPrefix?: string;
@@ -35,6 +41,12 @@ export function NoteContentFields({
 	onContentChange,
 	iframeUrl,
 	onIframeUrlChange,
+	socialPlatform,
+	onSocialPlatformChange,
+	socialUsername,
+	onSocialUsernameChange,
+	socialProfileUrl,
+	onSocialProfileUrlChange,
 	disabled,
 	idPrefix = "note",
 	markdownMinHeight = "min-h-36",
@@ -85,6 +97,60 @@ export function NoteContentFields({
 						id={`${idPrefix}-content`}
 						type="text"
 						placeholder="Short description shown alongside the embed"
+						className={TERMINAL_INPUT_CLASS}
+						value={content}
+						onChange={(e) => onContentChange(e.target.value)}
+						disabled={disabled}
+					/>
+				</FormField>
+			</div>
+		);
+	}
+
+	if (type === "socialMedia") {
+		return (
+			<div className="flex flex-col gap-3">
+				<FormField label="Platform" htmlFor={`${idPrefix}-social-platform`}>
+					<Input
+						id={`${idPrefix}-social-platform`}
+						type="text"
+						placeholder="e.g. Instagram, X, LinkedIn"
+						className={TERMINAL_INPUT_CLASS}
+						value={socialPlatform}
+						onChange={(e) => onSocialPlatformChange(e.target.value)}
+						disabled={disabled}
+					/>
+				</FormField>
+				<FormField label="Username" htmlFor={`${idPrefix}-social-username`}>
+					<Input
+						id={`${idPrefix}-social-username`}
+						type="text"
+						placeholder="e.g. @janedoe"
+						className={TERMINAL_INPUT_CLASS}
+						value={socialUsername}
+						onChange={(e) => onSocialUsernameChange(e.target.value)}
+						disabled={disabled}
+					/>
+				</FormField>
+				<FormField
+					label="Profile Link (Optional)"
+					htmlFor={`${idPrefix}-social-profile-url`}
+				>
+					<Input
+						id={`${idPrefix}-social-profile-url`}
+						type="url"
+						placeholder="https://example.com/janedoe"
+						className={TERMINAL_INPUT_CLASS}
+						value={socialProfileUrl}
+						onChange={(e) => onSocialProfileUrlChange(e.target.value)}
+						disabled={disabled}
+					/>
+				</FormField>
+				<FormField label="Notes (Optional)" htmlFor={`${idPrefix}-content`}>
+					<Input
+						id={`${idPrefix}-content`}
+						type="text"
+						placeholder="Additional context about this account"
 						className={TERMINAL_INPUT_CLASS}
 						value={content}
 						onChange={(e) => onContentChange(e.target.value)}

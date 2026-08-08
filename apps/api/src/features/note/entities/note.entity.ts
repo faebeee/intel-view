@@ -13,8 +13,15 @@ import { NoteHistoryEntry } from './note-history-entry.entity';
 //   note's automatic change history (see `NoteHistoryEntry`) as its primary
 //   content, rather than tucking it away in a collapsible section like
 //   other note types.
-export type NoteType = 'markdown' | 'iframe' | 'log';
-export const NOTE_TYPES: NoteType[] = ['markdown', 'iframe', 'log'];
+// - 'socialMedia': tracks a social media account; `config.platform`,
+//   `config.username`, and `config.profileUrl` hold the account details.
+export type NoteType = 'markdown' | 'iframe' | 'log' | 'socialMedia';
+export const NOTE_TYPES: NoteType[] = [
+  'markdown',
+  'iframe',
+  'log',
+  'socialMedia',
+];
 
 @Entity()
 export class Note extends BaseEntity {

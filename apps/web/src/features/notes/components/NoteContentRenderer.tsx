@@ -1,9 +1,12 @@
 import type { NoteResponseDto as Note } from "@repo/sdk";
-import { AppWindow } from "lucide-react";
+import { AppWindow, AtSign, ExternalLink } from "lucide-react";
 import { Markdown } from "#/components/ui/markdown.tsx";
 import { useNoteReference } from "#/features/notes/context/NoteReferenceContext.tsx";
 import { useNoteHistoryQuery } from "#/features/notes/hooks/useNoteHistoryQuery.ts";
-import type { IframeNoteConfig } from "#/features/notes/noteTypes.ts";
+import type {
+	IframeNoteConfig,
+	SocialMediaNoteConfig,
+} from "#/features/notes/noteTypes.ts";
 import { AddHistoryEntryForm } from "./AddHistoryEntryForm";
 import { NoteHistoryEntries } from "./NoteHistoryEntries";
 
@@ -63,6 +66,54 @@ export function NoteContentRenderer({ note }: NoteContentRendererProps) {
 			// "History" section like other note types (see NoteHistorySection).
 			// Users can also add freeform manual entries directly here.
 			return <LogNoteHistory projectId={note.projectId} noteId={note.id} />;
+		}
+		case "socialMedia": {
+			const config = (note.config || {}) as SocialMediaNoteConfig;
+			if (!config.username && !config.profileUrl) {
+				return (
+					<div className="flex flex-col items-center justify-center gap-2 py-10 text-center text-muted-foreground">
+						<AtSign className="h-6 w-6 opacity-40" />
+						<p className="text-xs italic">
+							No social media account details have been configured for this
+							note.
+						</p>
+					</div>
+				);
+			}
+			return (
+				<div className="flex flex-col gap-3">
+					<div className="flex items-center gap-2 rounded-lg border border-line/50 bg-[#040814]/40 p-3">
+						<AtSign className="h-4 w-4 text-muted-foreground shrink-0" />
+						<div className="flex flex-col min-w-0">
+							{config.platform && (
+								<span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+									{config.platform}
+								</span>
+							)}
+							<span className="text-sm font-medium truncate">
+								{config.username || "Unknown username"}
+							</span>
+						</div>
+						{config.profileUrl && (
+							<a
+								href={config.profileUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="ml-auto inline-flex items-center gap-1 text-xs text-[#00f2ff] hover:underline shrink-0"
+							>
+								View Profile
+								<ExternalLink className="h-3 w-3" />
+							</a>
+						)}
+					</div>
+					{note.content && (
+						<Markdown
+							content={note.content}
+							onNoteReferenceClick={openNoteReference}
+						/>
+					)}
+				</div>
+			);
 		}
 		default:
 			return (

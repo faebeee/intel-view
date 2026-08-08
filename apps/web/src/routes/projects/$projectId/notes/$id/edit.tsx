@@ -24,7 +24,10 @@ import { NoteContentFields } from "#/features/notes/components/NoteContentFields
 import { NoteTypeBadge } from "#/features/notes/components/NoteTypeBadge.tsx";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 import { useNoteQuery } from "#/features/notes/hooks/useNoteQuery.ts";
-import type { IframeNoteConfig } from "#/features/notes/noteTypes.ts";
+import type {
+	IframeNoteConfig,
+	SocialMediaNoteConfig,
+} from "#/features/notes/noteTypes.ts";
 import { invalidateNoteQueries } from "#/features/notes/utils/invalidateNoteQueries.ts";
 import { getDescendantIds } from "#/features/notes/utils/noteTree.ts";
 import { toastApiError } from "#/lib/api-error.ts";
@@ -47,6 +50,9 @@ function NoteEditRouteComponent(): JSX.Element {
 
 	const [content, setContent] = React.useState("");
 	const [iframeUrl, setIframeUrl] = React.useState("");
+	const [socialPlatform, setSocialPlatform] = React.useState("");
+	const [socialUsername, setSocialUsername] = React.useState("");
+	const [socialProfileUrl, setSocialProfileUrl] = React.useState("");
 	const [lat, setLat] = React.useState("");
 	const [lng, setLng] = React.useState("");
 	const [tagsInput, setTagsInput] = React.useState("");
@@ -57,8 +63,18 @@ function NoteEditRouteComponent(): JSX.Element {
 	React.useEffect(() => {
 		if (note && !hasHydrated) {
 			setContent(note.content || "");
-			const config = (note.config || {}) as IframeNoteConfig;
-			setIframeUrl(note.type === "iframe" ? config.url || "" : "");
+			const iframeConfig = (note.config || {}) as IframeNoteConfig;
+			setIframeUrl(note.type === "iframe" ? iframeConfig.url || "" : "");
+			const socialConfig = (note.config || {}) as SocialMediaNoteConfig;
+			setSocialPlatform(
+				note.type === "socialMedia" ? socialConfig.platform || "" : "",
+			);
+			setSocialUsername(
+				note.type === "socialMedia" ? socialConfig.username || "" : "",
+			);
+			setSocialProfileUrl(
+				note.type === "socialMedia" ? socialConfig.profileUrl || "" : "",
+			);
 			setLat(
 				note.lat !== null && note.lat !== undefined ? String(note.lat) : "",
 			);
@@ -140,6 +156,26 @@ function NoteEditRouteComponent(): JSX.Element {
 			}
 		}
 
+		if (note?.type === "socialMedia") {
+			if (!socialUsername.trim()) {
+				toast.warning("Missing username", {
+					description: "Enter the account's username.",
+				});
+				return;
+			}
+			if (socialProfileUrl.trim()) {
+				try {
+					new URL(socialProfileUrl.trim());
+				} catch {
+					toast.warning("Invalid profile link", {
+						description:
+							"Enter a valid, fully-qualified URL (e.g. https://...) or leave it blank.",
+					});
+					return;
+				}
+			}
+		}
+
 		let parsedLat: number | null = null;
 		let parsedLng: number | null = null;
 
@@ -163,7 +199,16 @@ function NoteEditRouteComponent(): JSX.Element {
 
 		updateNoteMutation.mutate({
 			content: note?.type === "log" ? "" : content.trim(),
-			config: note?.type === "iframe" ? { url: iframeUrl.trim() } : undefined,
+			config:
+				note?.type === "iframe"
+					? { url: iframeUrl.trim() }
+					: note?.type === "socialMedia"
+						? {
+								platform: socialPlatform.trim(),
+								username: socialUsername.trim(),
+								profileUrl: socialProfileUrl.trim(),
+							}
+						: undefined,
 			lat: parsedLat,
 			lng: parsedLng,
 			tags: tagsArray,
@@ -237,7 +282,7 @@ function NoteEditRouteComponent(): JSX.Element {
 						</Select>
 					</FormField>
 
-					{/* Type-conditional content fields (markdown / iframe / log) */}
+					{/* Type-conditional content fields (markdown / iframe / log / socialMedia) */}
 					<NoteContentFields
 						projectId={projectId}
 						type={note.type}
@@ -245,6 +290,12 @@ function NoteEditRouteComponent(): JSX.Element {
 						onContentChange={setContent}
 						iframeUrl={iframeUrl}
 						onIframeUrlChange={setIframeUrl}
+						socialPlatform={socialPlatform}
+						onSocialPlatformChange={setSocialPlatform}
+						socialUsername={socialUsername}
+						onSocialUsernameChange={setSocialUsername}
+						socialProfileUrl={socialProfileUrl}
+						onSocialProfileUrlChange={setSocialProfileUrl}
 						disabled={updateNoteMutation.isPending}
 						idPrefix="edit-note"
 						markdownMinHeight="min-h-56"

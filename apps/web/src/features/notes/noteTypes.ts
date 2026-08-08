@@ -1,5 +1,5 @@
 import type { NoteResponseDto } from "@repo/sdk";
-import { AppWindow, FileText, History } from "lucide-react";
+import { AppWindow, AtSign, FileText, History } from "lucide-react";
 
 export type NoteType = NoteResponseDto["type"];
 
@@ -13,6 +13,13 @@ export type NoteTypeOption = {
 /** Shape of `config` for a note of type `'iframe'`. */
 export type IframeNoteConfig = {
 	url?: string;
+};
+
+/** Shape of `config` for a note of type `'socialMedia'`. */
+export type SocialMediaNoteConfig = {
+	platform?: string;
+	username?: string;
+	profileUrl?: string;
 };
 
 /**
@@ -44,6 +51,12 @@ export const NOTE_TYPE_OPTIONS: NoteTypeOption[] = [
 		description:
 			"Has no content of its own; directly displays the note's automatic change history",
 		icon: History,
+	},
+	{
+		value: "socialMedia",
+		label: "Social Media Account",
+		description: "Tracks a social media account's username and profile link",
+		icon: AtSign,
 	},
 ];
 

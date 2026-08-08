@@ -62,6 +62,9 @@ export function CreateNoteModal({
 	const [type, setType] = React.useState<NoteType>("markdown");
 	const [content, setContent] = React.useState("");
 	const [iframeUrl, setIframeUrl] = React.useState("");
+	const [socialPlatform, setSocialPlatform] = React.useState("");
+	const [socialUsername, setSocialUsername] = React.useState("");
+	const [socialProfileUrl, setSocialProfileUrl] = React.useState("");
 	const [lat, setLat] = React.useState("");
 	const [lng, setLng] = React.useState("");
 	const [tagsInput, setTagsInput] = React.useState("");
@@ -80,6 +83,9 @@ export function CreateNoteModal({
 			setType("markdown");
 			setContent("");
 			setIframeUrl("");
+			setSocialPlatform("");
+			setSocialUsername("");
+			setSocialProfileUrl("");
 			setTagsInput("");
 			setParentId(ROOT_PARENT_VALUE);
 		} else {
@@ -143,6 +149,26 @@ export function CreateNoteModal({
 			}
 		}
 
+		if (type === "socialMedia") {
+			if (!socialUsername.trim()) {
+				toast.warning("Missing username", {
+					description: "Enter the account's username.",
+				});
+				return;
+			}
+			if (socialProfileUrl.trim()) {
+				try {
+					new URL(socialProfileUrl.trim());
+				} catch {
+					toast.warning("Invalid profile link", {
+						description:
+							"Enter a valid, fully-qualified URL (e.g. https://...) or leave it blank.",
+					});
+					return;
+				}
+			}
+		}
+
 		const tagsArray = tagsInput
 			.split(",")
 			.map((t) => t.trim())
@@ -151,7 +177,16 @@ export function CreateNoteModal({
 		createNoteMutation.mutate({
 			type,
 			content: type === "log" ? "" : content.trim(),
-			config: type === "iframe" ? { url: iframeUrl.trim() } : undefined,
+			config:
+				type === "iframe"
+					? { url: iframeUrl.trim() }
+					: type === "socialMedia"
+						? {
+								platform: socialPlatform.trim(),
+								username: socialUsername.trim(),
+								profileUrl: socialProfileUrl.trim(),
+							}
+						: undefined,
 			lat: parseFloat(lat),
 			lng: parseFloat(lng),
 			tags: tagsArray,
@@ -215,7 +250,7 @@ export function CreateNoteModal({
 						</Select>
 					</FormField>
 
-					{/* Type-conditional content fields (markdown / iframe / log) */}
+					{/* Type-conditional content fields (markdown / iframe / log / socialMedia) */}
 					<NoteContentFields
 						projectId={projectId}
 						type={type}
@@ -223,6 +258,12 @@ export function CreateNoteModal({
 						onContentChange={setContent}
 						iframeUrl={iframeUrl}
 						onIframeUrlChange={setIframeUrl}
+						socialPlatform={socialPlatform}
+						onSocialPlatformChange={setSocialPlatform}
+						socialUsername={socialUsername}
+						onSocialUsernameChange={setSocialUsername}
+						socialProfileUrl={socialProfileUrl}
+						onSocialProfileUrlChange={setSocialProfileUrl}
 						disabled={createNoteMutation.isPending}
 						markdownMinHeight="min-h-36"
 					/>

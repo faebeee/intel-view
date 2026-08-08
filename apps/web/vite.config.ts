@@ -22,6 +22,9 @@ const config = defineConfig({
 		tanstackStart(),
 		viteReact(),
 	],
+	server: {
+		allowedHosts: ["fedora.local"],
+	},
 });
 
 export default config;
