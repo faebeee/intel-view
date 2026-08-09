@@ -69,12 +69,10 @@ describe('NoteService', () => {
   });
 
   describe('create', () => {
-    it('creates a note with an explicit type and config', async () => {
+    it('creates a note with markdown content', async () => {
       const projectId = 1;
       const createNoteDto = {
-        type: 'markdown' as const,
         content: 'hello world',
-        config: { foo: 'bar' },
       };
       const createdNote = {
         id: 1,
@@ -95,38 +93,13 @@ describe('NoteService', () => {
       expect(result).toEqual(createdNote);
     });
 
-    it('creates a note without a type, relying on the entity default', async () => {
-      const projectId = 1;
-      const createNoteDto = { content: 'hello world' };
-      const createdNote = {
-        id: 1,
-        projectId,
-        type: 'markdown',
-        content: 'hello world',
-        config: null,
-      } as unknown as Note;
-
-      mockNoteRepository.create.mockReturnValue(createdNote);
-      mockNoteRepository.save.mockResolvedValue(createdNote);
-
-      const result = await service.create(projectId, createNoteDto);
-
-      expect(mockNoteRepository.create).toHaveBeenCalledWith({
-        ...createNoteDto,
-        projectId,
-      });
-      expect(result.type).toBe('markdown');
-    });
-
     it("records a 'created' history entry", async () => {
       const projectId = 1;
       const createNoteDto = { content: 'hello world' };
       const createdNote = {
         id: 7,
         projectId,
-        type: 'markdown',
         content: 'hello world',
-        config: null,
       } as unknown as Note;
 
       mockNoteRepository.create.mockReturnValue(createdNote);
@@ -144,18 +117,15 @@ describe('NoteService', () => {
   });
 
   describe('update', () => {
-    it('updates content and config without touching type', async () => {
+    it('updates the content of a note', async () => {
       const projectId = 1;
       const existingNote = {
         id: 1,
         projectId,
-        type: 'markdown',
         content: 'old content',
-        config: null,
       } as unknown as Note;
       const updateNoteDto = {
         content: 'new content',
-        config: { updated: true },
       };
 
       mockNoteRepository.findOne.mockResolvedValue(existingNote);
@@ -166,8 +136,6 @@ describe('NoteService', () => {
       const result = await service.update(projectId, 1, updateNoteDto);
 
       expect(result?.content).toBe('new content');
-      expect(result?.config).toEqual({ updated: true });
-      expect(result?.type).toBe('markdown');
     });
 
     it('records an updated history entry bundling all changed fields from one call', async () => {
@@ -175,12 +143,8 @@ describe('NoteService', () => {
       const existingNote = {
         id: 1,
         projectId,
-        type: 'markdown',
         content: 'old content',
-        config: null,
         tags: ['a'],
-        lat: null,
-        lng: null,
         parentId: null,
       } as unknown as Note;
       const updateNoteDto = {
@@ -214,9 +178,7 @@ describe('NoteService', () => {
       const existingNote = {
         id: 1,
         projectId,
-        type: 'markdown',
         content: 'same content',
-        config: null,
       } as unknown as Note;
       const updateNoteDto = { content: 'same content' };
 
@@ -231,64 +193,39 @@ describe('NoteService', () => {
       expect(mockNoteHistoryRepository.save).not.toHaveBeenCalled();
     });
 
-    it('does not record canvasX/canvasY position changes in history', async () => {
-      const projectId = 1;
-      const existingNote = {
-        id: 1,
-        projectId,
-        type: 'markdown',
-        canvasX: 10,
-        canvasY: 20,
-      } as unknown as Note;
-      const updateNoteDto = { canvasX: 99, canvasY: 100 };
-
-      mockNoteRepository.findOne.mockResolvedValue(existingNote);
-      mockNoteRepository.save.mockImplementation((note: Note) =>
-        Promise.resolve(note),
-      );
-
-      await service.update(projectId, 1, updateNoteDto);
-
-      expect(mockNoteHistoryRepository.create).not.toHaveBeenCalled();
-    });
-
-    it('does not wipe unspecified fields to null on a partial update (e.g. canvas-only drag)', async () => {
+    it('does not wipe unspecified fields to null on a partial update', async () => {
       // Regression test: `UpdateNoteDto` instances produced by the
       // ValidationPipe have every declared field present as an own
       // property (set to `undefined` when omitted from the request body),
       // due to `useDefineForClassFields` semantics. A naive
       // `Object.assign(note, updateNoteDto)` would therefore overwrite
       // every unspecified field with `undefined`/`NULL`, wiping the note's
-      // content, tags, config, etc. on every canvas-position-only drag.
+      // content, tags, etc. on every partial update.
       const projectId = 1;
       const existingNote = {
         id: 1,
         projectId,
-        type: 'markdown',
         content: 'important content',
-        config: { foo: 'bar' },
         tags: ['keep', 'me'],
-        lat: 1.23,
-        lng: 4.56,
         parentId: 7,
-        canvasX: 10,
-        canvasY: 20,
       } as unknown as Note;
       // Simulates a class-transformer-produced DTO instance where every
-      // declared field is present as an own property, but only
-      // canvasX/canvasY were actually supplied in the request body.
+      // declared field is present as an own property, but only `parentId`
+      // was actually supplied in the request body.
       const updateNoteDto = {
         content: undefined,
-        config: undefined,
         tags: undefined,
-        lat: undefined,
-        lng: undefined,
-        parentId: undefined,
-        canvasX: 99,
-        canvasY: 100,
+        parentId: 3,
       };
 
-      mockNoteRepository.findOne.mockResolvedValue(existingNote);
+      mockNoteRepository.findOne
+        .mockResolvedValueOnce(existingNote) // note being updated
+        .mockResolvedValueOnce({ id: 3, projectId, parentId: null }); // new parent
+      mockNoteRepository.find.mockResolvedValue([
+        { id: 1, parentId: null },
+        { id: 3, parentId: null },
+      ]);
+
       mockNoteRepository.save.mockImplementation((note: Note) =>
         Promise.resolve(note),
       );
@@ -296,13 +233,8 @@ describe('NoteService', () => {
       const result = await service.update(projectId, 1, updateNoteDto);
 
       expect(result?.content).toBe('important content');
-      expect(result?.config).toEqual({ foo: 'bar' });
       expect(result?.tags).toEqual(['keep', 'me']);
-      expect(result?.lat).toBe(1.23);
-      expect(result?.lng).toBe(4.56);
-      expect(result?.parentId).toBe(7);
-      expect(result?.canvasX).toBe(99);
-      expect(result?.canvasY).toBe(100);
+      expect(result?.parentId).toBe(3);
     });
   });
 
@@ -328,58 +260,6 @@ describe('NoteService', () => {
       mockNoteRepository.findOne.mockResolvedValue(null);
 
       const result = await service.findHistory(1, 999);
-
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('addManualEntry', () => {
-    afterEach(() => {
-      jest.clearAllMocks();
-    });
-
-    it('adds a manual entry to a log note', async () => {
-      const projectId = 1;
-      const logNote = { id: 1, projectId, type: 'log' } as Note;
-
-      mockNoteRepository.findOne.mockResolvedValue(logNote);
-
-      const result = await service.addManualEntry(projectId, 1, {
-        content: 'Investigated the anomaly further.',
-      });
-
-      expect(mockNoteHistoryRepository.create).toHaveBeenCalledWith({
-        noteId: 1,
-        changeType: 'manual',
-        changes: null,
-        content: 'Investigated the anomaly further.',
-      });
-      expect(mockNoteHistoryRepository.save).toHaveBeenCalled();
-      expect(result).toEqual({
-        noteId: 1,
-        changeType: 'manual',
-        changes: null,
-        content: 'Investigated the anomaly further.',
-      });
-    });
-
-    it('rejects adding a manual entry to a non-log note', async () => {
-      const projectId = 1;
-      const markdownNote = { id: 1, projectId, type: 'markdown' } as Note;
-
-      mockNoteRepository.findOne.mockResolvedValue(markdownNote);
-
-      await expect(
-        service.addManualEntry(projectId, 1, { content: 'nope' }),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('returns null when the note does not exist', async () => {
-      mockNoteRepository.findOne.mockResolvedValue(null);
-
-      const result = await service.addManualEntry(1, 999, {
-        content: 'nope',
-      });
 
       expect(result).toBeNull();
     });

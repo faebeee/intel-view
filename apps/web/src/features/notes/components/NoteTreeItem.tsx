@@ -6,14 +6,12 @@ import {
 	CornerDownRight,
 	Edit2,
 	Eye,
-	MapPin,
 	Plus,
 	Trash2,
 } from "lucide-react";
 import { Button } from "#/components/ui/button.tsx";
 import { TagChipList } from "#/components/ui/tag-chip.tsx";
 import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
-import { NoteTypeBadge } from "#/features/notes/components/NoteTypeBadge.tsx";
 import type { NoteTreeNode } from "#/features/notes/utils/noteTree.ts";
 
 type NoteTreeItemProps = {
@@ -46,12 +44,6 @@ export function NoteTreeItem({
 	const { note, children } = node;
 	const hasChildren = children.length > 0;
 	const collapsed = hasChildren && !forceExpanded && isCollapsed(note.id);
-
-	const hasCoords =
-		note.lat !== null &&
-		note.lat !== undefined &&
-		note.lng !== null &&
-		note.lng !== undefined;
 
 	const content = note.content || "";
 	const truncated =
@@ -92,7 +84,6 @@ export function NoteTreeItem({
 					#{note.id}
 				</Link>
 
-				<NoteTypeBadge type={note.type} />
 
 				<Link
 					to="/projects/$projectId/notes/$id"
@@ -160,16 +151,6 @@ export function NoteTreeItem({
 					>
 						<Trash2 className="h-3 w-3" />
 					</ConfirmationButton>
-					{hasCoords && (
-						<Link
-							to="/projects/$projectId/map"
-							params={{ projectId: projectIdParam }}
-							className="inline-flex items-center gap-1 px-2 py-1 rounded bg-palm/10 border border-palm/20 hover:bg-palm/25 text-palm text-[10px] font-mono font-bold uppercase tracking-wider transition-colors no-underline"
-							title="Locate on map"
-						>
-							<MapPin className="h-3 w-3" />
-						</Link>
-					)}
 				</div>
 			</div>
 

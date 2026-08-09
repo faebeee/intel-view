@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Map as MapIcon, StickyNote, Tag as TagIcon } from "lucide-react";
+import { StickyNote, Tag as TagIcon } from "lucide-react";
 import type { JSX } from "react";
 import { LoadingState, NotFoundState } from "#/components/ui/loading-state.tsx";
 import { useProjectQuery } from "#/features/projects/hooks/useProjectQuery.ts";
@@ -38,17 +38,7 @@ function ProjectDashboardComponent(): JSX.Element {
 				</p>
 			</div>
 
-			<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-				<Link
-					to="/projects/$projectId/map"
-					params={{ projectId }}
-					className="rounded-lg border border-line bg-surface-strong/80 backdrop-blur-md hover:border-palm/40 transition-colors p-6 flex flex-col items-center gap-3 no-underline text-inherit"
-				>
-					<MapIcon className="h-6 w-6 text-palm" />
-					<span className="text-sm font-bold uppercase tracking-wider">
-						Map
-					</span>
-				</Link>
+			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 				<Link
 					to="/projects/$projectId/notes"
 					params={{ projectId }}

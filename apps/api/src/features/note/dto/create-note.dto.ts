@@ -1,59 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsString,
-  IsOptional,
-  IsArray,
-  IsIn,
-  IsObject,
-  IsInt,
-} from 'class-validator';
-import { NOTE_TYPES } from '../entities/note.entity';
-import type { NoteType } from '../entities/note.entity';
+import { IsString, IsOptional, IsArray, IsInt } from 'class-validator';
 
 export class CreateNoteDto {
-  @IsIn(NOTE_TYPES)
-  @IsOptional()
-  @ApiProperty({
-    description: 'The type of note, determines how it is rendered',
-    enum: NOTE_TYPES,
-    required: false,
-    default: 'markdown',
-  })
-  type?: NoteType;
-
   @IsString()
   @IsOptional()
-  @ApiProperty({ description: 'The content of the note', required: false })
+  @ApiProperty({
+    description: 'The markdown content of the note',
+    required: false,
+  })
   content?: string;
-
-  @IsObject()
-  @IsOptional()
-  @ApiProperty({
-    description:
-      'Type-specific configuration object for the note (used by non-markdown note types)',
-    type: Object,
-    required: false,
-    nullable: true,
-  })
-  config?: Record<string, unknown> | null;
-
-  @IsOptional()
-  @ApiProperty({
-    description: 'The latitude coordinate of the note',
-    required: false,
-    type: Number,
-    nullable: true,
-  })
-  lat?: number | null;
-
-  @IsOptional()
-  @ApiProperty({
-    description: 'The longitude coordinate of the note',
-    required: false,
-    type: Number,
-    nullable: true,
-  })
-  lng?: number | null;
 
   @IsArray()
   @IsString({ each: true })
@@ -64,24 +19,6 @@ export class CreateNoteDto {
     type: [String],
   })
   tags?: string[];
-
-  @IsOptional()
-  @ApiProperty({
-    description: 'X coordinate of the note on the canvas view',
-    required: false,
-    type: Number,
-    nullable: true,
-  })
-  canvasX?: number | null;
-
-  @IsOptional()
-  @ApiProperty({
-    description: 'Y coordinate of the note on the canvas view',
-    required: false,
-    type: Number,
-    nullable: true,
-  })
-  canvasY?: number | null;
 
   @IsInt()
   @IsOptional()

@@ -25,12 +25,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select.tsx";
-import { CoordinateInputs } from "#/features/notes/components/CoordinateInputs.tsx";
 import { NoteContentFields } from "#/features/notes/components/NoteContentFields.tsx";
-import {
-	NOTE_TYPE_OPTIONS,
-	type NoteType,
-} from "#/features/notes/noteTypes.ts";
 import { invalidateNoteQueries } from "#/features/notes/utils/invalidateNoteQueries.ts";
 import { toastApiError } from "#/lib/api-error.ts";
 
@@ -40,8 +35,6 @@ type CreateNoteModalProps = {
 	projectId: number;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	defaultLat?: number;
-	defaultLng?: number;
 	/** Notes available in the project, used to populate the parent selector. */
 	notes?: Note[];
 	/** Pre-selects a parent note (e.g. when adding a sub-note from the tree view). */
@@ -53,39 +46,19 @@ export function CreateNoteModal({
 	projectId,
 	open,
 	onOpenChange,
-	defaultLat,
-	defaultLng,
 	notes = [],
 	defaultParentId = null,
 	onSuccess,
 }: CreateNoteModalProps) {
-	const [type, setType] = React.useState<NoteType>("markdown");
 	const [content, setContent] = React.useState("");
-	const [iframeUrl, setIframeUrl] = React.useState("");
-	const [socialPlatform, setSocialPlatform] = React.useState("");
-	const [socialUsername, setSocialUsername] = React.useState("");
-	const [socialProfileUrl, setSocialProfileUrl] = React.useState("");
-	const [lat, setLat] = React.useState("");
-	const [lng, setLng] = React.useState("");
 	const [tagsInput, setTagsInput] = React.useState("");
 	const [parentId, setParentId] = React.useState<string>(ROOT_PARENT_VALUE);
 	const queryClient = useQueryClient();
 
-	// Update lat and lng state whenever default props change
-	React.useEffect(() => {
-		if (defaultLat !== undefined) setLat(String(defaultLat));
-		if (defaultLng !== undefined) setLng(String(defaultLng));
-	}, [defaultLat, defaultLng]);
-
 	// Reset form when modal closes or opens, pre-filling the parent if provided
 	React.useEffect(() => {
 		if (!open) {
-			setType("markdown");
 			setContent("");
-			setIframeUrl("");
-			setSocialPlatform("");
-			setSocialUsername("");
-			setSocialProfileUrl("");
 			setTagsInput("");
 			setParentId(ROOT_PARENT_VALUE);
 		} else {
@@ -99,11 +72,7 @@ export function CreateNoteModal({
 
 	const createNoteMutation = useMutation({
 		mutationFn: async (payload: {
-			type: NoteType;
 			content: string;
-			config?: Record<string, unknown> | null;
-			lat: number;
-			lng: number;
 			tags: string[];
 			parentId: number | null;
 		}) => {
@@ -125,48 +94,11 @@ export function CreateNoteModal({
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 
-		if (type === "markdown" && !content.trim()) {
+		if (!content.trim()) {
 			toast.warning("Empty content", {
 				description: "Note content cannot be empty.",
 			});
 			return;
-		}
-
-		if (type === "iframe") {
-			if (!iframeUrl.trim()) {
-				toast.warning("Missing iframe URL", {
-					description: "Enter the URL to embed in this note.",
-				});
-				return;
-			}
-			try {
-				new URL(iframeUrl.trim());
-			} catch {
-				toast.warning("Invalid iframe URL", {
-					description: "Enter a valid, fully-qualified URL (e.g. https://...).",
-				});
-				return;
-			}
-		}
-
-		if (type === "socialMedia") {
-			if (!socialUsername.trim()) {
-				toast.warning("Missing username", {
-					description: "Enter the account's username.",
-				});
-				return;
-			}
-			if (socialProfileUrl.trim()) {
-				try {
-					new URL(socialProfileUrl.trim());
-				} catch {
-					toast.warning("Invalid profile link", {
-						description:
-							"Enter a valid, fully-qualified URL (e.g. https://...) or leave it blank.",
-					});
-					return;
-				}
-			}
 		}
 
 		const tagsArray = tagsInput
@@ -175,20 +107,7 @@ export function CreateNoteModal({
 			.filter(Boolean);
 
 		createNoteMutation.mutate({
-			type,
-			content: type === "log" ? "" : content.trim(),
-			config:
-				type === "iframe"
-					? { url: iframeUrl.trim() }
-					: type === "socialMedia"
-						? {
-								platform: socialPlatform.trim(),
-								username: socialUsername.trim(),
-								profileUrl: socialProfileUrl.trim(),
-							}
-						: undefined,
-			lat: parseFloat(lat),
-			lng: parseFloat(lng),
+			content: content.trim(),
 			tags: tagsArray,
 			parentId: parentId === ROOT_PARENT_VALUE ? null : parseInt(parentId, 10),
 		});
@@ -207,26 +126,6 @@ export function CreateNoteModal({
 				</DialogHeader>
 
 				<form onSubmit={handleSubmit} className="space-y-5 my-2">
-					{/* Note Type Selector */}
-					<FormField label="Note Type" htmlFor="note-type">
-						<Select
-							value={type}
-							onValueChange={(value) => setType(value as NoteType)}
-							disabled={createNoteMutation.isPending}
-						>
-							<SelectTrigger id="note-type" className="w-full">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{NOTE_TYPE_OPTIONS.map((option) => (
-									<SelectItem key={option.value} value={option.value}>
-										{option.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</FormField>
-
 					{/* Parent Note Selector */}
 					<FormField label="Parent Note (Optional)" htmlFor="note-parent">
 						<Select
@@ -250,20 +149,11 @@ export function CreateNoteModal({
 						</Select>
 					</FormField>
 
-					{/* Type-conditional content fields (markdown / iframe / log / socialMedia) */}
+					{/* Markdown content field */}
 					<NoteContentFields
 						projectId={projectId}
-						type={type}
 						content={content}
 						onContentChange={setContent}
-						iframeUrl={iframeUrl}
-						onIframeUrlChange={setIframeUrl}
-						socialPlatform={socialPlatform}
-						onSocialPlatformChange={setSocialPlatform}
-						socialUsername={socialUsername}
-						onSocialUsernameChange={setSocialUsername}
-						socialProfileUrl={socialProfileUrl}
-						onSocialProfileUrlChange={setSocialProfileUrl}
 						disabled={createNoteMutation.isPending}
 						markdownMinHeight="min-h-36"
 					/>
@@ -280,15 +170,6 @@ export function CreateNoteModal({
 							disabled={createNoteMutation.isPending}
 						/>
 					</FormField>
-
-					{/* Coordinates */}
-					<CoordinateInputs
-						lat={lat}
-						lng={lng}
-						onLatChange={setLat}
-						onLngChange={setLng}
-						disabled={createNoteMutation.isPending}
-					/>
 
 					<DialogFooter className="pt-2 border-t border-line/30">
 						<Button

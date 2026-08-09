@@ -15,7 +15,6 @@ import type { PaginateQuery } from 'nestjs-paginate';
 import { NoteService, notePaginateConfig } from './note.service';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
-import { CreateNoteHistoryEntryDto } from './dto/create-note-history-entry.dto';
 import { NoteResponseDto, toNoteResponseDto } from './dto/note-response.dto';
 import {
   NoteHistoryEntryResponseDto,
@@ -122,37 +121,6 @@ export class NoteController {
       throw new NotFoundException(`Note with ID ${id} not found`);
     }
     return history.map(toNoteHistoryEntryResponseDto);
-  }
-
-  @Post(':id/history')
-  @ApiOperation({
-    summary:
-      'Add a manual, freeform history entry to a log note from its detail view',
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'The manual history entry has been added.',
-    type: NoteHistoryEntryResponseDto,
-  })
-  @ApiResponse({ status: 404, description: 'Note not found.' })
-  @ApiResponse({
-    status: 400,
-    description: 'The note is not of type "log".',
-  })
-  async addManualEntry(
-    @Param('projectId', ParseIntPipe) projectId: number,
-    @Param('id', ParseIntPipe) id: number,
-    @Body() createNoteHistoryEntryDto: CreateNoteHistoryEntryDto,
-  ): Promise<NoteHistoryEntryResponseDto> {
-    const entry = await this.noteService.addManualEntry(
-      projectId,
-      id,
-      createNoteHistoryEntryDto,
-    );
-    if (!entry) {
-      throw new NotFoundException(`Note with ID ${id} not found`);
-    }
-    return toNoteHistoryEntryResponseDto(entry);
   }
 
   @Delete(':id')

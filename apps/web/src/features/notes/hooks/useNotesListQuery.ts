@@ -4,9 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import type { PaginatedResponse } from "#/types/note";
 
 /**
- * Shared implementation backing `useAllNotesQuery` and `useCanvasNotesQuery`
- * (identical fetch logic, differing only by cache-key segment so each view
- * can be invalidated independently).
+ * Shared implementation backing note-listing hooks like `useAllNotesQuery`,
+ * keyed by a cache-key segment so each usage can be invalidated
+ * independently.
  */
 export function useNotesListQuery(projectId: number, cacheKeySegment: string) {
 	return useQuery({

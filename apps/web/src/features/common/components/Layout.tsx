@@ -1,10 +1,8 @@
 import { Link, useParams } from "@tanstack/react-router";
 import {
 	FolderKanban,
-	Map as MapIcon,
 	StickyNote,
 	Tag as TagIcon,
-	Workflow,
 } from "lucide-react";
 import type { JSX, ReactNode } from "react";
 import ParaglideLocaleSwitcher from "../../../components/LocaleSwitcher";
@@ -41,42 +39,24 @@ export function Layout({ children }: LayoutProps): JSX.Element {
 								<FolderKanban className="w-4 h-4" />
 								<span>{project?.name || "Projects"}</span>
 							</Link>
-							<Link
-								to="/projects/$projectId/map"
-								params={{ projectId: projectIdParam }}
-								className="nav-link text-sm font-bold flex items-center gap-1.5"
-								activeProps={{ className: "is-active" }}
-							>
-								<MapIcon className="w-4 h-4" />
-								<span>Map</span>
-							</Link>
-							<Link
-								to="/projects/$projectId/notes"
-								params={{ projectId: projectIdParam }}
-								className="nav-link text-sm font-bold flex items-center gap-1.5"
-								activeProps={{ className: "is-active" }}
-							>
-								<StickyNote className="w-4 h-4" />
-								<span>Notes</span>
-							</Link>
-							<Link
-								to="/projects/$projectId/canvas"
-								params={{ projectId: projectIdParam }}
-								className="nav-link text-sm font-bold flex items-center gap-1.5"
-								activeProps={{ className: "is-active" }}
-							>
-								<Workflow className="w-4 h-4" />
-								<span>Canvas</span>
-							</Link>
-							<Link
-								to="/projects/$projectId/tags"
-								params={{ projectId: projectIdParam }}
-								className="nav-link text-sm font-bold flex items-center gap-1.5"
-								activeProps={{ className: "is-active" }}
-							>
-								<TagIcon className="w-4 h-4" />
-								<span>Tags</span>
-							</Link>
+						<Link
+							to="/projects/$projectId/notes"
+							params={{ projectId: projectIdParam }}
+							className="nav-link text-sm font-bold flex items-center gap-1.5"
+							activeProps={{ className: "is-active" }}
+						>
+							<StickyNote className="w-4 h-4" />
+							<span>Notes</span>
+						</Link>
+						<Link
+							to="/projects/$projectId/tags"
+							params={{ projectId: projectIdParam }}
+							className="nav-link text-sm font-bold flex items-center gap-1.5"
+							activeProps={{ className: "is-active" }}
+						>
+							<TagIcon className="w-4 h-4" />
+							<span>Tags</span>
+						</Link>
 						</nav>
 					) : (
 						<nav className="flex items-center gap-6">

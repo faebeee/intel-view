@@ -17,28 +17,19 @@ export class NoteHistoryEntryResponseDto {
 
   @ApiProperty({
     description:
-      "The kind of event this entry records: 'created' when the note was made, 'updated' for a subsequent edit, 'manual' for a freeform entry added by the user (log notes only)",
+      "The kind of event this entry records: 'created' when the note was made, 'updated' for a subsequent edit",
     enum: NOTE_HISTORY_CHANGE_TYPES,
   })
   changeType: NoteHistoryChangeType;
 
   @ApiProperty({
     description:
-      "For 'updated' entries, the list of fields that changed in that edit, each with their previous and new value. Null for 'created'/'manual' entries.",
+      "For 'updated' entries, the list of fields that changed in that edit, each with their previous and new value. Null for 'created' entries.",
     type: [Object],
     required: false,
     nullable: true,
   })
   changes: NoteFieldChange[] | null;
-
-  @ApiProperty({
-    description:
-      "Freeform markdown content for a 'manual' entry. Null for 'created'/'updated' entries.",
-    type: String,
-    required: false,
-    nullable: true,
-  })
-  content: string | null;
 
   @ApiProperty()
   createdAt: Date;
@@ -52,7 +43,6 @@ export function toNoteHistoryEntryResponseDto(
     noteId: entry.noteId,
     changeType: entry.changeType,
     changes: entry.changes,
-    content: entry.content,
     createdAt: entry.createdAt,
   };
 }

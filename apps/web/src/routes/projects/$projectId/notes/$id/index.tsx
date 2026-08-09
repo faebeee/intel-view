@@ -4,11 +4,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
 	ArrowLeft,
 	Calendar,
-	Compass,
 	CornerDownRight,
 	Edit2,
 	FileText,
-	MapPin,
 	Plus,
 	Trash2,
 } from "lucide-react";
@@ -22,7 +20,6 @@ import { ConfirmationButton } from "#/features/common/components/ConfirmationBut
 import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal.tsx";
 import { NoteContentRenderer } from "#/features/notes/components/NoteContentRenderer.tsx";
 import { NoteHistorySection } from "#/features/notes/components/NoteHistorySection.tsx";
-import { NoteTypeBadge } from "#/features/notes/components/NoteTypeBadge.tsx";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 import { useNoteQuery } from "#/features/notes/hooks/useNoteQuery.ts";
 import { invalidateNoteQueries } from "#/features/notes/utils/invalidateNoteQueries.ts";
@@ -80,12 +77,6 @@ function NoteDetailRouteComponent(): JSX.Element {
 			/>
 		);
 	}
-
-	const hasCoords =
-		note.lat !== null &&
-		note.lat !== undefined &&
-		note.lng !== null &&
-		note.lng !== undefined;
 
 	const formattedDate = new Date(note.createdAt).toLocaleString([], {
 		year: "numeric",
@@ -173,19 +164,8 @@ function NoteDetailRouteComponent(): JSX.Element {
 							</span>
 							<h1 className="text-2xl font-bold text-sea-ink leading-tight font-mono flex items-center gap-2">
 								<span>Note #{note.id}</span>
-								<NoteTypeBadge type={note.type} />
 							</h1>
 						</div>
-						{hasCoords && (
-							<Link
-								to="/projects/$projectId/map"
-								params={{ projectId: projectIdParam }}
-								className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-palm/10 border border-palm/25 hover:bg-palm/25 text-palm text-xs font-mono font-bold uppercase tracking-wider transition-colors no-underline shadow-[0_0_15px_rgba(0,242,255,0.1)]"
-							>
-								<Compass className="h-3.5 w-3.5 animate-spin-slow" />
-								<span>LOCATE ON MAP</span>
-							</Link>
-						)}
 					</div>
 
 					{/* Metadata Row */}
@@ -193,18 +173,6 @@ function NoteDetailRouteComponent(): JSX.Element {
 						<span className="flex items-center gap-1.5">
 							<Calendar className="h-4 w-4 text-palm" />
 							<span>Created: {formattedDate}</span>
-						</span>
-						<span className="flex items-center gap-1.5">
-							<MapPin className="h-4 w-4 text-palm" />
-							{hasCoords ? (
-								<span className="font-mono">
-									Coordinates: [{note.lat?.toFixed(6)}, {note.lng?.toFixed(6)}]
-								</span>
-							) : (
-								<span className="italic text-muted-foreground/60">
-									Non-geolocated note
-								</span>
-							)}
 						</span>
 					</div>
 
@@ -220,9 +188,7 @@ function NoteDetailRouteComponent(): JSX.Element {
 				{/* Note Content Panel */}
 				<div className="p-6 md:p-8 bg-[#040814]/35 min-h-[300px] flex flex-col gap-6">
 					<NoteContentRenderer note={note} />
-					{note.type !== "log" && (
-						<NoteHistorySection projectId={projectId} noteId={note.id} />
-					)}
+					<NoteHistorySection projectId={projectId} noteId={note.id} />
 				</div>
 
 				{/* Sub-notes Section */}
@@ -260,7 +226,6 @@ function NoteDetailRouteComponent(): JSX.Element {
 									<span className="font-mono text-xs font-bold text-palm shrink-0">
 										#{child.id}
 									</span>
-									<NoteTypeBadge type={child.type} />
 									<span className="text-xs font-sans truncate flex-1">
 										{(child.content || "").slice(0, 80) || (
 											<span className="italic text-muted-foreground">

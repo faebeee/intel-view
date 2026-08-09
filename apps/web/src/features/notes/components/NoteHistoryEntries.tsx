@@ -1,6 +1,5 @@
 import type { NoteHistoryEntryResponseDto } from "@repo/sdk";
-import { History, MessageSquareText, PlusCircle } from "lucide-react";
-import { Markdown } from "#/components/ui/markdown.tsx";
+import { History, PlusCircle } from "lucide-react";
 
 /** Shape of a single field-level diff within an 'updated' history entry. */
 type NoteFieldChange = {
@@ -18,10 +17,7 @@ type NoteHistoryEntriesProps = {
 
 const FIELD_LABELS: Record<string, string> = {
 	content: "Content",
-	config: "Configuration",
 	tags: "Tags",
-	lat: "Latitude",
-	lng: "Longitude",
 	parentId: "Parent note",
 };
 
@@ -94,8 +90,6 @@ export function NoteHistoryEntries({
 					<div className="flex items-center gap-1.5">
 						{entry.changeType === "created" ? (
 							<PlusCircle className="h-3 w-3 text-palm" />
-						) : entry.changeType === "manual" ? (
-							<MessageSquareText className="h-3 w-3 text-palm" />
 						) : (
 							<History className="h-3 w-3 text-palm" />
 						)}
@@ -103,11 +97,7 @@ export function NoteHistoryEntries({
 							{formatTimestamp(entry.createdAt)}
 						</span>
 						<span className="text-[10px] font-mono font-bold uppercase tracking-wider text-palm">
-							{entry.changeType === "created"
-								? "Note created"
-								: entry.changeType === "manual"
-									? "Manual entry"
-									: "Updated"}
+							{entry.changeType === "created" ? "Note created" : "Updated"}
 						</span>
 					</div>
 					{entry.changeType === "updated" && entry.changes && (
@@ -130,11 +120,6 @@ export function NoteHistoryEntries({
 								</li>
 							))}
 						</ul>
-					)}
-					{entry.changeType === "manual" && entry.content && (
-						<div className="pl-4">
-							<Markdown content={entry.content} />
-						</div>
 					)}
 				</div>
 			))}

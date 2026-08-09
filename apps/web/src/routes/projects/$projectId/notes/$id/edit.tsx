@@ -19,15 +19,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select.tsx";
-import { CoordinateInputs } from "#/features/notes/components/CoordinateInputs.tsx";
 import { NoteContentFields } from "#/features/notes/components/NoteContentFields.tsx";
-import { NoteTypeBadge } from "#/features/notes/components/NoteTypeBadge.tsx";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 import { useNoteQuery } from "#/features/notes/hooks/useNoteQuery.ts";
-import type {
-	IframeNoteConfig,
-	SocialMediaNoteConfig,
-} from "#/features/notes/noteTypes.ts";
 import { invalidateNoteQueries } from "#/features/notes/utils/invalidateNoteQueries.ts";
 import { getDescendantIds } from "#/features/notes/utils/noteTree.ts";
 import { toastApiError } from "#/lib/api-error.ts";
@@ -49,12 +43,6 @@ function NoteEditRouteComponent(): JSX.Element {
 	const { data: allNotes = [] } = useAllNotesQuery(projectId);
 
 	const [content, setContent] = React.useState("");
-	const [iframeUrl, setIframeUrl] = React.useState("");
-	const [socialPlatform, setSocialPlatform] = React.useState("");
-	const [socialUsername, setSocialUsername] = React.useState("");
-	const [socialProfileUrl, setSocialProfileUrl] = React.useState("");
-	const [lat, setLat] = React.useState("");
-	const [lng, setLng] = React.useState("");
 	const [tagsInput, setTagsInput] = React.useState("");
 	const [parentId, setParentId] = React.useState<string>(ROOT_PARENT_VALUE);
 	const [hasHydrated, setHasHydrated] = React.useState(false);
@@ -63,24 +51,6 @@ function NoteEditRouteComponent(): JSX.Element {
 	React.useEffect(() => {
 		if (note && !hasHydrated) {
 			setContent(note.content || "");
-			const iframeConfig = (note.config || {}) as IframeNoteConfig;
-			setIframeUrl(note.type === "iframe" ? iframeConfig.url || "" : "");
-			const socialConfig = (note.config || {}) as SocialMediaNoteConfig;
-			setSocialPlatform(
-				note.type === "socialMedia" ? socialConfig.platform || "" : "",
-			);
-			setSocialUsername(
-				note.type === "socialMedia" ? socialConfig.username || "" : "",
-			);
-			setSocialProfileUrl(
-				note.type === "socialMedia" ? socialConfig.profileUrl || "" : "",
-			);
-			setLat(
-				note.lat !== null && note.lat !== undefined ? String(note.lat) : "",
-			);
-			setLng(
-				note.lng !== null && note.lng !== undefined ? String(note.lng) : "",
-			);
 			setTagsInput((note.tags || []).join(", "));
 			setParentId(
 				note.parentId !== null && note.parentId !== undefined
@@ -106,9 +76,6 @@ function NoteEditRouteComponent(): JSX.Element {
 	const updateNoteMutation = useMutation({
 		mutationFn: async (payload: {
 			content: string;
-			config?: Record<string, unknown> | null;
-			lat: number | null;
-			lng: number | null;
 			tags: string[];
 			parentId: number | null;
 		}) => {
@@ -132,64 +99,11 @@ function NoteEditRouteComponent(): JSX.Element {
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 
-		if (note?.type === "markdown" && !content.trim()) {
+		if (!content.trim()) {
 			toast.warning("Empty content", {
 				description: "Note content cannot be empty.",
 			});
 			return;
-		}
-
-		if (note?.type === "iframe") {
-			if (!iframeUrl.trim()) {
-				toast.warning("Missing iframe URL", {
-					description: "Enter the URL to embed in this note.",
-				});
-				return;
-			}
-			try {
-				new URL(iframeUrl.trim());
-			} catch {
-				toast.warning("Invalid iframe URL", {
-					description: "Enter a valid, fully-qualified URL (e.g. https://...).",
-				});
-				return;
-			}
-		}
-
-		if (note?.type === "socialMedia") {
-			if (!socialUsername.trim()) {
-				toast.warning("Missing username", {
-					description: "Enter the account's username.",
-				});
-				return;
-			}
-			if (socialProfileUrl.trim()) {
-				try {
-					new URL(socialProfileUrl.trim());
-				} catch {
-					toast.warning("Invalid profile link", {
-						description:
-							"Enter a valid, fully-qualified URL (e.g. https://...) or leave it blank.",
-					});
-					return;
-				}
-			}
-		}
-
-		let parsedLat: number | null = null;
-		let parsedLng: number | null = null;
-
-		if (lat.trim() !== "" || lng.trim() !== "") {
-			parsedLat = parseFloat(lat);
-			parsedLng = parseFloat(lng);
-
-			if (Number.isNaN(parsedLat) || Number.isNaN(parsedLng)) {
-				toast.warning("Invalid coordinates", {
-					description:
-						"Ensure latitude and longitude values are valid decimals or leave both blank.",
-				});
-				return;
-			}
 		}
 
 		const tagsArray = tagsInput
@@ -198,19 +112,7 @@ function NoteEditRouteComponent(): JSX.Element {
 			.filter(Boolean);
 
 		updateNoteMutation.mutate({
-			content: note?.type === "log" ? "" : content.trim(),
-			config:
-				note?.type === "iframe"
-					? { url: iframeUrl.trim() }
-					: note?.type === "socialMedia"
-						? {
-								platform: socialPlatform.trim(),
-								username: socialUsername.trim(),
-								profileUrl: socialProfileUrl.trim(),
-							}
-						: undefined,
-			lat: parsedLat,
-			lng: parsedLng,
+			content: content.trim(),
 			tags: tagsArray,
 			parentId: parentId === ROOT_PARENT_VALUE ? null : parseInt(parentId, 10),
 		});
@@ -254,7 +156,6 @@ function NoteEditRouteComponent(): JSX.Element {
 					</span>
 					<h1 className="text-2xl font-bold text-sea-ink leading-tight font-mono flex items-center gap-2">
 						<span>Edit Note #{note.id}</span>
-						<NoteTypeBadge type={note.type} />
 					</h1>
 				</div>
 
@@ -282,20 +183,11 @@ function NoteEditRouteComponent(): JSX.Element {
 						</Select>
 					</FormField>
 
-					{/* Type-conditional content fields (markdown / iframe / log / socialMedia) */}
+					{/* Markdown content field */}
 					<NoteContentFields
 						projectId={projectId}
-						type={note.type}
 						content={content}
 						onContentChange={setContent}
-						iframeUrl={iframeUrl}
-						onIframeUrlChange={setIframeUrl}
-						socialPlatform={socialPlatform}
-						onSocialPlatformChange={setSocialPlatform}
-						socialUsername={socialUsername}
-						onSocialUsernameChange={setSocialUsername}
-						socialProfileUrl={socialProfileUrl}
-						onSocialProfileUrlChange={setSocialProfileUrl}
 						disabled={updateNoteMutation.isPending}
 						idPrefix="edit-note"
 						markdownMinHeight="min-h-56"
@@ -316,16 +208,6 @@ function NoteEditRouteComponent(): JSX.Element {
 							disabled={updateNoteMutation.isPending}
 						/>
 					</FormField>
-
-					{/* Coordinates */}
-					<CoordinateInputs
-						lat={lat}
-						lng={lng}
-						onLatChange={setLat}
-						onLngChange={setLng}
-						disabled={updateNoteMutation.isPending}
-						hint="Leave coordinates blank to save as a non-geolocated note."
-					/>
 
 					<div className="flex items-center justify-end gap-2 pt-2 border-t border-line/30">
 						<Link

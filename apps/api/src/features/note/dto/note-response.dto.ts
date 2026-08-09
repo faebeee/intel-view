@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Note, NOTE_TYPES } from '../entities/note.entity';
-import type { NoteType } from '../entities/note.entity';
+import { Note } from '../entities/note.entity';
 
 export class NoteResponseDto {
   @ApiProperty()
@@ -9,39 +8,8 @@ export class NoteResponseDto {
   @ApiProperty()
   projectId: number;
 
-  @ApiProperty({
-    description: 'The type of note, determines how it is rendered',
-    enum: NOTE_TYPES,
-  })
-  type: NoteType;
-
-  @ApiProperty({ description: 'Content of the note' })
+  @ApiProperty({ description: 'Markdown content of the note' })
   content: string;
-
-  @ApiProperty({
-    description:
-      'Type-specific configuration object for the note (used by non-markdown note types)',
-    type: Object,
-    required: false,
-    nullable: true,
-  })
-  config: Record<string, unknown> | null;
-
-  @ApiProperty({
-    description: 'Latitude coordinate of the note',
-    required: false,
-    nullable: true,
-    type: 'number',
-  })
-  lat: number | null;
-
-  @ApiProperty({
-    description: 'Longitude coordinate of the note',
-    required: false,
-    nullable: true,
-    type: 'number',
-  })
-  lng: number | null;
 
   @ApiProperty({
     description: 'Plain text tags of the note',
@@ -49,22 +17,6 @@ export class NoteResponseDto {
     required: false,
   })
   tags: string[];
-
-  @ApiProperty({
-    description: 'X coordinate of the note on the canvas view',
-    required: false,
-    nullable: true,
-    type: 'number',
-  })
-  canvasX: number | null;
-
-  @ApiProperty({
-    description: 'Y coordinate of the note on the canvas view',
-    required: false,
-    nullable: true,
-    type: 'number',
-  })
-  canvasY: number | null;
 
   @ApiProperty({
     description:
@@ -86,14 +38,8 @@ export function toNoteResponseDto(note: Note): NoteResponseDto {
   return {
     id: note.id,
     projectId: note.projectId,
-    type: note.type,
     content: note.content,
-    config: note.config,
-    lat: note.lat,
-    lng: note.lng,
     tags: note.tags,
-    canvasX: note.canvasX,
-    canvasY: note.canvasY,
     parentId: note.parentId,
     createdAt: note.createdAt,
     updatedAt: note.updatedAt,

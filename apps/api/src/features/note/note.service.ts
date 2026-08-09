@@ -16,7 +16,6 @@ import { NoteHistoryEntry } from './entities/note-history-entry.entity';
 import type { NoteFieldChange } from './entities/note-history-entry.entity';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
-import { CreateNoteHistoryEntryDto } from './dto/create-note-history-entry.dto';
 import { ProjectAccessService } from '../project/project-access.service';
 
 export const notePaginateConfig: PaginateConfig<Note> = {
@@ -26,32 +25,20 @@ export const notePaginateConfig: PaginateConfig<Note> = {
   searchableColumns: ['content'],
   filterableColumns: {
     content: true,
-    lat: true,
-    lng: true,
     parentId: true,
   },
 };
 
 /**
  * Fields on `Note` that are tracked for automatic history entries when
- * changed via `update()`. Deliberately excludes `canvasX`/`canvasY`, since
- * dragging a note on the canvas view fires frequent position updates that
- * would flood the history with noise unrelated to the note's actual
- * content.
+ * changed via `update()`.
  */
-const HISTORY_TRACKED_FIELDS = [
-  'content',
-  'config',
-  'tags',
-  'lat',
-  'lng',
-  'parentId',
-] as const;
+const HISTORY_TRACKED_FIELDS = ['content', 'tags', 'parentId'] as const;
 
 /**
  * Structurally compares two field values for equality, using JSON
- * serialization for objects/arrays (`config`, `tags`) and strict equality
- * for primitives.
+ * serialization for objects/arrays (`tags`) and strict equality for
+ * primitives.
  */
 function valuesAreEqual(a: unknown, b: unknown): boolean {
   if (a === b) {
@@ -222,37 +209,6 @@ export class NoteService {
     });
   }
 
-  /**
-   * Adds a freeform 'manual' history entry to a `log` note, added directly
-   * by the user from the note detail view. Only supported for notes of
-   * type `log` — other note types only ever accumulate automatic
-   * 'created'/'updated' entries.
-   */
-  async addManualEntry(
-    projectId: number,
-    id: number,
-    createNoteHistoryEntryDto: CreateNoteHistoryEntryDto,
-  ): Promise<NoteHistoryEntry | null> {
-    const note = await this.findOne(projectId, id);
-    if (!note) {
-      return null;
-    }
-
-    if (note.type !== 'log') {
-      throw new BadRequestException(
-        'Manual history entries can only be added to notes of type "log"',
-      );
-    }
-
-    const entry = this.noteHistoryRepository.create({
-      noteId: id,
-      changeType: 'manual',
-      changes: null,
-      content: createNoteHistoryEntryDto.content,
-    });
-    return this.noteHistoryRepository.save(entry);
-  }
-
   async update(
     projectId: number,
     id: number,
@@ -293,9 +249,8 @@ export class NoteService {
     // `useDefineForClassFields` semantics leave it as `undefined` rather than
     // absent) — a plain `Object.assign(note, updateNoteDto)` would therefore
     // overwrite every unspecified field on the note with `undefined` (which
-    // TypeORM persists as `NULL`), silently wiping data on partial updates
-    // like canvas-position-only drags. Only copy over properties that were
-    // actually provided.
+    // TypeORM persists as `NULL`), silently wiping data on partial updates.
+    // Only copy over properties that were actually provided.
     for (const [key, value] of Object.entries(updateNoteDto)) {
       if (value !== undefined) {
         (note as unknown as Record<string, unknown>)[key] = value;

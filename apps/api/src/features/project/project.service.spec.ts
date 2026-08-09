@@ -42,23 +42,22 @@ describe('ProjectService', () => {
   });
 
   describe('update', () => {
-    it('persists the mapStyle field on the project', async () => {
+    it('persists the name and description fields on the project', async () => {
       const existingProject = {
         id: 1,
         name: 'Op Blue Horizon',
         description: null,
-        mapStyle: 'dark',
       };
       mockProjectRepository.findOne.mockResolvedValue(existingProject);
       mockProjectRepository.save.mockImplementation(
         (project: unknown) => project,
       );
 
-      const result = await service.update(1, { mapStyle: 'satellite' });
+      const result = await service.update(1, { description: 'Updated' });
 
-      expect(result).toMatchObject({ mapStyle: 'satellite' });
+      expect(result).toMatchObject({ description: 'Updated' });
       expect(mockProjectRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining({ mapStyle: 'satellite' }),
+        expect.objectContaining({ description: 'Updated' }),
       );
     });
   });

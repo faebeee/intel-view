@@ -14,15 +14,13 @@ import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery";
 import { useTagColorMap } from "#/features/tags/hooks/useTagColorMap";
 import { NoteContentRenderer } from "./NoteContentRenderer";
 import { NoteHistorySection } from "./NoteHistorySection";
-import { NoteTypeBadge } from "./NoteTypeBadge";
 
 /**
  * Global overlay sidebar shown when the user clicks a `[[NOTE_ID]]`
  * reference chip anywhere markdown is rendered (note detail views, the
- * notes list, the markdown editor's preview pane, canvas/map views, etc.).
- * Unlike `NoteDetailPanel` (a squeeze panel used only by the canvas/map
- * views), this is a `Sheet` overlay so it works consistently regardless of
- * the surrounding layout, including from inside other dialogs/modals.
+ * notes list, the markdown editor's preview pane, etc.). Implemented as a
+ * `Sheet` overlay so it works consistently regardless of the surrounding
+ * layout, including from inside other dialogs/modals.
  *
  * Mounted once per project alongside `NoteReferenceProvider` at the
  * `/projects/$projectId` layout route.
@@ -58,7 +56,6 @@ export function NoteReferenceSheet() {
 						</span>
 						<SheetTitle className="flex items-center gap-2 font-mono font-semibold text-sea-ink text-sm">
 							<span>Note #{openNoteId}</span>
-							{note && <NoteTypeBadge type={note.type} />}
 						</SheetTitle>
 					</div>
 				</SheetHeader>
@@ -86,9 +83,7 @@ export function NoteReferenceSheet() {
 							<div className="rounded-lg border border-line bg-[#040814]/35 p-4 space-y-4">
 								<NoteContentRenderer note={note} />
 							</div>
-							{note.type !== "log" && (
-								<NoteHistorySection projectId={projectId} noteId={note.id} />
-							)}
+							<NoteHistorySection projectId={projectId} noteId={note.id} />
 						</div>
 
 						<div className="border-t border-line p-4 flex gap-2 shrink-0">

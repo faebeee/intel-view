@@ -1,7 +1,7 @@
 import { AppDataSource } from './datasource';
 import { Project } from '../project/entities/project.entity';
 import { Tag } from '../tag/entities/tag.entity';
-import { Note, NoteType } from '../note/entities/note.entity';
+import { Note } from '../note/entities/note.entity';
 
 /**
  * Seeds a "Switzerland Field Ops" demo project with tags and ~200 notes,
@@ -18,7 +18,6 @@ const DEMO_PROJECT = {
   name: 'Switzerland Field Ops',
   description:
     'Demo project tracking field reports, checkpoints, and points of interest across Switzerland.',
-  mapStyle: 'street' as const,
 };
 
 const TAG_DEFINITIONS: { name: string; color: string }[] = [
@@ -67,15 +66,14 @@ const SWISS_LOCATIONS: { name: string; lat: number; lng: number }[] = [
 
 // A handful of nearby cross-border cities to simulate the small fraction of
 // notes that fall outside Switzerland.
-const NEARBY_FOREIGN_LOCATIONS: { name: string; lat: number; lng: number }[] =
-  [
-    { name: 'Milan, Italy', lat: 45.4642, lng: 9.19 },
-    { name: 'Lyon, France', lat: 45.764, lng: 4.8357 },
-    { name: 'Freiburg, Germany', lat: 47.999, lng: 7.8421 },
-    { name: 'Innsbruck, Austria', lat: 47.2692, lng: 11.4041 },
-    { name: 'Annecy, France', lat: 45.8992, lng: 6.1294 },
-    { name: 'Vaduz, Liechtenstein', lat: 47.141, lng: 9.5209 },
-  ];
+const NEARBY_FOREIGN_LOCATIONS: { name: string; lat: number; lng: number }[] = [
+  { name: 'Milan, Italy', lat: 45.4642, lng: 9.19 },
+  { name: 'Lyon, France', lat: 45.764, lng: 4.8357 },
+  { name: 'Freiburg, Germany', lat: 47.999, lng: 7.8421 },
+  { name: 'Innsbruck, Austria', lat: 47.2692, lng: 11.4041 },
+  { name: 'Annecy, France', lat: 45.8992, lng: 6.1294 },
+  { name: 'Vaduz, Liechtenstein', lat: 47.141, lng: 9.5209 },
+];
 
 const REPORT_SUBJECTS = [
   'Checkpoint activity observed',
@@ -121,11 +119,6 @@ function pickSome<T>(arr: T[], count: number): T[] {
   return shuffled.slice(0, count);
 }
 
-/** Adds a small random jitter (roughly within a few km) to a coordinate. */
-function jitter(value: number): number {
-  return value + (Math.random() - 0.5) * 0.3;
-}
-
 async function seed(): Promise<void> {
   await AppDataSource.initialize();
 
@@ -157,29 +150,14 @@ async function seed(): Promise<void> {
 
     const subject = pick(REPORT_SUBJECTS);
     const body = pick(REPORT_BODIES);
-    const type: NoteType = Math.random() < 0.9 ? 'markdown' : 'iframe';
 
-    const content =
-      type === 'markdown'
-        ? `## ${subject} — ${location.name}\n\n${body}`
-        : `Embedded reference for ${subject.toLowerCase()} near ${location.name}.`;
-
-    const config =
-      type === 'iframe'
-        ? { url: 'https://www.openstreetmap.org/export/embed.html' }
-        : null;
+    const content = `## ${subject} — ${location.name}\n\n${body}`;
 
     notesToInsert.push(
       noteRepo.create({
         projectId: project.id,
-        type,
         content,
-        config,
-        lat: jitter(location.lat),
-        lng: jitter(location.lng),
         tags: pickSome(tagNames, randomInt(1, 3)),
-        canvasX: randomInt(0, 2000),
-        canvasY: randomInt(0, 2000),
         parentId: null,
       }),
     );

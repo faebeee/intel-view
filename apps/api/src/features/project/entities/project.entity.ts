@@ -4,10 +4,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Note } from '../../note/entities/note.entity';
 import { Tag } from '../../tag/entities/tag.entity';
 
-export type MapStyle = 'dark' | 'light' | 'street' | 'satellite';
-
-export const MAP_STYLES: MapStyle[] = ['dark', 'light', 'street', 'satellite'];
-
 @Entity()
 export class Project extends BaseEntity {
   @Column({ type: 'varchar', length: 150 })
@@ -21,14 +17,6 @@ export class Project extends BaseEntity {
     nullable: true,
   })
   description: string | null;
-
-  @Column({ type: 'varchar', length: 20, default: 'dark' })
-  @ApiProperty({
-    description: 'Preferred map tile style for this project',
-    enum: MAP_STYLES,
-    default: 'dark',
-  })
-  mapStyle: MapStyle;
 
   @OneToMany(() => Note, (note) => note.project)
   notes: Note[];
