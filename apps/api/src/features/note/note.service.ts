@@ -14,6 +14,9 @@ import {
 import { Note } from './entities/note.entity';
 import { NoteHistoryEntry } from './entities/note-history-entry.entity';
 import type { NoteFieldChange } from './entities/note-history-entry.entity';
+import { NoteLocation } from './entities/note-location.entity';
+import { parseNoteLocations } from './note-location.util';
+import { getNoteLabel } from './note-label.util';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { ProjectAccessService } from '../project/project-access.service';
@@ -34,7 +37,12 @@ export const notePaginateConfig: PaginateConfig<Note> = {
  * Fields on `Note` that are tracked for automatic history entries when
  * changed via `update()`.
  */
-const HISTORY_TRACKED_FIELDS = ['title', 'content', 'tags', 'parentId'] as const;
+const HISTORY_TRACKED_FIELDS = [
+  'title',
+  'content',
+  'tags',
+  'parentId',
+] as const;
 
 /**
  * Structurally compares two field values for equality, using JSON
@@ -54,6 +62,16 @@ function valuesAreEqual(a: unknown, b: unknown): boolean {
   return false;
 }
 
+/**
+ * A `NoteLocation` enriched with the owning note's derived display label and
+ * tags, for consumers (e.g. controllers) that shouldn't need to separately
+ * fetch the note to show a meaningful label/tags alongside each pin.
+ */
+export type NoteLocationWithLabel = NoteLocation & {
+  noteLabel: string;
+  tags: string[];
+};
+
 @Injectable()
 export class NoteService {
   constructor(
@@ -61,6 +79,8 @@ export class NoteService {
     private readonly noteRepository: Repository<Note>,
     @InjectRepository(NoteHistoryEntry)
     private readonly noteHistoryRepository: Repository<NoteHistoryEntry>,
+    @InjectRepository(NoteLocation)
+    private readonly noteLocationRepository: Repository<NoteLocation>,
     private readonly projectAccessService: ProjectAccessService,
   ) {}
 
@@ -153,6 +173,29 @@ export class NoteService {
     return descendants;
   }
 
+  /**
+   * Fully resyncs a note's `NoteLocation` rows from the `[[geo:...]]` tokens
+   * found in its current `content`, deleting any previously derived rows and
+   * recreating them from scratch. Called whenever a note is created or its
+   * `content` is updated, so the table always reflects the note's latest
+   * content without needing stable IDs round-tripped through markdown.
+   */
+  private async syncLocations(
+    noteId: number,
+    content: string | null,
+  ): Promise<void> {
+    await this.noteLocationRepository.delete({ noteId });
+    const parsed = parseNoteLocations(content);
+    if (parsed.length === 0) {
+      return;
+    }
+    await this.noteLocationRepository.save(
+      parsed.map((location) =>
+        this.noteLocationRepository.create({ noteId, ...location }),
+      ),
+    );
+  }
+
   async create(projectId: number, createNoteDto: CreateNoteDto): Promise<Note> {
     await this.assertProjectExists(projectId);
     if (
@@ -171,6 +214,8 @@ export class NoteService {
         changes: null,
       }),
     );
+
+    await this.syncLocations(savedNote.id, savedNote.content);
 
     return savedNote;
   }
@@ -208,6 +253,63 @@ export class NoteService {
       where: { noteId: id },
       order: { createdAt: 'DESC', id: 'DESC' },
     });
+  }
+
+  /**
+   * Returns the geographic pins derived from a note's `[[geo:...]]` content
+   * tokens, or `null` if the note does not exist.
+   */
+  async findLocations(
+    projectId: number,
+    id: number,
+  ): Promise<NoteLocationWithLabel[] | null> {
+    const note = await this.findOne(projectId, id);
+    if (!note) {
+      return null;
+    }
+    const locations = await this.noteLocationRepository.find({
+      where: { noteId: id },
+      order: { id: 'ASC' },
+    });
+    const noteLabel = getNoteLabel(note);
+    const tags = note.tags ?? [];
+    return locations.map((location) => ({ ...location, noteLabel, tags }));
+  }
+
+  /**
+   * Returns every geographic pin derived from every active note's content
+   * across the whole project, each enriched with its owning note's display
+   * label and tags. Used to power a project-wide map view of all note
+   * locations.
+   */
+  async findAllLocations(projectId: number): Promise<NoteLocationWithLabel[]> {
+    await this.assertProjectExists(projectId);
+
+    const notes = await this.noteRepository.find({
+      where: { projectId, deletedAt: IsNull() },
+      select: { id: true, title: true, content: true, tags: true },
+    });
+    if (notes.length === 0) {
+      return [];
+    }
+
+    const noteIds = notes.map((note) => note.id);
+    const locations = await this.noteLocationRepository.find({
+      where: { noteId: In(noteIds) },
+      order: { id: 'ASC' },
+    });
+
+    const labelByNoteId = new Map(
+      notes.map((note) => [note.id, getNoteLabel(note)]),
+    );
+    const tagsByNoteId = new Map(
+      notes.map((note) => [note.id, note.tags ?? []]),
+    );
+    return locations.map((location) => ({
+      ...location,
+      noteLabel: labelByNoteId.get(location.noteId) ?? 'Untitled note',
+      tags: tagsByNoteId.get(location.noteId) ?? [],
+    }));
   }
 
   async update(
@@ -269,6 +371,10 @@ export class NoteService {
           changes,
         }),
       );
+    }
+
+    if (updateNoteDto.content !== undefined) {
+      await this.syncLocations(savedNote.id, savedNote.content);
     }
 
     return savedNote;

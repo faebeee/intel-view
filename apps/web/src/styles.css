@@ -697,6 +697,121 @@ a {
 	color: var(--lagoon) !important;
 }
 
+/*
+ * Custom pulsating marker used on note-location maps in place of Leaflet's
+ * default pin. Rendered via `L.divIcon` (see `tag-marker-icon.ts`); the
+ * `--marker-gradient` custom property is set inline per-marker so the dot
+ * and pulse ring pick up the color(s) of the note's assigned tags.
+ */
+.tag-marker {
+	position: relative;
+	display: block;
+	width: 22px;
+	height: 22px;
+}
+
+.tag-marker__pulse {
+	position: absolute;
+	inset: 0;
+	margin: auto;
+	width: 14px;
+	height: 14px;
+	border-radius: 9999px;
+	background: var(--marker-gradient, #00f2ff);
+	opacity: 0.55;
+	animation: tag-marker-pulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.tag-marker__dot {
+	position: absolute;
+	inset: 0;
+	margin: auto;
+	width: 12px;
+	height: 12px;
+	border-radius: 9999px;
+	background: var(--marker-gradient, #00f2ff);
+	border: 2px solid var(--surface, #fff);
+	box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes tag-marker-pulse {
+	0% {
+		transform: scale(0.7);
+		opacity: 0.6;
+	}
+	70% {
+		transform: scale(2.6);
+		opacity: 0;
+	}
+	100% {
+		transform: scale(2.6);
+		opacity: 0;
+	}
+}
+
+/* Custom styling for the Leaflet layers control (base layer switcher) to match the active theme */
+.leaflet-control-layers {
+	background-color: var(--surface-strong) !important;
+	border: 1px solid var(--chip-line) !important;
+	color: var(--sea-ink) !important;
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
+	border-radius: 0.5rem !important;
+}
+
+.leaflet-control-layers-toggle {
+	filter: invert(1) hue-rotate(180deg);
+}
+
+.leaflet-control-layers-expanded {
+	padding: 8px 10px !important;
+	color: var(--sea-ink) !important;
+}
+
+.leaflet-control-layers-separator {
+	border-top: 1px solid var(--chip-line) !important;
+}
+
+/*
+ * Correlate the map's "Street" base layer with the currently selected UI
+ * theme (`data-theme` + `.dark`, both set on <html> by ThemeProvider):
+ * dark mode inverts the tiles to a dark basemap, and each color theme
+ * applies a matching hue tint. Applied per-tile via Leaflet's TileLayer
+ * `className` option (see `LeafletMap.tsx`), so it only affects the map's
+ * own imagery, never the UI chrome (popups/controls) layered on top.
+ */
+html:not(.dark)[data-theme='ocean'] .map-tile-street {
+	filter: saturate(1.1);
+}
+html.dark[data-theme='ocean'] .map-tile-street {
+	filter: invert(1) hue-rotate(180deg) saturate(1.1) brightness(0.92) contrast(0.95);
+}
+
+html:not(.dark)[data-theme='emerald'] .map-tile-street {
+	filter: hue-rotate(70deg) saturate(1.2);
+}
+html.dark[data-theme='emerald'] .map-tile-street {
+	filter: invert(1) hue-rotate(250deg) saturate(1.2) brightness(0.92) contrast(0.95);
+}
+
+html:not(.dark)[data-theme='violet'] .map-tile-street {
+	filter: hue-rotate(220deg) saturate(1.1);
+}
+html.dark[data-theme='violet'] .map-tile-street {
+	filter: invert(1) hue-rotate(40deg) saturate(1.1) brightness(0.92) contrast(0.95);
+}
+
+html:not(.dark)[data-theme='monochrome'] .map-tile-street {
+	filter: grayscale(1) contrast(1.05);
+}
+html.dark[data-theme='monochrome'] .map-tile-street {
+	filter: invert(1) grayscale(1) contrast(1.05) brightness(0.95);
+}
+
+/* Monochrome mode also desaturates the satellite layer to stay consistent with the rest of the (grayscale) UI. */
+[data-theme='monochrome'] .map-tile-satellite {
+	filter: grayscale(1) contrast(1.05);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -1,5 +1,5 @@
 import { Link, useParams } from "@tanstack/react-router";
-import { FolderKanban, StickyNote, Tag as TagIcon } from "lucide-react";
+import { FolderKanban, MapPin, StickyNote, Tag as TagIcon } from "lucide-react";
 import type { JSX, ReactNode } from "react";
 import ParaglideLocaleSwitcher from "../../../components/LocaleSwitcher";
 import { ThemeSwitcher } from "../../../components/theme-switcher";
@@ -52,6 +52,15 @@ export function Layout({ children }: LayoutProps): JSX.Element {
 							>
 								<TagIcon className="w-4 h-4" />
 								<span>Tags</span>
+							</Link>
+							<Link
+								to="/projects/$projectId/map"
+								params={{ projectId: projectIdParam }}
+								className="nav-link text-sm font-bold flex items-center gap-1.5"
+								activeProps={{ className: "is-active" }}
+							>
+								<MapPin className="w-4 h-4" />
+								<span>Map</span>
 							</Link>
 						</nav>
 					) : (

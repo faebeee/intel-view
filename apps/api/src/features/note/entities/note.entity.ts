@@ -3,6 +3,7 @@ import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Project } from '../../project/entities/project.entity';
 import { NoteHistoryEntry } from './note-history-entry.entity';
+import { NoteLocation } from './note-location.entity';
 
 @Entity()
 export class Note extends BaseEntity {
@@ -49,4 +50,7 @@ export class Note extends BaseEntity {
 
   @OneToMany(() => NoteHistoryEntry, (entry) => entry.note)
   history: NoteHistoryEntry[];
+
+  @OneToMany(() => NoteLocation, (location) => location.note)
+  locations: NoteLocation[];
 }

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projectId'
 import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$projectId/index'
+import { Route as ProjectsProjectIdMapRouteImport } from './routes/projects/$projectId/map'
 import { Route as ProjectsProjectIdNotesRouteImport } from './routes/projects/$projectId/notes'
 import { Route as ProjectsProjectIdTagsRouteImport } from './routes/projects/$projectId/tags'
 
@@ -30,6 +31,11 @@ const ProjectsProjectIdIndexRoute = ProjectsProjectIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ProjectsProjectIdRoute,
 } as any)
+const ProjectsProjectIdMapRoute = ProjectsProjectIdMapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => ProjectsProjectIdRoute,
+} as any)
 const ProjectsProjectIdNotesRoute = ProjectsProjectIdNotesRouteImport.update({
   id: '/notes',
   path: '/notes',
@@ -44,12 +50,14 @@ const ProjectsProjectIdTagsRoute = ProjectsProjectIdTagsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/projects/$projectId/map': typeof ProjectsProjectIdMapRoute
   '/projects/$projectId/notes': typeof ProjectsProjectIdNotesRoute
   '/projects/$projectId/tags': typeof ProjectsProjectIdTagsRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/projects/$projectId/map': typeof ProjectsProjectIdMapRoute
   '/projects/$projectId/notes': typeof ProjectsProjectIdNotesRoute
   '/projects/$projectId/tags': typeof ProjectsProjectIdTagsRoute
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
@@ -58,6 +66,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/projects/$projectId/map': typeof ProjectsProjectIdMapRoute
   '/projects/$projectId/notes': typeof ProjectsProjectIdNotesRoute
   '/projects/$projectId/tags': typeof ProjectsProjectIdTagsRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
@@ -67,12 +76,14 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/projects/$projectId'
+    | '/projects/$projectId/map'
     | '/projects/$projectId/notes'
     | '/projects/$projectId/tags'
     | '/projects/$projectId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/projects/$projectId/map'
     | '/projects/$projectId/notes'
     | '/projects/$projectId/tags'
     | '/projects/$projectId'
@@ -80,6 +91,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/projects/$projectId'
+    | '/projects/$projectId/map'
     | '/projects/$projectId/notes'
     | '/projects/$projectId/tags'
     | '/projects/$projectId/'
@@ -113,6 +125,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
+    '/projects/$projectId/map': {
+      id: '/projects/$projectId/map'
+      path: '/map'
+      fullPath: '/projects/$projectId/map'
+      preLoaderRoute: typeof ProjectsProjectIdMapRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
     '/projects/$projectId/notes': {
       id: '/projects/$projectId/notes'
       path: '/notes'
@@ -131,12 +150,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface ProjectsProjectIdRouteChildren {
+  ProjectsProjectIdMapRoute: typeof ProjectsProjectIdMapRoute
   ProjectsProjectIdNotesRoute: typeof ProjectsProjectIdNotesRoute
   ProjectsProjectIdTagsRoute: typeof ProjectsProjectIdTagsRoute
   ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
 }
 
 const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
+  ProjectsProjectIdMapRoute: ProjectsProjectIdMapRoute,
   ProjectsProjectIdNotesRoute: ProjectsProjectIdNotesRoute,
   ProjectsProjectIdTagsRoute: ProjectsProjectIdTagsRoute,
   ProjectsProjectIdIndexRoute: ProjectsProjectIdIndexRoute,

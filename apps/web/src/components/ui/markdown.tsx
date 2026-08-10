@@ -1,5 +1,6 @@
 import * as React from "react";
 import { parseMarkdown, renderHtml } from "@tanstack/markdown";
+import { noteLocationMarkdownExtension } from "#/components/ui/markdown/note-location-extension.ts";
 import { noteReferenceMarkdownExtension } from "#/components/ui/markdown/note-reference-extension.ts";
 import { cn } from "#/lib/utils.ts";
 
@@ -14,7 +15,7 @@ type MarkdownProps = {
 	onNoteReferenceClick?: (noteId: number) => void;
 };
 
-const MARKDOWN_EXTENSIONS = [noteReferenceMarkdownExtension()];
+const MARKDOWN_EXTENSIONS = [noteReferenceMarkdownExtension(), noteLocationMarkdownExtension()];
 
 export function Markdown({
 	content,

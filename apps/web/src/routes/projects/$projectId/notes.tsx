@@ -139,24 +139,54 @@ function NotesRouteComponent(): JSX.Element {
 		title: "",
 		content: "",
 	});
+	// Tracks which note id the draft state was last initialized from. Used
+	// to distinguish "note not loaded yet" (wait, don't clobber the draft
+	// with an empty value) from "already-initialized note refetched in the
+	// background" (also don't clobber - preserves in-flight local edits)
+	// from "user selected a different note, or this note just finished
+	// loading for the first time" (do (re)initialize).
+	const [initializedNoteId, setInitializedNoteId] = React.useState<
+		number | undefined
+	>(undefined);
 
-	// Reset the draft whenever the *selected note id* changes (not on every
-	// background refetch), so in-flight local edits aren't clobbered by a
-	// note list refresh triggered by, e.g., a tag/parent change elsewhere.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally re-runs only when the *id* changes, not on every `selectedNote` object identity change (e.g. background refetches)
 	React.useEffect(() => {
-		setDraftTitle(selectedNote?.title ?? "");
-		setDraftContent(selectedNote?.content ?? "");
+		if (selectedNoteId === undefined) {
+			setInitializedNoteId(undefined);
+			setDraftTitle("");
+			setDraftContent("");
+			savedRef.current = { title: "", content: "" };
+			setSaveStatus("idle");
+			return;
+		}
+
+		// Already initialized the draft for this exact note id - a background
+		// refetch returning the same note shouldn't clobber in-flight edits.
+		if (initializedNoteId === selectedNoteId) return;
+
+		// The note hasn't loaded yet (e.g. right after selecting it, or on a
+		// fresh page load with a deep-linked `noteId`). Wait for the real data
+		// instead of resetting the draft to empty, which would otherwise show
+		// (and could autosave) blank content over the note's real content.
+		if (!selectedNote) return;
+
+		setDraftTitle(selectedNote.title ?? "");
+		setDraftContent(selectedNote.content ?? "");
 		savedRef.current = {
-			title: selectedNote?.title ?? "",
-			content: selectedNote?.content ?? "",
+			title: selectedNote.title ?? "",
+			content: selectedNote.content ?? "",
 		};
 		setSaveStatus("idle");
-	}, [selectedNoteId]);
+		setInitializedNoteId(selectedNoteId);
+	}, [selectedNoteId, selectedNote, initializedNoteId]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally depends on selectedNote.id (not the whole object) and omits the stable updateNoteMutation.mutate function
 	React.useEffect(() => {
 		if (!selectedNote) return;
+		// Guards against autosaving before the draft has actually been
+		// initialized from this note's real data (see the effect above) - a
+		// belt-and-suspenders check against ever persisting a spuriously
+		// empty draft over real content.
+		if (initializedNoteId !== selectedNote.id) return;
 		if (
 			draftTitle === savedRef.current.title &&
 			draftContent === savedRef.current.content
@@ -185,7 +215,7 @@ function NotesRouteComponent(): JSX.Element {
 		}, AUTOSAVE_DEBOUNCE_MS);
 
 		return () => clearTimeout(timeout);
-	}, [draftTitle, draftContent, selectedNote?.id]);
+	}, [draftTitle, draftContent, selectedNote?.id, initializedNoteId]);
 
 	// --- Handlers ------------------------------------------------------------
 
@@ -273,7 +303,7 @@ function NotesRouteComponent(): JSX.Element {
 					</div>
 
 					<div className="flex-1 min-w-0">
-						{selectedNote ? (
+						{selectedNote && initializedNoteId === selectedNote.id ? (
 							<NoteEditorPane
 								title={draftTitle}
 								content={draftContent}
@@ -283,6 +313,8 @@ function NotesRouteComponent(): JSX.Element {
 								saveStatus={saveStatus}
 								className="h-full"
 							/>
+						) : selectedNoteId !== undefined ? (
+							<LoadingState label="Loading note..." compact />
 						) : (
 							<div className="h-full flex flex-col items-center justify-center gap-3 text-center px-6">
 								<StickyNote className="h-8 w-8 text-muted-foreground/40" />
@@ -295,7 +327,7 @@ function NotesRouteComponent(): JSX.Element {
 					</div>
 
 					<div className="w-72 shrink-0 border-l border-line">
-						{selectedNote ? (
+						{selectedNote && initializedNoteId === selectedNote.id ? (
 							<NoteSettingsPanel
 								projectId={projectId}
 								note={selectedNote}

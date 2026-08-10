@@ -1,9 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { In, IsNull } from 'typeorm';
 import { NoteService } from './note.service';
 import { Note } from './entities/note.entity';
 import { NoteHistoryEntry } from './entities/note-history-entry.entity';
+import { NoteLocation } from './entities/note-location.entity';
 import { ProjectAccessService } from '../project/project-access.service';
 
 describe('NoteService', () => {
@@ -23,6 +25,12 @@ describe('NoteService', () => {
     save: jest.fn(),
     find: jest.fn(),
   };
+  const mockNoteLocationRepository = {
+    create: jest.fn(),
+    save: jest.fn(),
+    find: jest.fn(),
+    delete: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -39,6 +47,10 @@ describe('NoteService', () => {
         {
           provide: getRepositoryToken(NoteHistoryEntry),
           useValue: mockNoteHistoryRepository,
+        },
+        {
+          provide: getRepositoryToken(NoteLocation),
+          useValue: mockNoteLocationRepository,
         },
       ],
     }).compile();
@@ -58,6 +70,16 @@ describe('NoteService', () => {
     mockNoteHistoryRepository.save.mockImplementation(
       (entry: Partial<NoteHistoryEntry>) => Promise.resolve(entry),
     );
+
+    // Default pass-through behavior for the location repository, so tests
+    // that don't care about location sync don't need to stub it.
+    mockNoteLocationRepository.create.mockImplementation(
+      (location: Partial<NoteLocation>) => location,
+    );
+    mockNoteLocationRepository.save.mockImplementation((locations: unknown) =>
+      Promise.resolve(locations),
+    );
+    mockNoteLocationRepository.delete.mockResolvedValue({ affected: 0 });
   });
 
   afterEach(() => {
@@ -235,6 +257,198 @@ describe('NoteService', () => {
       expect(result?.content).toBe('important content');
       expect(result?.tags).toEqual(['keep', 'me']);
       expect(result?.parentId).toBe(3);
+    });
+  });
+
+  describe('location syncing', () => {
+    it('derives NoteLocation rows from [[geo:...]] tokens on create', async () => {
+      const projectId = 1;
+      const createNoteDto = {
+        content: 'See [[geo:1.5,2.5,Home]] and [[geo:-3,4,]]',
+      };
+      const createdNote = {
+        id: 7,
+        projectId,
+        content: createNoteDto.content,
+      } as unknown as Note;
+
+      mockNoteRepository.create.mockReturnValue(createdNote);
+      mockNoteRepository.save.mockResolvedValue(createdNote);
+
+      await service.create(projectId, createNoteDto);
+
+      expect(mockNoteLocationRepository.delete).toHaveBeenCalledWith({
+        noteId: 7,
+      });
+      expect(mockNoteLocationRepository.save).toHaveBeenCalledWith([
+        { noteId: 7, lat: 1.5, lng: 2.5, label: 'Home' },
+        { noteId: 7, lat: -3, lng: 4, label: null },
+      ]);
+    });
+
+    it('resyncs NoteLocation rows when content is updated', async () => {
+      const projectId = 1;
+      const existingNote = {
+        id: 1,
+        projectId,
+        content: '[[geo:1,1,Old]]',
+      } as unknown as Note;
+      const updateNoteDto = { content: '[[geo:2,2,New]]' };
+
+      mockNoteRepository.findOne.mockResolvedValue(existingNote);
+      mockNoteRepository.save.mockImplementation((note: Note) =>
+        Promise.resolve(note),
+      );
+
+      await service.update(projectId, 1, updateNoteDto);
+
+      expect(mockNoteLocationRepository.delete).toHaveBeenCalledWith({
+        noteId: 1,
+      });
+      expect(mockNoteLocationRepository.save).toHaveBeenCalledWith([
+        { noteId: 1, lat: 2, lng: 2, label: 'New' },
+      ]);
+    });
+
+    it('does not resync locations when content is not part of the update', async () => {
+      const projectId = 1;
+      const existingNote = {
+        id: 1,
+        projectId,
+        content: '[[geo:1,1,Old]]',
+        title: 'old title',
+      } as unknown as Note;
+      const updateNoteDto = { title: 'new title' };
+
+      mockNoteRepository.findOne.mockResolvedValue(existingNote);
+      mockNoteRepository.save.mockImplementation((note: Note) =>
+        Promise.resolve(note),
+      );
+
+      await service.update(projectId, 1, updateNoteDto);
+
+      expect(mockNoteLocationRepository.delete).not.toHaveBeenCalled();
+      expect(mockNoteLocationRepository.save).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('findLocations', () => {
+    it("returns a note's derived locations enriched with the note's label and tags", async () => {
+      const projectId = 1;
+      const note = {
+        id: 1,
+        projectId,
+        title: 'My Trip',
+        content: 'irrelevant',
+        tags: ['travel', 'summer'],
+      } as Note;
+      const locations = [
+        { id: 1, noteId: 1, lat: 1, lng: 1, label: null },
+        { id: 2, noteId: 1, lat: 2, lng: 2, label: null },
+      ] as NoteLocation[];
+
+      mockNoteRepository.findOne.mockResolvedValue(note);
+      mockNoteLocationRepository.find.mockResolvedValue(locations);
+
+      const result = await service.findLocations(projectId, 1);
+
+      expect(mockNoteLocationRepository.find).toHaveBeenCalledWith({
+        where: { noteId: 1 },
+        order: { id: 'ASC' },
+      });
+      expect(result).toEqual([
+        { ...locations[0], noteLabel: 'My Trip', tags: ['travel', 'summer'] },
+        { ...locations[1], noteLabel: 'My Trip', tags: ['travel', 'summer'] },
+      ]);
+    });
+
+    it('defaults tags to an empty array when the note has none', async () => {
+      const projectId = 1;
+      const note = {
+        id: 1,
+        projectId,
+        title: 'My Trip',
+        content: 'irrelevant',
+        tags: null,
+      } as unknown as Note;
+      const locations = [
+        { id: 1, noteId: 1, lat: 1, lng: 1, label: null },
+      ] as NoteLocation[];
+
+      mockNoteRepository.findOne.mockResolvedValue(note);
+      mockNoteLocationRepository.find.mockResolvedValue(locations);
+
+      const result = await service.findLocations(projectId, 1);
+
+      expect(result?.[0].tags).toEqual([]);
+    });
+
+    it('returns null when the note does not exist', async () => {
+      mockNoteRepository.findOne.mockResolvedValue(null);
+
+      const result = await service.findLocations(1, 999);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('findAllLocations', () => {
+    it('returns every active note location in the project, enriched with each note label and tags', async () => {
+      const projectId = 1;
+      const notes = [
+        { id: 1, title: 'Home', content: null, tags: ['family'] },
+        {
+          id: 2,
+          title: null,
+          content: 'Some long note content here',
+          tags: null,
+        },
+      ] as unknown as Note[];
+      const locations = [
+        { id: 10, noteId: 1, lat: 1, lng: 1, label: null },
+        { id: 11, noteId: 2, lat: 2, lng: 2, label: 'Office' },
+      ] as NoteLocation[];
+
+      mockNoteRepository.find.mockResolvedValue(notes);
+      mockNoteLocationRepository.find.mockResolvedValue(locations);
+
+      const result = await service.findAllLocations(projectId);
+
+      expect(mockNoteRepository.find).toHaveBeenCalledWith({
+        where: { projectId, deletedAt: IsNull() },
+        select: { id: true, title: true, content: true, tags: true },
+      });
+      expect(mockNoteLocationRepository.find).toHaveBeenCalledWith({
+        where: { noteId: In([1, 2]) },
+        order: { id: 'ASC' },
+      });
+      expect(result).toEqual([
+        { ...locations[0], noteLabel: 'Home', tags: ['family'] },
+        {
+          ...locations[1],
+          noteLabel: 'Some long note content here',
+          tags: [],
+        },
+      ]);
+    });
+
+    it('returns an empty array when the project has no notes', async () => {
+      mockNoteRepository.find.mockResolvedValue([]);
+
+      const result = await service.findAllLocations(1);
+
+      expect(result).toEqual([]);
+      expect(mockNoteLocationRepository.find).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when the project does not exist', async () => {
+      mockProjectAccessService.assertExists.mockRejectedValue(
+        new NotFoundException('Project with ID 999 not found'),
+      );
+
+      await expect(service.findAllLocations(999)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

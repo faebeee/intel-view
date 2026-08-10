@@ -15,6 +15,7 @@ import {
 	Link as LinkIcon,
 	List,
 	ListOrdered,
+	MapPin,
 	Quote,
 	Redo2,
 	Strikethrough,
@@ -22,7 +23,9 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { Markdown as MarkdownExtension } from "tiptap-markdown";
+import { NoteLocation } from "#/components/ui/markdown-editor/note-location-node.ts";
 import { NoteReference } from "#/components/ui/markdown-editor/note-reference-node.ts";
+import { LocationPickerDialog } from "#/features/map/components/LocationPickerDialog.tsx";
 import { cn } from "#/lib/utils.ts";
 import { Button } from "./button";
 import {
@@ -222,6 +225,7 @@ function EditorToolbar({
 					notes={notes}
 				/>
 			)}
+			<LocationPickerButton editor={editor} disabled={disabled} />
 
 			<span className="mx-1 h-4 w-px bg-line/40" />
 
@@ -305,6 +309,47 @@ function NoteReferencePicker({
 }
 
 /**
+ * Toolbar control letting users pick a point on an OpenStreetMap (via
+ * Leaflet), optionally searching an address first, and insert it as a
+ * `[[geo:LAT,LNG,LABEL]]` location pin at the cursor position. Opens as a
+ * fullscreen dialog to give the map/search enough room to be usable.
+ */
+function LocationPickerButton({
+	editor,
+	disabled,
+}: {
+	editor: Editor | null;
+	disabled?: boolean;
+}) {
+	const [open, setOpen] = React.useState(false);
+
+	if (!editor) return null;
+
+	const handleConfirm = (lat: number, lng: number, label: string | null) => {
+		editor.chain().focus().insertNoteLocation(lat, lng, label).run();
+		setOpen(false);
+	};
+
+	return (
+		<>
+			<ToolbarButton
+				title="Insert map location"
+				disabled={disabled}
+				active={open}
+				onClick={() => setOpen(true)}
+			>
+				<MapPin className="h-3 w-3" />
+			</ToolbarButton>
+			<LocationPickerDialog
+				open={open}
+				onOpenChange={setOpen}
+				onConfirm={handleConfirm}
+			/>
+		</>
+	);
+}
+
+/**
  * Returns the current document serialized as markdown, using the
  * `tiptap-markdown` extension's storage API.
  */
@@ -335,6 +380,7 @@ function useMarkdownEditor({
 			LinkExtension.configure({ openOnClick: false, autolink: true }),
 			Placeholder.configure({ placeholder }),
 			NoteReference,
+			NoteLocation,
 			MarkdownExtension.configure({
 				html: false,
 				transformCopiedText: true,
