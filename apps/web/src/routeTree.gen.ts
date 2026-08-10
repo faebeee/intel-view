@@ -14,9 +14,6 @@ import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projec
 import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$projectId/index'
 import { Route as ProjectsProjectIdNotesRouteImport } from './routes/projects/$projectId/notes'
 import { Route as ProjectsProjectIdTagsRouteImport } from './routes/projects/$projectId/tags'
-import { Route as ProjectsProjectIdNotesIndexRouteImport } from './routes/projects/$projectId/notes/index'
-import { Route as ProjectsProjectIdNotesIdIndexRouteImport } from './routes/projects/$projectId/notes/$id/index'
-import { Route as ProjectsProjectIdNotesIdEditRouteImport } from './routes/projects/$projectId/notes/$id/edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -43,53 +40,27 @@ const ProjectsProjectIdTagsRoute = ProjectsProjectIdTagsRouteImport.update({
   path: '/tags',
   getParentRoute: () => ProjectsProjectIdRoute,
 } as any)
-const ProjectsProjectIdNotesIndexRoute =
-  ProjectsProjectIdNotesIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => ProjectsProjectIdNotesRoute,
-  } as any)
-const ProjectsProjectIdNotesIdIndexRoute =
-  ProjectsProjectIdNotesIdIndexRouteImport.update({
-    id: '/$id/',
-    path: '/$id/',
-    getParentRoute: () => ProjectsProjectIdNotesRoute,
-  } as any)
-const ProjectsProjectIdNotesIdEditRoute =
-  ProjectsProjectIdNotesIdEditRouteImport.update({
-    id: '/$id/edit',
-    path: '/$id/edit',
-    getParentRoute: () => ProjectsProjectIdNotesRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
-  '/projects/$projectId/notes': typeof ProjectsProjectIdNotesRouteWithChildren
+  '/projects/$projectId/notes': typeof ProjectsProjectIdNotesRoute
   '/projects/$projectId/tags': typeof ProjectsProjectIdTagsRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
-  '/projects/$projectId/notes/': typeof ProjectsProjectIdNotesIndexRoute
-  '/projects/$projectId/notes/$id/edit': typeof ProjectsProjectIdNotesIdEditRoute
-  '/projects/$projectId/notes/$id/': typeof ProjectsProjectIdNotesIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/projects/$projectId/notes': typeof ProjectsProjectIdNotesRoute
   '/projects/$projectId/tags': typeof ProjectsProjectIdTagsRoute
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
-  '/projects/$projectId/notes': typeof ProjectsProjectIdNotesIndexRoute
-  '/projects/$projectId/notes/$id/edit': typeof ProjectsProjectIdNotesIdEditRoute
-  '/projects/$projectId/notes/$id': typeof ProjectsProjectIdNotesIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
-  '/projects/$projectId/notes': typeof ProjectsProjectIdNotesRouteWithChildren
+  '/projects/$projectId/notes': typeof ProjectsProjectIdNotesRoute
   '/projects/$projectId/tags': typeof ProjectsProjectIdTagsRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
-  '/projects/$projectId/notes/': typeof ProjectsProjectIdNotesIndexRoute
-  '/projects/$projectId/notes/$id/edit': typeof ProjectsProjectIdNotesIdEditRoute
-  '/projects/$projectId/notes/$id/': typeof ProjectsProjectIdNotesIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -99,17 +70,12 @@ export interface FileRouteTypes {
     | '/projects/$projectId/notes'
     | '/projects/$projectId/tags'
     | '/projects/$projectId/'
-    | '/projects/$projectId/notes/'
-    | '/projects/$projectId/notes/$id/edit'
-    | '/projects/$projectId/notes/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/projects/$projectId/notes'
     | '/projects/$projectId/tags'
     | '/projects/$projectId'
-    | '/projects/$projectId/notes'
-    | '/projects/$projectId/notes/$id/edit'
-    | '/projects/$projectId/notes/$id'
   id:
     | '__root__'
     | '/'
@@ -117,9 +83,6 @@ export interface FileRouteTypes {
     | '/projects/$projectId/notes'
     | '/projects/$projectId/tags'
     | '/projects/$projectId/'
-    | '/projects/$projectId/notes/'
-    | '/projects/$projectId/notes/$id/edit'
-    | '/projects/$projectId/notes/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -164,56 +127,17 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdTagsRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
-    '/projects/$projectId/notes/': {
-      id: '/projects/$projectId/notes/'
-      path: '/'
-      fullPath: '/projects/$projectId/notes/'
-      preLoaderRoute: typeof ProjectsProjectIdNotesIndexRouteImport
-      parentRoute: typeof ProjectsProjectIdNotesRoute
-    }
-    '/projects/$projectId/notes/$id/': {
-      id: '/projects/$projectId/notes/$id/'
-      path: '/$id'
-      fullPath: '/projects/$projectId/notes/$id/'
-      preLoaderRoute: typeof ProjectsProjectIdNotesIdIndexRouteImport
-      parentRoute: typeof ProjectsProjectIdNotesRoute
-    }
-    '/projects/$projectId/notes/$id/edit': {
-      id: '/projects/$projectId/notes/$id/edit'
-      path: '/$id/edit'
-      fullPath: '/projects/$projectId/notes/$id/edit'
-      preLoaderRoute: typeof ProjectsProjectIdNotesIdEditRouteImport
-      parentRoute: typeof ProjectsProjectIdNotesRoute
-    }
   }
 }
-
-interface ProjectsProjectIdNotesRouteChildren {
-  ProjectsProjectIdNotesIndexRoute: typeof ProjectsProjectIdNotesIndexRoute
-  ProjectsProjectIdNotesIdEditRoute: typeof ProjectsProjectIdNotesIdEditRoute
-  ProjectsProjectIdNotesIdIndexRoute: typeof ProjectsProjectIdNotesIdIndexRoute
-}
-
-const ProjectsProjectIdNotesRouteChildren: ProjectsProjectIdNotesRouteChildren =
-  {
-    ProjectsProjectIdNotesIndexRoute: ProjectsProjectIdNotesIndexRoute,
-    ProjectsProjectIdNotesIdEditRoute: ProjectsProjectIdNotesIdEditRoute,
-    ProjectsProjectIdNotesIdIndexRoute: ProjectsProjectIdNotesIdIndexRoute,
-  }
-
-const ProjectsProjectIdNotesRouteWithChildren =
-  ProjectsProjectIdNotesRoute._addFileChildren(
-    ProjectsProjectIdNotesRouteChildren,
-  )
 
 interface ProjectsProjectIdRouteChildren {
-  ProjectsProjectIdNotesRoute: typeof ProjectsProjectIdNotesRouteWithChildren
+  ProjectsProjectIdNotesRoute: typeof ProjectsProjectIdNotesRoute
   ProjectsProjectIdTagsRoute: typeof ProjectsProjectIdTagsRoute
   ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
 }
 
 const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
-  ProjectsProjectIdNotesRoute: ProjectsProjectIdNotesRouteWithChildren,
+  ProjectsProjectIdNotesRoute: ProjectsProjectIdNotesRoute,
   ProjectsProjectIdTagsRoute: ProjectsProjectIdTagsRoute,
   ProjectsProjectIdIndexRoute: ProjectsProjectIdIndexRoute,
 }

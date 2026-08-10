@@ -151,11 +151,13 @@ async function seed(): Promise<void> {
     const subject = pick(REPORT_SUBJECTS);
     const body = pick(REPORT_BODIES);
 
+    const title = `${subject} — ${location.name}`;
     const content = `## ${subject} — ${location.name}\n\n${body}`;
 
     notesToInsert.push(
       noteRepo.create({
         projectId: project.id,
+        title,
         content,
         tags: pickSome(tagNames, randomInt(1, 3)),
         parentId: null,

@@ -8,6 +8,9 @@ export class NoteResponseDto {
   @ApiProperty()
   projectId: number;
 
+  @ApiProperty({ description: 'Title of the note' })
+  title: string;
+
   @ApiProperty({ description: 'Markdown content of the note' })
   content: string;
 
@@ -38,6 +41,7 @@ export function toNoteResponseDto(note: Note): NoteResponseDto {
   return {
     id: note.id,
     projectId: note.projectId,
+    title: note.title,
     content: note.content,
     tags: note.tags,
     parentId: note.parentId,

@@ -15,6 +15,10 @@ export class Note extends BaseEntity {
   project: Project;
 
   @Column({ type: 'text', nullable: true })
+  @ApiProperty({ description: 'Title of the note' })
+  title: string;
+
+  @Column({ type: 'text', nullable: true })
   @ApiProperty({ description: 'Markdown content of the note' })
   content: string;
 

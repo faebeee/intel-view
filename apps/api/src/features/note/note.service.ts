@@ -22,8 +22,9 @@ export const notePaginateConfig: PaginateConfig<Note> = {
   sortableColumns: ['id', 'createdAt', 'updatedAt'],
   nullSort: 'last',
   defaultSortBy: [['id', 'DESC']],
-  searchableColumns: ['content'],
+  searchableColumns: ['title', 'content'],
   filterableColumns: {
+    title: true,
     content: true,
     parentId: true,
   },
@@ -33,7 +34,7 @@ export const notePaginateConfig: PaginateConfig<Note> = {
  * Fields on `Note` that are tracked for automatic history entries when
  * changed via `update()`.
  */
-const HISTORY_TRACKED_FIELDS = ['content', 'tags', 'parentId'] as const;
+const HISTORY_TRACKED_FIELDS = ['title', 'content', 'tags', 'parentId'] as const;
 
 /**
  * Structurally compares two field values for equality, using JSON

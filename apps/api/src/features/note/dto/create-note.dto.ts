@@ -5,6 +5,14 @@ export class CreateNoteDto {
   @IsString()
   @IsOptional()
   @ApiProperty({
+    description: 'The title of the note',
+    required: false,
+  })
+  title?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
     description: 'The markdown content of the note',
     required: false,
   })

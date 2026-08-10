@@ -31,6 +31,7 @@ const COLOR_THEME_SWATCH: Record<ColorTheme, string> = {
 	ocean: "bg-[oklch(0.68_0.18_200)]",
 	emerald: "bg-[oklch(0.65_0.19_155)]",
 	violet: "bg-[oklch(0.62_0.22_300)]",
+	monochrome: "bg-[oklch(0.2_0_0)]",
 };
 
 function ModeSwitcher(): JSX.Element {

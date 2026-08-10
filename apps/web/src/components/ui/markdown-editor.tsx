@@ -5,11 +5,9 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { type Editor, EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import {
+	AtSign,
 	Bold,
 	Code,
-	Columns,
-	Edit2,
-	Eye,
 	Heading1,
 	Heading2,
 	Heading3,
@@ -19,7 +17,6 @@ import {
 	ListOrdered,
 	Quote,
 	Redo2,
-	AtSign,
 	Strikethrough,
 	Undo2,
 } from "lucide-react";
@@ -36,9 +33,7 @@ import {
 	CommandItem,
 	CommandList,
 } from "./command";
-import { Markdown } from "./markdown";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
-import { Tabs, TabsList, TabsTrigger } from "./tabs";
 
 export type MarkdownEditorNoteOption = {
 	id: number;
@@ -60,11 +55,6 @@ type MarkdownEditorProps = {
 	 * content, or the note list isn't available).
 	 */
 	notes?: MarkdownEditorNoteOption[];
-	/**
-	 * Called when the user clicks a `[[NOTE_ID]]` reference chip in the
-	 * Preview pane. See `Markdown`'s `onNoteReferenceClick` prop.
-	 */
-	onReferenceClick?: (noteId: number) => void;
 };
 
 function ToolbarButton({
@@ -387,132 +377,28 @@ export function MarkdownEditor({
 	className,
 	minHeight = "min-h-32",
 	notes,
-	onReferenceClick,
 }: MarkdownEditorProps) {
-	const [mode, setMode] = React.useState<"tabbed" | "split">("tabbed");
-	const [activeTab, setActiveTab] = React.useState("write");
-
 	const editor = useMarkdownEditor({ value, onChange, placeholder, disabled });
 
-	const writePane = (
-		<div className="flex flex-col gap-2">
+	return (
+		<div className={cn("flex flex-col gap-2 w-full", className)}>
 			<EditorToolbar editor={editor} disabled={disabled} notes={notes} />
 			<div
 				className={cn(
-					"bg-[#040814]/60 border border-line rounded-lg px-3 py-2 overflow-y-auto",
+					"bg-surface-strong/40 border border-line rounded-lg px-3 py-2 overflow-y-auto",
 					"prose prose-sm prose-invert max-w-none text-sea-ink-soft leading-relaxed",
 					"prose-headings:text-sea-ink prose-headings:font-bold",
 					"prose-a:text-palm prose-a:no-underline hover:prose-a:underline",
 					"prose-strong:text-sea-ink prose-strong:font-bold",
 					"prose-code:text-palm prose-code:bg-surface/50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-xs",
-					"prose-pre:bg-[#040814]/80 prose-pre:border prose-pre:border-line/30 prose-pre:rounded-lg prose-pre:p-3",
+					"prose-pre:bg-surface/70 prose-pre:border prose-pre:border-line/30 prose-pre:rounded-lg prose-pre:p-3",
 					"[&_.tiptap]:focus:outline-none [&_.tiptap_p.is-editor-empty:first-child::before]:text-muted-foreground/50 [&_.tiptap_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.tiptap_p.is-editor-empty:first-child::before]:float-left [&_.tiptap_p.is-editor-empty:first-child::before]:pointer-events-none [&_.tiptap_p.is-editor-empty:first-child::before]:h-0",
+					"flex-1 min-h-0",
 					minHeight,
 				)}
 			>
 				<EditorContent editor={editor} />
 			</div>
-		</div>
-	);
-
-	const previewPane = (
-		<div
-			className={cn(
-				"bg-[#040814]/40 border border-line/45 rounded-lg p-4 overflow-y-auto leading-relaxed max-h-96",
-				minHeight,
-			)}
-		>
-			{value.trim() ? (
-				<Markdown content={value} onNoteReferenceClick={onReferenceClick} />
-			) : (
-				<span className="text-xs text-muted-foreground font-mono italic">
-					No content entered. Write in the editor to preview.
-				</span>
-			)}
-		</div>
-	);
-
-	return (
-		<div className={cn("flex flex-col gap-3 w-full", className)}>
-			{/* Toolbar / Control Header */}
-			<div className="flex items-center justify-between gap-4 border-b border-line/35 pb-2">
-				<div className="flex items-center gap-2">
-					{mode === "tabbed" ? (
-						<Tabs
-							value={activeTab}
-							onValueChange={setActiveTab}
-							className="w-auto"
-						>
-							<TabsList className="bg-surface-strong/65 border border-line/45 p-0.5">
-								<TabsTrigger
-									value="write"
-									className="text-xs font-mono font-bold tracking-wider px-3 h-7 data-[state=active]:bg-accent/15 data-[state=active]:text-palm gap-1.5"
-								>
-									<Edit2 className="h-3 w-3" />
-									<span>WRITE</span>
-								</TabsTrigger>
-								<TabsTrigger
-									value="preview"
-									className="text-xs font-mono font-bold tracking-wider px-3 h-7 data-[state=active]:bg-accent/15 data-[state=active]:text-palm gap-1.5"
-								>
-									<Eye className="h-3 w-3" />
-									<span>PREVIEW</span>
-								</TabsTrigger>
-							</TabsList>
-						</Tabs>
-					) : (
-						<span className="text-xs font-mono font-bold tracking-wider text-palm bg-accent/10 px-2.5 py-1 rounded border border-palm/20 uppercase">
-							Split View
-						</span>
-					)}
-				</div>
-
-				{/* Editor Mode Toggler */}
-				<div>
-					<Button
-						type="button"
-						variant="ghost"
-						size="xs"
-						onClick={() => {
-							setMode((prev) => (prev === "tabbed" ? "split" : "tabbed"));
-						}}
-						title={
-							mode === "tabbed"
-								? "Switch to split view"
-								: "Switch to tabbed view"
-						}
-					>
-						<Columns className="h-3 w-3" />
-						<span>{mode === "tabbed" ? "SPLIT SCREEN" : "TABBED VIEW"}</span>
-					</Button>
-				</div>
-			</div>
-
-			{/* Editor Content Area */}
-			{mode === "tabbed" ? (
-				<div className="flex-1 min-h-0">
-					{activeTab === "write" ? writePane : previewPane}
-				</div>
-			) : (
-				/* Split Screen Mode */
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
-					{/* Write Column */}
-					<div className="flex flex-col gap-1.5">
-						<span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest pl-1">
-							Write
-						</span>
-						{writePane}
-					</div>
-
-					{/* Live Render Column */}
-					<div className="flex flex-col gap-1.5">
-						<span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest pl-1">
-							Preview
-						</span>
-						{previewPane}
-					</div>
-				</div>
-			)}
 		</div>
 	);
 }

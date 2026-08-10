@@ -9,11 +9,16 @@
 
 export type ThemeMode = "light" | "dark" | "system";
 
-export type ColorTheme = "ocean" | "emerald" | "violet";
+export type ColorTheme = "ocean" | "emerald" | "violet" | "monochrome";
 
 export const THEME_MODES: ThemeMode[] = ["light", "dark", "system"];
 
-export const COLOR_THEMES: ColorTheme[] = ["ocean", "emerald", "violet"];
+export const COLOR_THEMES: ColorTheme[] = [
+	"ocean",
+	"emerald",
+	"violet",
+	"monochrome",
+];
 
 export const DEFAULT_THEME_MODE: ThemeMode = "dark";
 
@@ -27,6 +32,7 @@ export const COLOR_THEME_LABELS: Record<ColorTheme, string> = {
 	ocean: "Ocean",
 	emerald: "Emerald",
 	violet: "Violet",
+	monochrome: "Monochrome",
 };
 
 export function isThemeMode(value: string | undefined): value is ThemeMode {
