@@ -80,6 +80,32 @@ export function useInvalidParentIds(
 	}, [notes, noteId]);
 }
 
+/** A note paired with its nesting depth (0 = root/top-level) within the tree. */
+export type NoteWithDepth = { note: Note; depth: number };
+
+/**
+ * Flattens the note hierarchy into pre-order (parent immediately followed by
+ * its children, recursively) list of `{ note, depth }` pairs, so a plain
+ * list UI (no `NoteTree`-style collapsing) can still render nesting levels
+ * via indentation.
+ */
+export function flattenNoteTree(childrenMap: NoteChildrenMap): NoteWithDepth[] {
+	const result: NoteWithDepth[] = [];
+
+	function visit(note: Note, depth: number): void {
+		result.push({ note, depth });
+		for (const child of getChildNotes(childrenMap, note.id)) {
+			visit(child, depth + 1);
+		}
+	}
+
+	for (const rootNote of getRootNotes(childrenMap)) {
+		visit(rootNote, 0);
+	}
+
+	return result;
+}
+
 /** Short human-readable label for a note: its title, or a truncated content snippet, or a placeholder. */
 export function getNoteLabel(
 	note: Pick<Note, "title" | "content">,

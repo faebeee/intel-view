@@ -15,10 +15,12 @@ import { Note } from './entities/note.entity';
 import { NoteHistoryEntry } from './entities/note-history-entry.entity';
 import type { NoteFieldChange } from './entities/note-history-entry.entity';
 import { NoteLocation } from './entities/note-location.entity';
+import { NoteLogEntry } from './entities/note-log-entry.entity';
 import { parseNoteLocations } from './note-location.util';
 import { getNoteLabel } from './note-label.util';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
+import { CreateNoteLogEntryDto } from './dto/create-note-log-entry.dto';
 import { ProjectAccessService } from '../project/project-access.service';
 
 export const notePaginateConfig: PaginateConfig<Note> = {
@@ -81,6 +83,8 @@ export class NoteService {
     private readonly noteHistoryRepository: Repository<NoteHistoryEntry>,
     @InjectRepository(NoteLocation)
     private readonly noteLocationRepository: Repository<NoteLocation>,
+    @InjectRepository(NoteLogEntry)
+    private readonly noteLogEntryRepository: Repository<NoteLogEntry>,
     private readonly projectAccessService: ProjectAccessService,
   ) {}
 
@@ -250,6 +254,52 @@ export class NoteService {
       return null;
     }
     return this.noteHistoryRepository.find({
+      where: { noteId: id },
+      order: { createdAt: 'DESC', id: 'DESC' },
+    });
+  }
+
+  /**
+   * Appends a new, immutable log entry to a `'log'`-type note. Throws if the
+   * note doesn't exist or isn't a log note — log entries are only a valid
+   * concept for that note type.
+   */
+  async createLogEntry(
+    projectId: number,
+    id: number,
+    createNoteLogEntryDto: CreateNoteLogEntryDto,
+  ): Promise<NoteLogEntry> {
+    const note = await this.findOne(projectId, id);
+    if (!note) {
+      throw new NotFoundException(`Note with ID ${id} not found`);
+    }
+    if (note.type !== 'log') {
+      throw new BadRequestException(
+        'Log entries can only be added to notes of type "log"',
+      );
+    }
+
+    return this.noteLogEntryRepository.save(
+      this.noteLogEntryRepository.create({
+        noteId: id,
+        content: createNoteLogEntryDto.content,
+      }),
+    );
+  }
+
+  /**
+   * Returns every log entry recorded for a note, most recent first, or
+   * `null` if the note does not exist.
+   */
+  async findLogEntries(
+    projectId: number,
+    id: number,
+  ): Promise<NoteLogEntry[] | null> {
+    const note = await this.findOne(projectId, id);
+    if (!note) {
+      return null;
+    }
+    return this.noteLogEntryRepository.find({
       where: { noteId: id },
       order: { createdAt: 'DESC', id: 'DESC' },
     });

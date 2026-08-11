@@ -1,7 +1,20 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsArray, IsInt } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsInt, IsIn } from 'class-validator';
+import { NOTE_TYPES } from '../entities/note.entity';
+import type { NoteType } from '../entities/note.entity';
 
 export class CreateNoteDto {
+  @IsIn(NOTE_TYPES)
+  @IsOptional()
+  @ApiProperty({
+    description:
+      "The kind of note to create: 'standard' (freely-editable rich text) or 'log' (append-only timestamped entries). Defaults to 'standard'. Immutable after creation.",
+    required: false,
+    enum: NOTE_TYPES,
+    default: 'standard',
+  })
+  type?: NoteType;
+
   @IsString()
   @IsOptional()
   @ApiProperty({

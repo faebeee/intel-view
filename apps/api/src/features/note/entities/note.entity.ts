@@ -4,6 +4,16 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Project } from '../../project/entities/project.entity';
 import { NoteHistoryEntry } from './note-history-entry.entity';
 import { NoteLocation } from './note-location.entity';
+import { NoteLogEntry } from './note-log-entry.entity';
+
+/**
+ * The kind of note. `'standard'` notes are freely-editable rich text.
+ * `'log'` notes instead show an append-only sequence of timestamped
+ * `NoteLogEntry` records (their own `content` field is unused). Set once at
+ * creation and never changed afterwards.
+ */
+export type NoteType = 'standard' | 'log';
+export const NOTE_TYPES: NoteType[] = ['standard', 'log'];
 
 @Entity()
 export class Note extends BaseEntity {
@@ -14,6 +24,15 @@ export class Note extends BaseEntity {
   @ManyToOne(() => Project, (project) => project.notes)
   @JoinColumn({ name: 'projectId' })
   project: Project;
+
+  @Column({ type: 'varchar', length: 20, default: 'standard' })
+  @ApiProperty({
+    description:
+      "The kind of note: 'standard' (freely-editable rich text) or 'log' (append-only timestamped entries). Set at creation and immutable afterwards.",
+    enum: NOTE_TYPES,
+    default: 'standard',
+  })
+  type: NoteType;
 
   @Column({ type: 'text', nullable: true })
   @ApiProperty({ description: 'Title of the note' })
@@ -53,4 +72,7 @@ export class Note extends BaseEntity {
 
   @OneToMany(() => NoteLocation, (location) => location.note)
   locations: NoteLocation[];
+
+  @OneToMany(() => NoteLogEntry, (entry) => entry.note)
+  logEntries: NoteLogEntry[];
 }

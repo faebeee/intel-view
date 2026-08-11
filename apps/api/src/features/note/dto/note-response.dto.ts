@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Note } from '../entities/note.entity';
+import { Note, NOTE_TYPES } from '../entities/note.entity';
+import type { NoteType } from '../entities/note.entity';
 
 export class NoteResponseDto {
   @ApiProperty()
@@ -7,6 +8,13 @@ export class NoteResponseDto {
 
   @ApiProperty()
   projectId: number;
+
+  @ApiProperty({
+    description:
+      "The kind of note: 'standard' (freely-editable rich text) or 'log' (append-only timestamped entries)",
+    enum: NOTE_TYPES,
+  })
+  type: NoteType;
 
   @ApiProperty({ description: 'Title of the note' })
   title: string;
@@ -41,6 +49,7 @@ export function toNoteResponseDto(note: Note): NoteResponseDto {
   return {
     id: note.id,
     projectId: note.projectId,
+    type: note.type,
     title: note.title,
     content: note.content,
     tags: note.tags,

@@ -6,6 +6,7 @@ import { NoteService } from './note.service';
 import { Note } from './entities/note.entity';
 import { NoteHistoryEntry } from './entities/note-history-entry.entity';
 import { NoteLocation } from './entities/note-location.entity';
+import { NoteLogEntry } from './entities/note-log-entry.entity';
 import { ProjectAccessService } from '../project/project-access.service';
 
 describe('NoteService', () => {
@@ -31,6 +32,11 @@ describe('NoteService', () => {
     find: jest.fn(),
     delete: jest.fn(),
   };
+  const mockNoteLogEntryRepository = {
+    create: jest.fn(),
+    save: jest.fn(),
+    find: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -51,6 +57,10 @@ describe('NoteService', () => {
         {
           provide: getRepositoryToken(NoteLocation),
           useValue: mockNoteLocationRepository,
+        },
+        {
+          provide: getRepositoryToken(NoteLogEntry),
+          useValue: mockNoteLogEntryRepository,
         },
       ],
     }).compile();
@@ -80,6 +90,15 @@ describe('NoteService', () => {
       Promise.resolve(locations),
     );
     mockNoteLocationRepository.delete.mockResolvedValue({ affected: 0 });
+
+    // Default pass-through behavior for the log entry repository, so tests
+    // that don't care about log entries don't need to stub it.
+    mockNoteLogEntryRepository.create.mockImplementation(
+      (entry: Partial<NoteLogEntry>) => entry,
+    );
+    mockNoteLogEntryRepository.save.mockImplementation(
+      (entry: Partial<NoteLogEntry>) => Promise.resolve(entry),
+    );
   });
 
   afterEach(() => {
@@ -474,6 +493,68 @@ describe('NoteService', () => {
       mockNoteRepository.findOne.mockResolvedValue(null);
 
       const result = await service.findHistory(1, 999);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('log entries', () => {
+    it('appends a log entry to a log-type note', async () => {
+      const projectId = 1;
+      const note = { id: 1, projectId, type: 'log' } as Note;
+      mockNoteRepository.findOne.mockResolvedValue(note);
+
+      const result = await service.createLogEntry(projectId, 1, {
+        content: 'did a thing',
+      });
+
+      expect(mockNoteLogEntryRepository.create).toHaveBeenCalledWith({
+        noteId: 1,
+        content: 'did a thing',
+      });
+      expect(result).toEqual({ noteId: 1, content: 'did a thing' });
+    });
+
+    it('rejects appending a log entry to a standard note', async () => {
+      const projectId = 1;
+      const note = { id: 1, projectId, type: 'standard' } as Note;
+      mockNoteRepository.findOne.mockResolvedValue(note);
+
+      await expect(
+        service.createLogEntry(projectId, 1, { content: 'nope' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockNoteLogEntryRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when appending to a non-existent note', async () => {
+      mockNoteRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.createLogEntry(1, 999, { content: 'nope' }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it("returns a note's log entries ordered most-recent-first", async () => {
+      const projectId = 1;
+      const note = { id: 1, projectId, type: 'log' } as Note;
+      const entries = [{ id: 2 }, { id: 1 }] as NoteLogEntry[];
+
+      mockNoteRepository.findOne.mockResolvedValue(note);
+      mockNoteLogEntryRepository.find.mockResolvedValue(entries);
+
+      const result = await service.findLogEntries(projectId, 1);
+
+      expect(mockNoteLogEntryRepository.find).toHaveBeenCalledWith({
+        where: { noteId: 1 },
+        order: { createdAt: 'DESC', id: 'DESC' },
+      });
+      expect(result).toEqual(entries);
+    });
+
+    it('returns null when listing log entries for a non-existent note', async () => {
+      mockNoteRepository.findOne.mockResolvedValue(null);
+
+      const result = await service.findLogEntries(1, 999);
 
       expect(result).toBeNull();
     });

@@ -14,6 +14,8 @@ describe('NoteController', () => {
     findHistory: jest.fn(),
     findLocations: jest.fn(),
     findAllLocations: jest.fn(),
+    createLogEntry: jest.fn(),
+    findLogEntries: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -129,6 +131,72 @@ describe('NoteController', () => {
       mockNoteService.findHistory.mockResolvedValue(null);
 
       await expect(controller.findHistory(1, 999)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('createLogEntry', () => {
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('creates a log entry and maps it to a NoteLogEntryResponseDto', async () => {
+      const projectId = 1;
+      const createNoteLogEntryDto = { content: 'did a thing' };
+      const createdEntry = {
+        id: 1,
+        noteId: 1,
+        content: 'did a thing',
+        createdAt: new Date(),
+      };
+
+      mockNoteService.createLogEntry.mockResolvedValue(createdEntry);
+
+      const result = await controller.createLogEntry(
+        projectId,
+        1,
+        createNoteLogEntryDto,
+      );
+
+      expect(mockNoteService.createLogEntry).toHaveBeenCalledWith(
+        projectId,
+        1,
+        createNoteLogEntryDto,
+      );
+      expect(result.content).toBe('did a thing');
+    });
+  });
+
+  describe('findLogEntries', () => {
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it("returns a note's log entries mapped to NoteLogEntryResponseDto", async () => {
+      const projectId = 1;
+      const entries = [
+        { id: 2, noteId: 1, content: 'second', createdAt: new Date() },
+        { id: 1, noteId: 1, content: 'first', createdAt: new Date() },
+      ];
+
+      mockNoteService.findLogEntries.mockResolvedValue(entries);
+
+      const result = await controller.findLogEntries(projectId, 1);
+
+      expect(mockNoteService.findLogEntries).toHaveBeenCalledWith(
+        projectId,
+        1,
+      );
+      expect(result).toHaveLength(2);
+      expect(result[0].content).toBe('second');
+      expect(result[1].content).toBe('first');
+    });
+
+    it('throws NotFoundException when the note does not exist', async () => {
+      mockNoteService.findLogEntries.mockResolvedValue(null);
+
+      await expect(controller.findLogEntries(1, 999)).rejects.toThrow(
         NotFoundException,
       );
     });

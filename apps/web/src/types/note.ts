@@ -1,8 +1,13 @@
+import type { NoteResponseDto } from "@repo/sdk";
+
 export type {
 	CreateNoteDto,
 	NoteResponseDto,
 	UpdateNoteDto,
 } from "@repo/sdk";
+
+/** The kind of note: `'standard'` (freely-editable rich text) or `'log'` (append-only timestamped entries). Set at creation and immutable afterwards. */
+export type NoteType = NoteResponseDto["type"];
 
 export type PaginatedResponse<T> = {
 	data: T[];

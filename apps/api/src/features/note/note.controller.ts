@@ -15,11 +15,16 @@ import type { PaginateQuery } from 'nestjs-paginate';
 import { NoteService, notePaginateConfig } from './note.service';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
+import { CreateNoteLogEntryDto } from './dto/create-note-log-entry.dto';
 import { NoteResponseDto, toNoteResponseDto } from './dto/note-response.dto';
 import {
   NoteHistoryEntryResponseDto,
   toNoteHistoryEntryResponseDto,
 } from './dto/note-history-entry-response.dto';
+import {
+  NoteLogEntryResponseDto,
+  toNoteLogEntryResponseDto,
+} from './dto/note-log-entry-response.dto';
 import {
   NoteLocationResponseDto,
   toNoteLocationResponseDto,
@@ -147,6 +152,52 @@ export class NoteController {
       throw new NotFoundException(`Note with ID ${id} not found`);
     }
     return history.map(toNoteHistoryEntryResponseDto);
+  }
+
+  @Post(':id/log-entries')
+  @ApiOperation({
+    summary:
+      "Append a new entry to a 'log'-type note's log. 400 if the note isn't type 'log'.",
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'The log entry has been successfully created.',
+    type: NoteLogEntryResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Note not found.' })
+  @ApiResponse({ status: 400, description: "Note is not of type 'log'." })
+  async createLogEntry(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() createNoteLogEntryDto: CreateNoteLogEntryDto,
+  ): Promise<NoteLogEntryResponseDto> {
+    const entry = await this.noteService.createLogEntry(
+      projectId,
+      id,
+      createNoteLogEntryDto,
+    );
+    return toNoteLogEntryResponseDto(entry);
+  }
+
+  @Get(':id/log-entries')
+  @ApiOperation({
+    summary: "Get all of a 'log'-type note's entries, most recent first",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "The note's log entries.",
+    type: [NoteLogEntryResponseDto],
+  })
+  @ApiResponse({ status: 404, description: 'Note not found.' })
+  async findLogEntries(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<NoteLogEntryResponseDto[]> {
+    const entries = await this.noteService.findLogEntries(projectId, id);
+    if (!entries) {
+      throw new NotFoundException(`Note with ID ${id} not found`);
+    }
+    return entries.map(toNoteLogEntryResponseDto);
   }
 
   @Get(':id/locations')

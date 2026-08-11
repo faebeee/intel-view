@@ -12,14 +12,17 @@ import * as React from "react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button.tsx";
 import { LoadingState, NotFoundState } from "#/components/ui/loading-state.tsx";
+import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal.tsx";
 import type { NoteSaveStatus } from "#/features/notes/components/NoteEditorPane.tsx";
 import { NoteEditorPane } from "#/features/notes/components/NoteEditorPane.tsx";
+import { NoteLogEditorPane } from "#/features/notes/components/NoteLogEditorPane.tsx";
 import { NoteSettingsPanel } from "#/features/notes/components/NoteSettingsPanel.tsx";
 import { NoteTree } from "#/features/notes/components/NoteTree.tsx";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 import { useProjectQuery } from "#/features/projects/hooks/useProjectQuery.ts";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 import { toastApiError } from "#/lib/api-error.ts";
+import type { NoteType } from "#/types/note.ts";
 
 const AUTOSAVE_DEBOUNCE_MS = 800;
 
@@ -81,22 +84,44 @@ function NotesRouteComponent(): JSX.Element {
 		[queryClient, projectId],
 	);
 
+	// --- New note dialog -----------------------------------------------------
+
+	const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
+	const [createDialogParentId, setCreateDialogParentId] = React.useState<
+		number | null
+	>(null);
+
+	const openCreateDialog = React.useCallback((parentId: number | null) => {
+		setCreateDialogParentId(parentId);
+		setIsCreateDialogOpen(true);
+	}, []);
+
 	// --- Mutations ---------------------------------------------------------
 
 	const createNoteMutation = useMutation({
-		mutationFn: async (parentId: number | null) => {
+		mutationFn: async (args: { parentId: number | null; type: NoteType }) => {
 			const res = await noteControllerCreate({
 				path: { projectId },
-				body: { title: "", content: "", parentId },
+				body: {
+					title: "",
+					content: "",
+					parentId: args.parentId,
+					type: args.type,
+				},
 			});
 			return res.data as Note;
 		},
 		onSuccess: (note) => {
 			invalidateNotes();
 			selectNote(note.id);
+			setIsCreateDialogOpen(false);
 		},
 		onError: toastApiError("create note"),
 	});
+
+	const handleCreateNote = (type: NoteType) => {
+		createNoteMutation.mutate({ parentId: createDialogParentId, type });
+	};
 
 	const updateNoteMutation = useMutation({
 		mutationFn: async (args: {
@@ -275,7 +300,7 @@ function NotesRouteComponent(): JSX.Element {
 					<Button
 						variant="default"
 						size="sm"
-						onClick={() => createNoteMutation.mutate(null)}
+						onClick={() => openCreateDialog(null)}
 						disabled={createNoteMutation.isPending}
 					>
 						<Plus className="h-4 w-4" />
@@ -293,7 +318,7 @@ function NotesRouteComponent(): JSX.Element {
 							notes={notes}
 							selectedNoteId={selectedNote?.id}
 							onSelect={selectNote}
-							onCreateChild={(parentId) => createNoteMutation.mutate(parentId)}
+							onCreateChild={(parentId) => openCreateDialog(parentId)}
 							onDelete={(id) => deleteNoteMutation.mutate(id)}
 							isMutating={
 								createNoteMutation.isPending || deleteNoteMutation.isPending
@@ -304,15 +329,27 @@ function NotesRouteComponent(): JSX.Element {
 
 					<div className="flex-1 min-w-0">
 						{selectedNote && initializedNoteId === selectedNote.id ? (
-							<NoteEditorPane
-								title={draftTitle}
-								content={draftContent}
-								onTitleChange={setDraftTitle}
-								onContentChange={setDraftContent}
-								notes={notes}
-								saveStatus={saveStatus}
-								className="h-full"
-							/>
+							selectedNote.type === "log" ? (
+								<NoteLogEditorPane
+									projectId={projectId}
+									note={selectedNote}
+									title={draftTitle}
+									onTitleChange={setDraftTitle}
+									saveStatus={saveStatus}
+									notes={notes}
+									className="h-full"
+								/>
+							) : (
+								<NoteEditorPane
+									title={draftTitle}
+									content={draftContent}
+									onTitleChange={setDraftTitle}
+									onContentChange={setDraftContent}
+									notes={notes}
+									saveStatus={saveStatus}
+									className="h-full"
+								/>
+							)
 						) : selectedNoteId !== undefined ? (
 							<LoadingState label="Loading note..." compact />
 						) : (
@@ -345,6 +382,13 @@ function NotesRouteComponent(): JSX.Element {
 					</div>
 				</div>
 			)}
+
+			<CreateNoteModal
+				open={isCreateDialogOpen}
+				onOpenChange={setIsCreateDialogOpen}
+				onCreate={handleCreateNote}
+				isCreating={createNoteMutation.isPending}
+			/>
 		</div>
 	);
 }

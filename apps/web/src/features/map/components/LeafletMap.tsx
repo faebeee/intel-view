@@ -84,13 +84,11 @@ export type LeafletMapProps = {
  * consumers across the app (location pickers, map views, read-only
  * previews, etc.) don't need to deal with Leaflet/Vite plumbing directly.
  *
- * The "Street" layer is automatically re-tinted (via CSS filters keyed off
- * the `.dark` class and `data-theme` attribute already applied to `<html>`
- * by the app's `ThemeProvider`) to correlate with the currently selected UI
- * theme — e.g. it turns dark in dark mode, and picks up a hue matching the
- * `ocean`/`emerald`/`violet`/`monochrome` color theme. See the
- * `.map-tile-street` rules in `styles.css`. The satellite layer is left
- * untouched (aside from monochrome mode) so real imagery stays legible.
+ * The map's own theme is intentionally decoupled from the app's UI theme
+ * (dark mode, `ocean`/`emerald`/`violet`/`monochrome` color themes, set on
+ * `<html>` by `ThemeProvider`) — tile imagery always renders in its natural,
+ * unmodified appearance so it stays legible and recognizable no matter
+ * which app theme is active.
  */
 export function LeafletMap({
 	center = DEFAULT_MAP_CENTER,
@@ -107,14 +105,12 @@ export function LeafletMap({
 
 	const streetLayer = (
 		<TileLayer
-			className="map-tile-street"
 			attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 			url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 		/>
 	);
 	const satelliteLayer = (
 		<TileLayer
-			className="map-tile-satellite"
 			attribution='Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community'
 			url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
 			maxZoom={19}

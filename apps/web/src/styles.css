@@ -772,45 +772,12 @@ a {
 }
 
 /*
- * Correlate the map's "Street" base layer with the currently selected UI
- * theme (`data-theme` + `.dark`, both set on <html> by ThemeProvider):
- * dark mode inverts the tiles to a dark basemap, and each color theme
- * applies a matching hue tint. Applied per-tile via Leaflet's TileLayer
- * `className` option (see `LeafletMap.tsx`), so it only affects the map's
- * own imagery, never the UI chrome (popups/controls) layered on top.
+ * The map's tile layers are intentionally NOT tinted/inverted to match the
+ * app's dark mode or color theme (unlike the rest of the UI) — map imagery
+ * (street/satellite) always renders in its natural, unmodified appearance
+ * so it stays legible and recognizable regardless of which app theme is
+ * active. See `LeafletMap.tsx` for the tile layer definitions.
  */
-html:not(.dark)[data-theme='ocean'] .map-tile-street {
-	filter: saturate(1.1);
-}
-html.dark[data-theme='ocean'] .map-tile-street {
-	filter: invert(1) hue-rotate(180deg) saturate(1.1) brightness(0.92) contrast(0.95);
-}
-
-html:not(.dark)[data-theme='emerald'] .map-tile-street {
-	filter: hue-rotate(70deg) saturate(1.2);
-}
-html.dark[data-theme='emerald'] .map-tile-street {
-	filter: invert(1) hue-rotate(250deg) saturate(1.2) brightness(0.92) contrast(0.95);
-}
-
-html:not(.dark)[data-theme='violet'] .map-tile-street {
-	filter: hue-rotate(220deg) saturate(1.1);
-}
-html.dark[data-theme='violet'] .map-tile-street {
-	filter: invert(1) hue-rotate(40deg) saturate(1.1) brightness(0.92) contrast(0.95);
-}
-
-html:not(.dark)[data-theme='monochrome'] .map-tile-street {
-	filter: grayscale(1) contrast(1.05);
-}
-html.dark[data-theme='monochrome'] .map-tile-street {
-	filter: invert(1) grayscale(1) contrast(1.05) brightness(0.95);
-}
-
-/* Monochrome mode also desaturates the satellite layer to stay consistent with the rest of the (grayscale) UI. */
-[data-theme='monochrome'] .map-tile-satellite {
-	filter: grayscale(1) contrast(1.05);
-}
 
 @layer base {
   * {

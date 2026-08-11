@@ -94,6 +94,15 @@ export function NoteSettingsPanel({
 					Note Settings
 				</span>
 
+				<div className="flex flex-col gap-1 px-1">
+					<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
+						Type
+					</span>
+					<span className="text-xs font-mono text-sea-ink-soft">
+						{note.type === "log" ? "Log" : "Standard"}
+					</span>
+				</div>
+
 				<FormField label="Parent Note" htmlFor="note-parent" className="px-1">
 					<Combobox
 						items={parentOptions}
@@ -129,11 +138,16 @@ export function NoteSettingsPanel({
 					<Combobox
 						items={tagItems}
 						multiple
+						autoHighlight
 						value={noteTags}
 						onValueChange={(value) => onTagsChange(value as string[])}
 						onInputValueChange={(value) => setTagQuery(value)}
 					>
-						<div ref={tagAnchor} className="contents">
+						{/* Must not be `display: contents` (e.g. Tailwind's `contents` class) — that
+						collapses this element to a zero-size box, which Base UI's floating
+						positioning reads as "anchor hidden" and renders the popup pinned to
+						the page's top-left corner instead of under the tags input. */}
+						<div ref={tagAnchor}>
 							<ComboboxChips>
 								<ComboboxValue>
 									{(value: string[]) => (

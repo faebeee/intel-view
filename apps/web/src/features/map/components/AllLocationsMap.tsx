@@ -1,4 +1,4 @@
-import type { NoteLocationResponseDto } from "@repo/sdk";
+import type { NoteLocationResponseDto, NoteResponseDto } from "@repo/sdk";
 import { Link } from "@tanstack/react-router";
 import L from "leaflet";
 import { MapPin } from "lucide-react";
@@ -18,24 +18,32 @@ import {
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 import { useTagColorMap } from "#/features/tags/hooks/useTagColorMap.ts";
 
-/** Imperatively fits the map's viewport to contain every given point, once, when the set of points first becomes available. */
+/**
+ * Imperatively fits the map's viewport to contain every given point once per
+ * `fitKey` (e.g. the currently focused note id) — so switching which note is
+ * focused in the sidebar re-frames the map around its pins, while unrelated
+ * re-renders/refetches that don't change `fitKey` don't keep yanking the
+ * viewport back.
+ */
 function FitBoundsToMarkers({
 	positions,
+	fitKey,
 }: {
 	positions: Array<[number, number]>;
+	fitKey: string | number;
 }) {
 	const map = useMap();
-	const fittedRef = React.useRef(false);
+	const fittedKeyRef = React.useRef<string | number | null>(null);
 
 	React.useEffect(() => {
-		if (fittedRef.current || positions.length === 0) return;
-		fittedRef.current = true;
+		if (fittedKeyRef.current === fitKey || positions.length === 0) return;
+		fittedKeyRef.current = fitKey;
 		if (positions.length === 1) {
 			map.setView(positions[0], 13);
 			return;
 		}
 		map.fitBounds(L.latLngBounds(positions), { padding: [32, 32] });
-	}, [map, positions]);
+	}, [map, positions, fitKey]);
 
 	return null;
 }
@@ -43,19 +51,29 @@ function FitBoundsToMarkers({
 export type AllLocationsMapProps = {
 	projectId: string;
 	locations: NoteLocationResponseDto[];
+	/** Every note in the project, used only to resolve parent/child relationships for the solid parent-child connection lines. Omit to skip drawing those lines. */
+	notes?: NoteResponseDto[];
+	/** The currently focused note (if any), used only to key `FitBoundsToMarkers` so re-framing happens whenever the sidebar's selection changes, not just once ever. */
+	selectedNoteId?: number | null;
+	/** Called with a note's id when one of its markers is clicked, so the caller can focus that note (e.g. re-filtering/re-framing the map to just its locations) the same way clicking it in the sidebar does. */
+	onNoteSelect?: (noteId: number) => void;
 	className?: string;
 };
 
 /**
  * Read-only map plotting every location pin derived from every note in a
- * project. Clicking a marker opens a popup with the owning note's label and
- * a link to open that note in the Notes editor. Reusable wherever a
- * project-wide "all note locations" overview is needed (currently the
- * `/projects/$projectId/map` route).
+ * project. Clicking a marker focuses its owning note (via `onNoteSelect`,
+ * re-framing/filtering the map the same way selecting it in the sidebar
+ * does) and opens a popup with the note's label and a link to open it in
+ * the Notes editor. Reusable wherever a project-wide "all note locations"
+ * overview is needed (currently the `/projects/$projectId/map` route).
  */
 export function AllLocationsMap({
 	projectId,
 	locations,
+	notes,
+	selectedNoteId,
+	onNoteSelect,
 	className,
 }: AllLocationsMapProps) {
 	const { data: tags = [] } = useAllTagsQuery(parseInt(projectId, 10));
@@ -86,8 +104,8 @@ export function AllLocationsMap({
 		return map;
 	}, [locations, tagColorMap]);
 
-	/** Groups of 2+ locations that belong to the same note, connected on the map by a dashed line. */
-	const sameNoteConnections = React.useMemo(() => {
+	/** Every visible location grouped by its owning note id, reused for both same-note and parent-child connection lines. */
+	const locationsByNoteId = React.useMemo(() => {
 		const groups = new Map<number, NoteLocationResponseDto[]>();
 		for (const location of locations) {
 			const group = groups.get(location.noteId);
@@ -97,8 +115,55 @@ export function AllLocationsMap({
 				groups.set(location.noteId, [location]);
 			}
 		}
-		return Array.from(groups.values()).filter((group) => group.length > 1);
+		return groups;
 	}, [locations]);
+
+	/** Groups of 2+ locations that belong to the same note, connected on the map by a dashed line. */
+	const sameNoteConnections = React.useMemo(
+		() =>
+			Array.from(locationsByNoteId.values()).filter(
+				(group) => group.length > 1,
+			),
+		[locationsByNoteId],
+	);
+
+	/**
+	 * Solid lines connecting a note's location(s) to its parent note's
+	 * location(s) — one line per parent/child pair that both have at least
+	 * one visible location, drawn between the centroid of each note's pins
+	 * (so it still works cleanly when either side has multiple locations).
+	 */
+	const parentChildConnections = React.useMemo(() => {
+		if (!notes || notes.length === 0) return [];
+
+		const centroidOf = (group: NoteLocationResponseDto[]): [number, number] => [
+			group.reduce((sum, location) => sum + location.lat, 0) / group.length,
+			group.reduce((sum, location) => sum + location.lng, 0) / group.length,
+		];
+
+		const connections: Array<{
+			key: string;
+			positions: [[number, number], [number, number]];
+			color: string;
+		}> = [];
+
+		for (const note of notes) {
+			if (note.parentId === null || note.parentId === undefined) continue;
+			const childLocations = locationsByNoteId.get(note.id);
+			const parentLocations = locationsByNoteId.get(note.parentId);
+			if (!childLocations || !parentLocations) continue;
+
+			connections.push({
+				key: `parent-${note.parentId}-${note.id}`,
+				positions: [centroidOf(parentLocations), centroidOf(childLocations)],
+				color:
+					colorsByLocationId.get(childLocations[0].id)?.[0] ??
+					DEFAULT_MARKER_COLOR,
+			});
+		}
+
+		return connections;
+	}, [notes, locationsByNoteId, colorsByLocationId]);
 
 	return (
 		<div className={className}>
@@ -107,7 +172,21 @@ export function AllLocationsMap({
 				zoom={DEFAULT_MAP_ZOOM}
 				className="h-full w-full"
 			>
-				<FitBoundsToMarkers positions={positions} />
+				<FitBoundsToMarkers
+					positions={positions}
+					fitKey={selectedNoteId ?? "all"}
+				/>
+				{parentChildConnections.map((connection) => (
+					<Polyline
+						key={connection.key}
+						positions={connection.positions}
+						pathOptions={{
+							color: connection.color,
+							weight: 2,
+							opacity: 0.75,
+						}}
+					/>
+				))}
 				{sameNoteConnections.map((group) => (
 					<Polyline
 						key={`connection-${group[0].noteId}`}
@@ -135,6 +214,11 @@ export function AllLocationsMap({
 							key={location.id}
 							position={[location.lat, location.lng]}
 							icon={getTagMarkerIcon(colors)}
+							eventHandlers={
+								onNoteSelect
+									? { click: () => onNoteSelect(location.noteId) }
+									: undefined
+							}
 						>
 							<Popup>
 								<div className="flex flex-col gap-2 min-w-40">
