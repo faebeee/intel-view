@@ -9,6 +9,11 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { ensureLeafletDefaultIcon } from "#/features/map/lib/leaflet-icon-fix.ts";
+import {
+	DEFAULT_MAP_THEME,
+	MAP_THEMES,
+	type MapTheme,
+} from "#/features/map/lib/map-themes.ts";
 import { cn } from "#/lib/utils.ts";
 
 /** Default map center (roughly the middle of the Atlantic) shown when no other center is given. */
@@ -71,24 +76,40 @@ export type LeafletMapProps = {
 	flyTo?: { lat: number; lng: number; zoom?: number } | null;
 	/** A single pinned point to render as a marker, e.g. the currently selected location. */
 	pin?: { lat: number; lng: number } | null;
-	/** Whether to render the layer-switcher control letting users pick between street/satellite tiles. Defaults to `true`. */
+	/** Whether to render the layer-switcher control letting users pick between the map themes (street/satellite/dark/futuristic, etc.). Defaults to `true`. */
 	showLayersControl?: boolean;
 	/** Additional markers/overlays (e.g. `<Marker />`, `<Popup />`) rendered inside the map. */
 	children?: React.ReactNode;
 };
 
 /**
- * Reusable OpenStreetMap map powered by Leaflet/`react-leaflet`. Wraps the
- * tile layers (street + satellite, switchable via a layers control),
- * default-marker-icon fix, click handling, and imperative recentering so
- * consumers across the app (location pickers, map views, read-only
- * previews, etc.) don't need to deal with Leaflet/Vite plumbing directly.
+ * Renders the tile layer for one base map theme, wiring up its URL,
+ * attribution, zoom range, subdomains, and any per-tile styling class.
+ */
+function MapThemeLayer({ theme }: { theme: MapTheme }) {
+	return (
+		<TileLayer
+			attribution={theme.attribution}
+			url={theme.url}
+			maxZoom={theme.maxZoom}
+			subdomains={theme.subdomains ?? "abc"}
+			className={theme.className}
+		/>
+	);
+}
+
+/**
+ * Reusable map powered by Leaflet/`react-leaflet`. Wraps the base map
+ * themes (street, satellite, light, dark and a neon "futuristic" look,
+ * switchable via a layers control), the default-marker-icon fix, click
+ * handling, and imperative recentering so consumers across the app
+ * (location pickers, map views, read-only previews, etc.) don't need to
+ * deal with Leaflet/Vite plumbing directly.
  *
- * The map's own theme is intentionally decoupled from the app's UI theme
+ * The map's themes are intentionally decoupled from the app's UI theme
  * (dark mode, `ocean`/`emerald`/`violet`/`monochrome` color themes, set on
- * `<html>` by `ThemeProvider`) — tile imagery always renders in its natural,
- * unmodified appearance so it stays legible and recognizable no matter
- * which app theme is active.
+ * `<html>` by `ThemeProvider`) — the map has its own theme switcher so tile
+ * imagery can be chosen independently of the surrounding chrome.
  */
 export function LeafletMap({
 	center = DEFAULT_MAP_CENTER,
@@ -103,20 +124,6 @@ export function LeafletMap({
 }: LeafletMapProps) {
 	ensureLeafletDefaultIcon();
 
-	const streetLayer = (
-		<TileLayer
-			attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-			url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-		/>
-	);
-	const satelliteLayer = (
-		<TileLayer
-			attribution='Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community'
-			url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-			maxZoom={19}
-		/>
-	);
-
 	return (
 		<MapContainer
 			center={center}
@@ -126,15 +133,18 @@ export function LeafletMap({
 		>
 			{showLayersControl ? (
 				<LayersControl position="topright">
-					<LayersControl.BaseLayer checked name="Street">
-						{streetLayer}
-					</LayersControl.BaseLayer>
-					<LayersControl.BaseLayer name="Satellite">
-						{satelliteLayer}
-					</LayersControl.BaseLayer>
+					{MAP_THEMES.map((theme) => (
+						<LayersControl.BaseLayer
+							key={theme.id}
+							name={theme.label}
+							checked={theme.id === DEFAULT_MAP_THEME}
+						>
+							<MapThemeLayer theme={theme} />
+						</LayersControl.BaseLayer>
+					))}
 				</LayersControl>
 			) : (
-				streetLayer
+				<MapThemeLayer theme={MAP_THEMES[0]} />
 			)}
 			{onClick && <MapClickHandler onClick={onClick} />}
 			{flyTo && (

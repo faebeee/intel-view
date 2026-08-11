@@ -772,12 +772,17 @@ a {
 }
 
 /*
- * The map's tile layers are intentionally NOT tinted/inverted to match the
- * app's dark mode or color theme (unlike the rest of the UI) — map imagery
- * (street/satellite) always renders in its natural, unmodified appearance
- * so it stays legible and recognizable regardless of which app theme is
- * active. See `LeafletMap.tsx` for the tile layer definitions.
+ * The map's tile themes are intentionally NOT tied to the app's dark mode or
+ * color theme (unlike the rest of the UI) — the map exposes its own theme
+ * switcher (street/satellite/light/dark/futuristic, see `map-themes.ts`).
+ * Most themes render in their natural, unmodified appearance so they stay
+ * legible and recognizable regardless of which app theme is active. The one
+ * exception is the "futuristic" theme, which intentionally recolors CartoDB's
+ * dark tiles into a neon cyan-on-navy look via the filter below.
  */
+.leaflet-tile.map-tiles-futuristic {
+	filter: sepia(0.35) hue-rotate(160deg) saturate(6) brightness(0.85) contrast(1.25);
+}
 
 @layer base {
   * {
