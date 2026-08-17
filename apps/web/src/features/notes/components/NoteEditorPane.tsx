@@ -19,7 +19,7 @@ type NoteEditorPaneProps = {
 	className?: string;
 };
 
-function SaveStatusIndicator({
+export function SaveStatusIndicator({
 	status,
 }: {
 	status: NoteSaveStatus;

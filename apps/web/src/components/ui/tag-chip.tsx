@@ -23,8 +23,8 @@ export function TagChip({ tag, color, size = "xs", className }: TagChipProps) {
 				className,
 			)}
 			style={{
-				backgroundColor: `${color}12`,
-				borderColor: `${color}35`,
+				backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
+				borderColor: `color-mix(in srgb, ${color} 35%, transparent)`,
 				color,
 			}}
 		>
@@ -55,7 +55,7 @@ export function TagChipList({
 				<TagChip
 					key={tag}
 					tag={tag}
-					color={tagColorMap.get(tag.toLowerCase()) || "#00f2ff"}
+					color={tagColorMap.get(tag.toLowerCase()) || "var(--primary)"}
 					size={size}
 				/>
 			))}

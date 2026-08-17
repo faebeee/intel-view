@@ -154,12 +154,13 @@ export function NoteSettingsPanel({
 										<>
 											{value.map((tag) => {
 												const color =
-													tagColorMap.get(tag.toLowerCase()) || "#00f2ff";
+													tagColorMap.get(tag.toLowerCase()) ||
+													"var(--primary)";
 												return (
 													<ComboboxChip
 														key={tag}
 														style={{
-															backgroundColor: `${color}18`,
+															backgroundColor: `color-mix(in srgb, ${color} 18%, transparent)`,
 															color,
 														}}
 													>

@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsArray, IsInt, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsInt,
+  IsIn,
+  IsNumber,
+} from 'class-validator';
 import { NOTE_TYPES } from '../entities/note.entity';
 import type { NoteType } from '../entities/note.entity';
 
@@ -51,4 +58,24 @@ export class CreateNoteDto {
     nullable: true,
   })
   parentId?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  @ApiProperty({
+    description: 'X position to place this note at on the project canvas view.',
+    required: false,
+    type: Number,
+    nullable: true,
+  })
+  canvasX?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Y position to place this note at on the project canvas view.',
+    required: false,
+    type: Number,
+    nullable: true,
+  })
+  canvasY?: number | null;
 }

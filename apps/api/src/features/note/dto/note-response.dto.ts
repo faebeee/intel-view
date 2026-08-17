@@ -38,6 +38,24 @@ export class NoteResponseDto {
   })
   parentId: number | null;
 
+  @ApiProperty({
+    description:
+      'X position of this note on the project canvas view, if it has been placed there.',
+    required: false,
+    nullable: true,
+    type: 'number',
+  })
+  canvasX: number | null;
+
+  @ApiProperty({
+    description:
+      'Y position of this note on the project canvas view, if it has been placed there.',
+    required: false,
+    nullable: true,
+    type: 'number',
+  })
+  canvasY: number | null;
+
   @ApiProperty()
   createdAt: Date;
 
@@ -54,6 +72,8 @@ export function toNoteResponseDto(note: Note): NoteResponseDto {
     content: note.content,
     tags: note.tags,
     parentId: note.parentId,
+    canvasX: note.canvasX,
+    canvasY: note.canvasY,
     createdAt: note.createdAt,
     updatedAt: note.updatedAt,
   };

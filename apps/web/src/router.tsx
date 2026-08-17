@@ -1,13 +1,10 @@
+import { client } from "@repo/sdk";
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
-import { client } from "@repo/sdk";
 import { getContext } from "./integrations/tanstack-query/root-provider";
 import { routeTree } from "./routeTree.gen";
 
 // Configure SDK client with NestJS API baseUrl
-client.setConfig({
-	baseUrl: "http://localhost:4010",
-});
 
 export function getRouter() {
 	const context = getContext();

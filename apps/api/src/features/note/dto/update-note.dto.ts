@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsArray, IsInt } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsInt,
+  IsNumber,
+} from 'class-validator';
 
 export class UpdateNoteDto {
   @IsString()
@@ -38,4 +44,24 @@ export class UpdateNoteDto {
     nullable: true,
   })
   parentId?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  @ApiProperty({
+    description: 'X position to place this note at on the project canvas view.',
+    required: false,
+    type: Number,
+    nullable: true,
+  })
+  canvasX?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Y position to place this note at on the project canvas view.',
+    required: false,
+    type: Number,
+    nullable: true,
+  })
+  canvasY?: number | null;
 }

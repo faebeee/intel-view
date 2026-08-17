@@ -28,10 +28,12 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 		}
 	},
 
-	loader: async () => ({
-		API_URL: process.env.VITE_API_URL || "http://localhost:4010",
-		...(await getThemeCookies()),
-	}),
+	loader: async () => {
+		return {
+			API_URL: process.env.VITE_API_URL || "http://fedora.local:4010",
+			...(await getThemeCookies()),
+		};
+	},
 	head: () => ({
 		meta: [
 			{

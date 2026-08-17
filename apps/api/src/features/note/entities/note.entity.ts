@@ -67,6 +67,26 @@ export class Note extends BaseEntity {
   @OneToMany(() => Note, (note) => note.parent)
   children: Note[];
 
+  @Column({ type: 'float', nullable: true })
+  @ApiProperty({
+    description:
+      'X position of this note on the project canvas view, if it has been placed there.',
+    required: false,
+    nullable: true,
+    type: 'number',
+  })
+  canvasX: number | null;
+
+  @Column({ type: 'float', nullable: true })
+  @ApiProperty({
+    description:
+      'Y position of this note on the project canvas view, if it has been placed there.',
+    required: false,
+    nullable: true,
+    type: 'number',
+  })
+  canvasY: number | null;
+
   @OneToMany(() => NoteHistoryEntry, (entry) => entry.note)
   history: NoteHistoryEntry[];
 

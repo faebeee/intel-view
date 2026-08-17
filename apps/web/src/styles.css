@@ -10,12 +10,19 @@
  * Theming
  * -------
  * Two independent axes control the palette:
- *   - `.dark` on <html> (or an ancestor) toggles light/dark mode.
+ *   - `.dark` on <html> toggles light/dark mode.
  *   - `[data-theme="..."]` on <html> picks the color theme (ocean/emerald/
  *     violet). See #/lib/theme.ts and #/components/theme-provider.tsx.
  *
- * `:root` / `.dark` below are the "ocean" theme and also act as the
+ * `:root` / `:root.dark` below are the "ocean" theme and also act as the
  * fallback if `data-theme` is ever missing.
+ *
+ * Every dark-mode selector below is scoped to `:root.dark` (i.e. only
+ * `<html class="dark">`) rather than a bare `.dark` — third-party libraries
+ * (e.g. `@xyflow/react`'s `colorMode` prop) add their own generically-named
+ * `dark`/`light` class to nested wrapper elements, and a bare `.dark`
+ * selector would incorrectly re-match those too, resetting the whole
+ * palette back to Ocean's dark colors for everything nested inside them.
  */
 
 :root,
@@ -76,7 +83,7 @@
 	--sidebar-ring: oklch(0.5 0.11 200);
 }
 
-.dark,
+:root.dark,
 [data-theme='ocean'].dark {
 	--sea-ink: #f0f9ff;
 	--sea-ink-soft: #bae6fd;
