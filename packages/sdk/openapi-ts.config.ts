@@ -2,7 +2,7 @@ import { defineConfig } from "@hey-api/openapi-ts";
 require('dotenv').config()
 
 export default defineConfig({
-  input: `${process.env.API_URL}/docs-json`,
+  input: `${process.env.HOST}/docs-json`,
   client: {
     name: '@hey-api/client-fetch'
   },
