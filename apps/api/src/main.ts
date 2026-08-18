@@ -4,7 +4,9 @@ import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    //bodyParser: false,
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -18,6 +20,7 @@ async function bootstrap() {
     origin: [
       process.env.APP_URL ?? 'http://localhost:4000',
       'http://fedora.local:4000',
+      `${process.env.HOST}`,
     ],
     credentials: true,
   });

@@ -24,4 +24,4 @@ import { DatabaseModule } from './features/database/database.module';
     TagModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }

@@ -23,7 +23,7 @@ const config = defineConfig({
 		viteReact(),
 	],
 	server: {
-		allowedHosts: ["fedora.local"],
+		allowedHosts: ["fedora.local", process.env.HOST ?? "localhost"],
 	},
 });
 
