@@ -43,14 +43,14 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        HOST: ${HOST:-http://localhost:4010}
+        NITRO_API_URL: ${NITRO_API_URL:-http://localhost:4010}
     container_name: intel-view-web
     restart: always
     depends_on:
       - api
     environment:
       PORT: 4000
-      HOST: 0.0.0.0
+      NITRO_API_URL: ${NITRO_API_URL:-http://localhost:4010}
     ports:
       - '4000:4000'
 
