@@ -20,6 +20,7 @@ async function bootstrap() {
     origin: [
       process.env.APP_URL ?? 'http://localhost:4000',
       'http://192.168.50.15:4000',
+      'http://intel.local:4000',
     ],
     credentials: true,
   });

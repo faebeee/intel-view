@@ -7,6 +7,7 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import assert from "assert";
 import { ThemeProvider } from "#/components/theme-provider";
 import { TooltipProvider } from "#/components/ui/tooltip";
 import { getThemeCookies } from "#/lib/theme-cookies";
@@ -29,8 +30,9 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 	},
 
 	loader: async () => {
+		assert(process.env.VITE_API_URL, "VITE_API_URL is not defined");
 		return {
-			API_URL: process.env.VITE_API_URL || "http://localhost:4010",
+			API_URL: process.env.VITE_API_URL,
 			...(await getThemeCookies()),
 		};
 	},

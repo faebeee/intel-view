@@ -23,7 +23,9 @@ const config = defineConfig({
 		viteReact(),
 	],
 	server: {
-		allowedHosts: [process.env.HOST ?? "localhost"],
+		allowedHosts: ["localhost", "intel.local"],
+		host: "0.0.0.0",
+		port: Number(process.env.PORT ?? 4000),
 	},
 });
 
