@@ -15,14 +15,35 @@ This is the primary REST API for Intel View, built with [NestJS](https://github.
 
 ## Domain Model
 
-| Entity             | Description                                                                                                                                                                                |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Project`          | Top-level container for notes and tags. Has a `mapStyle` (`dark`/`light`/`street`/`satellite`) used by the web app's map view.                                                             |
-| `Note`             | The core content unit. Has a `type` (`markdown`/`iframe`/`log`), optional geolocation (`lat`/`lng`), optional canvas position (`canvasX`/`canvasY`), and can be nested under a `parentId`. |
-| `NoteHistoryEntry` | Immutable audit-trail record of changes to a `Note` (`created`, `updated`, or freeform `manual` entries for `log` notes). Created automatically by `NoteService`.                          |
-| `Tag`              | A color-coded label scoped to a `Project`.                                                                                                                                                 |
+| Entity             | Description                                                                                                                                                                                                    |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Project`          | Top-level container for notes and tags (`name`, `description`).                                                                                                                                                |
+| `Note`             | The core content unit. Has a `type` (`standard`/`log`, immutable after creation), free-text `tags: string[]`, optional canvas position (`canvasX`/`canvasY`), and can be nested under a `parentId`.            |
+| `NoteLocation`     | A geo-pin attached to a `Note`. Fully derived (deleted + recreated) by parsing `[[geo:LAT,LNG,LABEL]]` tokens out of the note's markdown `content` — never written to directly.                                |
+| `NoteLogEntry`     | A single append-only, user-authored entry on a `log`-type note. Never edited or replaced once created.                                                                                                         |
+| `NoteHistoryEntry` | Immutable audit-trail record of changes to a `Note` (`created` or `updated`, the latter with field-level diffs). Created automatically by `NoteService`.                                                       |
+| `Tag`              | A color-coded label registry (`name`, `color`) scoped to a `Project`. A note's own `tags: string[]` can reuse these names for consistent coloring, or contain arbitrary free-text strings not in the registry. |
 
 All entities extend `BaseEntity` (`id`, `createdAt`, `updatedAt`, `deletedAt`) and use **soft deletion** — see [Code Quality Standards](#code-quality-standards) below.
+
+---
+
+## Notes API
+
+Base path: `projects/:projectId/notes`
+
+| Method | Path               | Description                                                                                                                                                                                                                                  |
+| ------ | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/`                | Create a note. Auto-writes a `created` `NoteHistoryEntry` and resyncs `NoteLocation` rows from `content`.                                                                                                                                    |
+| GET    | `/`                | Paginated (`nestjs-paginate`) list; sortable by `id`/`createdAt`/`updatedAt`, searchable on `title`/`content`, filterable on `title`/`content`/`parentId`.                                                                                   |
+| GET    | `/locations`       | Every active note's geo-pins for the whole project, each enriched with the owning note's label and tags.                                                                                                                                     |
+| GET    | `/:id`             | Fetch a single note.                                                                                                                                                                                                                         |
+| PATCH  | `/:id`             | Partial update. Diffs changed fields into one `updated` `NoteHistoryEntry`; resyncs `NoteLocation` rows if `content` changed. Validates `parentId` (must exist, same project, not self, no cycles). `type` cannot be changed after creation. |
+| DELETE | `/:id`             | Soft delete, cascading to all descendant notes (via `parentId`).                                                                                                                                                                             |
+| GET    | `/:id/history`     | This note's `NoteHistoryEntry[]`, most recent first.                                                                                                                                                                                         |
+| GET    | `/:id/locations`   | This note's own `NoteLocation[]`, enriched with its label/tags.                                                                                                                                                                              |
+| POST   | `/:id/log-entries` | Append a `NoteLogEntry`. 400 if the note's `type` is not `log`.                                                                                                                                                                              |
+| GET    | `/:id/log-entries` | This note's `NoteLogEntry[]`, most recent first.                                                                                                                                                                                             |
 
 ---
 
@@ -134,11 +155,12 @@ _Note: Unit tests must mock all repository tokens and injectable providers (e.g.
 
 ## Useful Scripts
 
-| Script                | Description                                                                 |
-| --------------------- | --------------------------------------------------------------------------- |
-| `npm run dev`         | Start the server in watch mode on port `4010`.                              |
-| `npm run build`       | Compile the NestJS app with `nest build`.                                   |
-| `npm run start:prod`  | Run the compiled app from `dist/main`.                                      |
-| `npm run schema:sync` | Sync the database schema from entities using the `DATABASE_URL` datasource. |
-| `npm run seed`        | Populate the database with sample projects/notes/tags.                      |
-| `npm run lint`        | Lint and auto-fix with ESLint.                                              |
+| Script                              | Description                                                                                                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`                       | Start the server in watch mode on port `4010`.                                                                                                                |
+| `npm run build`                     | Compile the NestJS app with `nest build`.                                                                                                                     |
+| `npm run start:prod`                | Run the compiled app from `dist/main`.                                                                                                                        |
+| `npm run schema:sync`               | Sync the database schema from entities using the `DATABASE_URL` datasource.                                                                                   |
+| `npm run seed`                      | Populate the database with sample projects/notes/tags.                                                                                                        |
+| `npm run nest-notes -- <projectId>` | Dev utility: randomly re-nests an existing project's notes under parent/child relationships to simulate realistic nesting depth (defaults to project id `6`). |
+| `npm run lint`                      | Lint and auto-fix with ESLint.                                                                                                                                |

@@ -14,7 +14,7 @@ const { data } = await projectControllerFindAll();
 
 ## Regenerating the Client
 
-The client is regenerated from the running API's OpenAPI schema (`${API_URL}/docs-json`). Whenever endpoints or DTOs change in `apps/api`, regenerate the SDK:
+The client is regenerated from the running API's OpenAPI schema (`${NITRO_API_URL}/docs-json`). Whenever endpoints or DTOs change in `apps/api`, regenerate the SDK:
 
 ```bash
 # Ensure the API is running locally first (see apps/api/README.md)
@@ -28,9 +28,9 @@ npm run generate
 
 Create `packages/sdk/.env`:
 
-| Variable  | Description                                                                     | Example                 |
-| --------- | ------------------------------------------------------------------------------- | ----------------------- |
-| `API_URL` | Base URL of the running API used to fetch the OpenAPI schema during generation. | `http://localhost:4010` |
+| Variable        | Description                                                                     | Example                 |
+| --------------- | ------------------------------------------------------------------------------- | ----------------------- |
+| `NITRO_API_URL` | Base URL of the running API used to fetch the OpenAPI schema during generation. | `http://localhost:4010` |
 
 ## Structure
 

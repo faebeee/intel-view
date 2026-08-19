@@ -21,6 +21,7 @@ It's built as a Turborepo monorepo with a decoupled [TanStack Start](https://tan
 - [Environment Variables](#environment-variables)
 - [Testing](#testing)
 - [API Documentation](#api-documentation)
+- [Docker Deployment](#docker-deployment)
 - [Contributing](#contributing)
 - [Code of Conduct](#code-of-conduct)
 - [License](#license)
@@ -29,16 +30,16 @@ It's built as a Turborepo monorepo with a decoupled [TanStack Start](https://tan
 
 ## Features
 
-- **Projects** — top-level containers for grouping related notes and tags, each with a configurable map style (dark / light / street / satellite).
-- **Notes** — the core content unit, supporting multiple note types:
-  - `markdown` — rich text notes edited with a [Tiptap](https://tiptap.dev/)-based markdown editor.
-  - `iframe` — embeds an external URL directly in the note.
-  - `log` — a note with no content of its own, whose detail view is its automatic change history.
-  - Notes can be nested under a parent note, geolocated (`lat`/`lng`), and positioned on the canvas.
-- **Note history** — every note automatically records `created`/`updated` audit entries with field-level diffs; `log` notes additionally support freeform `manual` entries.
-- **Map view** — plot geolocated notes on an interactive [Leaflet](https://leafletjs.com/) map, draw connections between related notes, and search locations.
+- **Projects** — top-level containers for grouping related notes and tags.
+- **Notes** — the core content unit, supporting two note types:
+  - `standard` — freely-editable rich text edited with a [Tiptap](https://tiptap.dev/)-based markdown editor.
+  - `log` — an append-only note: instead of editing shared content, users append timestamped `NoteLogEntry` records that are never edited or removed.
+  - Notes can be nested under a parent note (with cycle/self-parent protection and cascading soft-delete of descendants) and positioned on the canvas (`canvasX`/`canvasY`).
+  - Geo-pins aren't a separate field — they're derived automatically by parsing `[[geo:LAT,LNG,LABEL]]` tokens out of a note's markdown content (inserted via a toolbar button in the editor), and re-synced whenever the content changes.
+- **Note history** — every note automatically records `created`/`updated` audit entries with field-level diffs. `log` notes additionally have their own append-only `NoteLogEntry` sequence, separate from this audit trail.
+- **Map view** — plot every geo-pin from a project's notes on an interactive [Leaflet](https://leafletjs.com/) map, with a choice of base map themes (street / satellite / light / dark / futuristic, independent from the app's own light/dark UI mode), and draw connecting lines between a note's own pins and between parent/child notes.
 - **Canvas view** — a node-based visual workspace (via [`@xyflow/react`](https://reactflow.dev/)) for spatially arranging and linking notes.
-- **Tags** — color-coded labels scoped to a project for organizing notes.
+- **Tags** — two complementary mechanisms: a per-project color-coded `Tag` registry (name + color) for defining a project's palette, and a free-text `tags: string[]` field stored directly on each note (which can reuse registry names for consistent coloring, or be arbitrary strings).
 - **Internationalization** — UI strings are localized with [Paraglide JS](https://inlang.com/m/gerre34r/library-inlang-paraglideJs) (English and German out of the box).
 - **Typed API client** — the frontend consumes a fully-typed SDK generated from the API's OpenAPI schema, so frontend and backend types never drift apart.
 
@@ -51,7 +52,7 @@ apps/web  (TanStack Start, Vite, React 19)  ───▶  apps/api  (NestJS, Typ
 ```
 
 - **`apps/web`** — the user-facing single-page application. Server-rendered via TanStack Start/Vite/Nitro, styled with Tailwind CSS v4 and shadcn-style primitives.
-- **`apps/api`** — the REST API. Exposes `/projects`, `/projects/:projectId/notes`, and `/projects/:projectId/tags` resources, documented via Swagger.
+- **`apps/api`** — the REST API. Exposes `/projects`, `/projects/:projectId/notes` (plus nested `/history`, `/log-entries`, and `/locations` sub-resources), and `/projects/:projectId/tags`, documented via Swagger.
 - **`packages/sdk`** — a typed API client (`@repo/sdk`) generated from the API's OpenAPI schema using [`@hey-api/openapi-ts`](https://heyapi.dev/). The web app never hand-writes fetch calls; it imports generated functions and types from this package.
 - **`packages/ui`** — shared, framework-level React primitives (`@repo/ui`) available to any app in the workspace.
 - **`packages/eslint-config`** / **`packages/typescript-config`** — shared lint and TypeScript configuration used across all workspaces.
@@ -157,24 +158,26 @@ Whenever the API's endpoints or DTOs change, regenerate the typed client so the 
 npx turbo run generate --filter=@repo/sdk
 ```
 
-This fetches the live OpenAPI schema from `${API_URL}/docs-json` (configured via `packages/sdk/.env`), so the API must be running locally first.
+This fetches the live OpenAPI schema from `${NITRO_API_URL}/docs-json` (configured via `packages/sdk/.env`), so the API must be running locally first.
 
 ## Environment Variables
 
-| File                | Variable       | Description                                                                                      | Example                                                    |
-| ------------------- | -------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| `apps/api/.env`     | `DATABASE_URL` | Postgres connection string used by the **TypeORM CLI** (`schema:sync`, migrations, seed script). | `postgresql://postgres:postgres@localhost:5432/intel_view` |
-| `apps/api/.env`     | `DB_HOST`      | Postgres host used by the **running NestJS app** (`app.module.ts`). Defaults to `localhost`.     | `localhost`                                                |
-| `apps/api/.env`     | `DB_PORT`      | Postgres port used by the running app. Defaults to `5432`.                                       | `5432`                                                     |
-| `apps/api/.env`     | `DB_USERNAME`  | Postgres username used by the running app. Defaults to `postgres`.                               | `postgres`                                                 |
-| `apps/api/.env`     | `DB_PASSWORD`  | Postgres password used by the running app. Defaults to `postgres`.                               | `postgres`                                                 |
-| `apps/api/.env`     | `DB_DATABASE`  | Postgres database name used by the running app. Defaults to `intel_view`.                        | `intel_view`                                               |
-| `apps/api/.env`     | `APP_URL`      | Origin allowed by CORS for the web app. Defaults to `http://localhost:4000`.                     | `http://localhost:4000`                                    |
-| `apps/api/.env`     | `PORT`         | Port the NestJS server listens on. Defaults to `4010`.                                           | `4010`                                                     |
-| `apps/web/.env`     | `VITE_API_URL` | Base URL the web app uses to call the API.                                                       | `http://localhost:4010`                                    |
-| `packages/sdk/.env` | `API_URL`      | Base URL used to fetch the OpenAPI schema when regenerating the SDK.                             | `http://localhost:4010`                                    |
+| File                | Variable        | Description                                                                                      | Example                                                    |
+| ------------------- | --------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| `apps/api/.env`     | `DATABASE_URL`  | Postgres connection string used by the **TypeORM CLI** (`schema:sync`, migrations, seed script). | `postgresql://postgres:postgres@localhost:5432/intel_view` |
+| `apps/api/.env`     | `DB_HOST`       | Postgres host used by the **running NestJS app** (`app.module.ts`). Defaults to `localhost`.     | `localhost`                                                |
+| `apps/api/.env`     | `DB_PORT`       | Postgres port used by the running app. Defaults to `5432`.                                       | `5432`                                                     |
+| `apps/api/.env`     | `DB_USERNAME`   | Postgres username used by the running app. Defaults to `postgres`.                               | `postgres`                                                 |
+| `apps/api/.env`     | `DB_PASSWORD`   | Postgres password used by the running app. Defaults to `postgres`.                               | `postgres`                                                 |
+| `apps/api/.env`     | `DB_DATABASE`   | Postgres database name used by the running app. Defaults to `intel_view`.                        | `intel_view`                                               |
+| `apps/api/.env`     | `APP_URL`       | Origin allowed by CORS for the web app. Defaults to `http://localhost:4000`.                     | `http://localhost:4000`                                    |
+| `apps/api/.env`     | `PORT`          | Port the NestJS server listens on. Defaults to `4010`.                                           | `4010`                                                     |
+| `apps/web/.env`     | `NITRO_API_URL` | Base URL the web app uses to call the API.                                                       | `http://localhost:4010`                                    |
+| `packages/sdk/.env` | `NITRO_API_URL` | Base URL used to fetch the OpenAPI schema when regenerating the SDK.                             | `http://localhost:4010`                                    |
 
 > **Why two sets of DB variables?** The running API (`app.module.ts`) connects using the discrete `DB_HOST`/`DB_PORT`/`DB_USERNAME`/`DB_PASSWORD`/`DB_DATABASE` variables (with sensible defaults matching `docker-compose.yml`), while standalone TypeORM CLI commands (`npm run schema:sync`, `npm run seed`, migrations) use a single `DATABASE_URL` connection string via `src/features/database/datasource.ts`. Keep both in sync when pointing at a non-default database.
+
+> **A note on `NITRO_API_URL` vs. `VITE_API_URL`:** at request time, `apps/web/src/routes/__root.tsx` actually reads `process.env.VITE_API_URL` (falling back to `http://localhost:4010`) to configure the SDK client's base URL. In local dev, only `NITRO_API_URL` is set, so this falls back to the hardcoded default — which is fine as long as the API runs on its default port. The Docker images (see [Docker Deployment](#docker-deployment) below) explicitly bridge the two by setting `ENV VITE_API_URL=${NITRO_API_URL}` in `apps/web/Dockerfile`, so in containerized deployments `NITRO_API_URL` is the only variable you need to set.
 
 None of the `.env` files are committed to git (see `.gitignore`) — create them locally before running the apps.
 
@@ -192,6 +195,25 @@ Once the API is running, interactive Swagger (OpenAPI) documentation is availabl
 
 ```
 http://localhost:4010/docs
+```
+
+## Docker Deployment
+
+Beyond running just the database container for local development, the full stack (API + web + Postgres) can be built and run with Docker Compose using the multi-stage `apps/api/Dockerfile` and `apps/web/Dockerfile` (both expect the **repository root** as their build context):
+
+```bash
+NITRO_API_URL=https://api.example.com docker compose up -d --build
+```
+
+- `db` — PostgreSQL 15, same as local dev.
+- `api` — built from `apps/api/Dockerfile`, listens on port `4010`.
+- `web` — built from `apps/web/Dockerfile`; `NITRO_API_URL` is passed both as a build arg (baked into the Nitro server bundle) and a runtime env var, and defaults to `http://localhost:4010` if unset. The image bridges it internally to `VITE_API_URL`, which is what the app actually reads at request time (see the note above).
+
+For a from-source build of a single image, build with the repo root as context, e.g.:
+
+```bash
+docker build -f apps/api/Dockerfile -t intel-view-api .
+docker build -f apps/web/Dockerfile --build-arg NITRO_API_URL=https://api.example.com -t intel-view-web .
 ```
 
 ## Contributing

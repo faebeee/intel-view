@@ -37,9 +37,13 @@ The dev server runs on **http://localhost:4000**.
 
 Create `apps/web/.env`:
 
-| Variable       | Description                                 | Example                 |
-| -------------- | ------------------------------------------- | ----------------------- |
-| `VITE_API_URL` | Base URL of the Intel View API (`apps/api`) | `http://localhost:4010` |
+| Variable        | Description                                  | Example                 |
+| --------------- | -------------------------------------------- | ----------------------- |
+| `NITRO_API_URL` | Base URL of the Intel View API (`apps/api`). | `http://localhost:4010` |
+
+> `apps/web/src/routes/__root.tsx` actually reads `process.env.VITE_API_URL` at request time to configure the SDK client (falling back to `http://localhost:4010` if unset). In local dev only `NITRO_API_URL` is set, so this relies on the fallback matching the API's default port. The Docker image (`apps/web/Dockerfile`) explicitly bridges `NITRO_API_URL` into `VITE_API_URL` for both build and runtime, so this only matters if you run the app outside Docker against a non-default API URL — in that case also export `VITE_API_URL` with the same value.
+>
+> Separately, `vite.config.ts` reads `process.env.HOST` for the dev server's `allowedHosts` setting (defaults to `localhost`) — this is unrelated to the API URL and only affects which hostnames may reach the local Vite dev server.
 
 ## Building for Production
 
