@@ -30,7 +30,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 
 	loader: async () => {
 		return {
-			API_URL: process.env.VITE_API_URL || "http://fedora.local:4010",
+			API_URL: process.env.HOST || "http://localhost:4010",
 			...(await getThemeCookies()),
 		};
 	},

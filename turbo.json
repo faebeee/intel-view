@@ -45,7 +45,7 @@
       "cache": false,
       "persistent": true,
       "env": [
-        "VITE_API_URL"
+        "HOST"
       ],
       "inputs": [
         "$TURBO_DEFAULT$",
