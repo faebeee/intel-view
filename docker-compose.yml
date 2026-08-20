@@ -28,7 +28,6 @@ services:
         condition: service_healthy
     environment:
       PORT: 4010
-      HOST: http://intel.local:4000
       DB_HOST: db
       DB_PORT: 5432
       DB_USERNAME: postgres

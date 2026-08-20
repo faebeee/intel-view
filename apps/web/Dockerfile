@@ -22,9 +22,8 @@ RUN npm ci --workspace=web --include-workspace-root
 # Build-time public env vars (baked into the client bundle) can be passed via
 # --build-arg, e.g. --build-arg VITE_API_URL=https://api.example.com
 FROM base AS build
-ARG NITRO_API_URL 
-ENV NITRO_API_URL=${NITRO_API_URL}
-ENV VITE_API_URL=${NITRO_API_URL}
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY . .
@@ -47,8 +46,7 @@ USER nitro
 EXPOSE 4000
 ENV PORT=4000
 
-ARG NITRO_API_URL 
-ENV NITRO_API_URL=${NITRO_API_URL}
-ENV VITE_API_URL=${NITRO_API_URL}
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
 
 CMD ["node", ".output/server/index.mjs"]

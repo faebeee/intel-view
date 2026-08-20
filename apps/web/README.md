@@ -37,13 +37,14 @@ The dev server runs on **http://localhost:4000**.
 
 Create `apps/web/.env`:
 
-| Variable        | Description                                  | Example                 |
-| --------------- | -------------------------------------------- | ----------------------- |
-| `NITRO_API_URL` | Base URL of the Intel View API (`apps/api`). | `http://localhost:4010` |
+| Variable       | Description                                                                                    | Example                 |
+| -------------- | ------------------------------------------------------------------------------------------------ | ----------------------- |
+| `VITE_API_URL` | Base URL of the Intel View API (`apps/api`). Required — no fallback.                             | `http://localhost:4010` |
+| `PORT`         | Port the Vite dev server / Nitro server listens on. Defaults to `4000`.                          | `4000`                  |
 
-> `apps/web/src/routes/__root.tsx` actually reads `process.env.VITE_API_URL` at request time to configure the SDK client (falling back to `http://localhost:4010` if unset). In local dev only `NITRO_API_URL` is set, so this relies on the fallback matching the API's default port. The Docker image (`apps/web/Dockerfile`) explicitly bridges `NITRO_API_URL` into `VITE_API_URL` for both build and runtime, so this only matters if you run the app outside Docker against a non-default API URL — in that case also export `VITE_API_URL` with the same value.
+> `apps/web/src/routes/__root.tsx` reads `process.env.VITE_API_URL` at request time to configure the SDK client's base URL, and asserts it is defined — the app throws at request time if it's missing, there is no hardcoded fallback. Set it in `apps/web/.env` for local dev, and pass it as both a build arg and runtime env var when building with Docker/Podman (see the [root README](../../README.md#docker-deployment)).
 >
-> Separately, `vite.config.ts` reads `process.env.HOST` for the dev server's `allowedHosts` setting (defaults to `localhost`) — this is unrelated to the API URL and only affects which hostnames may reach the local Vite dev server.
+> Separately, `vite.config.ts` sets the dev server's `allowedHosts` to `["localhost", "intel.local"]`, binds `host: "0.0.0.0"`, and reads `process.env.PORT` (defaults to `4000`) for the listen port. If you access the dev server through another hostname, add it to `allowedHosts` in `vite.config.ts`.
 
 ## Building for Production
 

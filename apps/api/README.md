@@ -73,7 +73,7 @@ Create `apps/api/.env`. This service uses **two separate DB connection mechanism
 
 Additional variables:
 
-- `APP_URL` — origin allowed by CORS for the web app (default `http://localhost:4000`)
+- `APP_URL` — origin allowed by CORS for the web app (default `http://localhost:4000`). Two additional origins, `http://192.168.50.15:4000` and `http://intel.local:4000`, are hardcoded in `src/main.ts` alongside it — update that list directly if your deployment uses a different LAN hostname.
 - `PORT` — port the server listens on (default `4010`)
 
 ### 3. Run the App

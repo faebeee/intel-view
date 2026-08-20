@@ -158,7 +158,7 @@ Whenever the API's endpoints or DTOs change, regenerate the typed client so the 
 npx turbo run generate --filter=@repo/sdk
 ```
 
-This fetches the live OpenAPI schema from `${NITRO_API_URL}/docs-json` (configured via `packages/sdk/.env`), so the API must be running locally first.
+This fetches the live OpenAPI schema from `${VITE_API_URL}/docs-json` (configured via `packages/sdk/.env`), so the API must be running locally first.
 
 ## Environment Variables
 
@@ -170,14 +170,15 @@ This fetches the live OpenAPI schema from `${NITRO_API_URL}/docs-json` (configur
 | `apps/api/.env`     | `DB_USERNAME`   | Postgres username used by the running app. Defaults to `postgres`.                               | `postgres`                                                 |
 | `apps/api/.env`     | `DB_PASSWORD`   | Postgres password used by the running app. Defaults to `postgres`.                               | `postgres`                                                 |
 | `apps/api/.env`     | `DB_DATABASE`   | Postgres database name used by the running app. Defaults to `intel_view`.                        | `intel_view`                                               |
-| `apps/api/.env`     | `APP_URL`       | Origin allowed by CORS for the web app. Defaults to `http://localhost:4000`.                     | `http://localhost:4000`                                    |
+| `apps/api/.env`     | `APP_URL`       | Origin allowed by CORS for the web app, in addition to two hardcoded origins in `main.ts` (`http://192.168.50.15:4000` and `http://intel.local:4000`). Defaults to `http://localhost:4000`. | `http://localhost:4000` |
 | `apps/api/.env`     | `PORT`          | Port the NestJS server listens on. Defaults to `4010`.                                           | `4010`                                                     |
-| `apps/web/.env`     | `NITRO_API_URL` | Base URL the web app uses to call the API.                                                       | `http://localhost:4010`                                    |
-| `packages/sdk/.env` | `NITRO_API_URL` | Base URL used to fetch the OpenAPI schema when regenerating the SDK.                             | `http://localhost:4010`                                    |
+| `apps/web/.env`     | `VITE_API_URL`  | Base URL the web app uses to call the API. Read directly by `apps/web/src/routes/__root.tsx` (no fallback — the app asserts this is set at request time). | `http://localhost:4010` |
+| `apps/web/.env`     | `PORT`          | Port the Vite dev server / Nitro server listens on. Defaults to `4000`.                          | `4000`                                                     |
+| `packages/sdk/.env` | `VITE_API_URL`  | Base URL used to fetch the OpenAPI schema when regenerating the SDK.                             | `http://localhost:4010`                                    |
 
 > **Why two sets of DB variables?** The running API (`app.module.ts`) connects using the discrete `DB_HOST`/`DB_PORT`/`DB_USERNAME`/`DB_PASSWORD`/`DB_DATABASE` variables (with sensible defaults matching `docker-compose.yml`), while standalone TypeORM CLI commands (`npm run schema:sync`, `npm run seed`, migrations) use a single `DATABASE_URL` connection string via `src/features/database/datasource.ts`. Keep both in sync when pointing at a non-default database.
 
-> **A note on `NITRO_API_URL` vs. `VITE_API_URL`:** at request time, `apps/web/src/routes/__root.tsx` actually reads `process.env.VITE_API_URL` (falling back to `http://localhost:4010`) to configure the SDK client's base URL. In local dev, only `NITRO_API_URL` is set, so this falls back to the hardcoded default — which is fine as long as the API runs on its default port. The Docker images (see [Docker Deployment](#docker-deployment) below) explicitly bridge the two by setting `ENV VITE_API_URL=${NITRO_API_URL}` in `apps/web/Dockerfile`, so in containerized deployments `NITRO_API_URL` is the only variable you need to set.
+> **`VITE_API_URL` is required in `apps/web`.** Unlike earlier versions of this app, there's no hardcoded fallback: `apps/web/src/routes/__root.tsx` asserts `process.env.VITE_API_URL` is defined and throws at request time otherwise. Make sure it's set in `apps/web/.env` for local dev, and passed through for Docker/Podman builds and runtime (see [Docker Deployment](#docker-deployment) below).
 
 None of the `.env` files are committed to git (see `.gitignore`) — create them locally before running the apps.
 
@@ -199,21 +200,21 @@ http://localhost:4010/docs
 
 ## Docker Deployment
 
-Beyond running just the database container for local development, the full stack (API + web + Postgres) can be built and run with Docker Compose using the multi-stage `apps/api/Dockerfile` and `apps/web/Dockerfile` (both expect the **repository root** as their build context):
+Beyond running just the database container for local development, the full stack (API + web + Postgres) can be built and run with Docker Compose (or Podman Compose) using the multi-stage `apps/api/Dockerfile` and `apps/web/Dockerfile` (both expect the **repository root** as their build context):
 
 ```bash
-NITRO_API_URL=https://api.example.com docker compose up -d --build
+VITE_API_URL=https://api.example.com docker compose up -d --build
 ```
 
 - `db` — PostgreSQL 15, same as local dev.
-- `api` — built from `apps/api/Dockerfile`, listens on port `4010`.
-- `web` — built from `apps/web/Dockerfile`; `NITRO_API_URL` is passed both as a build arg (baked into the Nitro server bundle) and a runtime env var, and defaults to `http://localhost:4010` if unset. The image bridges it internally to `VITE_API_URL`, which is what the app actually reads at request time (see the note above).
+- `api` — built from `apps/api/Dockerfile`, listens on port `4010`. CORS accepts the API's `APP_URL` env var plus the hardcoded `http://intel.local:4000` and `http://192.168.50.15:4000` origins (see `apps/api/src/main.ts`) — adjust these if your deployment uses a different hostname.
+- `web` — built from `apps/web/Dockerfile`; `VITE_API_URL` is passed both as a build arg (baked into the client bundle and the Nitro server bundle via `apps/web/src/routes/__root.tsx`) and a runtime env var, and defaults to `http://intel.local:4010` if unset in `docker-compose.yml`. The build also runs `npx turbo run generate` first, so the API must be reachable at `VITE_API_URL` (or already running) at build time to regenerate `@repo/sdk` from its live OpenAPI schema.
 
 For a from-source build of a single image, build with the repo root as context, e.g.:
 
 ```bash
 docker build -f apps/api/Dockerfile -t intel-view-api .
-docker build -f apps/web/Dockerfile --build-arg NITRO_API_URL=https://api.example.com -t intel-view-web .
+docker build -f apps/web/Dockerfile --build-arg VITE_API_URL=https://api.example.com -t intel-view-web .
 ```
 
 ## Contributing
