@@ -5,6 +5,7 @@ import { TagModule } from './features/tag/tag.module';
 import { ProjectModule } from './features/project/project.module';
 import { ProjectGroupModule } from './features/project-group/project-group.module';
 import { DatabaseModule } from './features/database/database.module';
+import { AggregatorModule } from './features/aggregator/aggregator.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { DatabaseModule } from './features/database/database.module';
     ProjectModule,
     NoteModule,
     TagModule,
+    AggregatorModule,
   ],
 })
 export class AppModule {}

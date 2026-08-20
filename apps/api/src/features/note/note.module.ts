@@ -25,5 +25,6 @@ import { StorageModule } from '../storage/storage.module';
   ],
   controllers: [NoteController],
   providers: [NoteService, GeocodingService],
+  exports: [NoteService, GeocodingService],
 })
 export class NoteModule {}

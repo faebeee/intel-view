@@ -1,14 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
+import type { NoteGeocodeStatus, NoteType } from '../entities/note.entity';
 import {
   Note,
-  NOTE_TYPES,
   NOTE_GEOCODE_STATUSES,
+  NOTE_TYPES,
 } from '../entities/note.entity';
-import type { NoteType, NoteGeocodeStatus } from '../entities/note.entity';
 
 export class NoteResponseDto {
   @ApiProperty()
-  id: number;
+  id?: number;
 
   @ApiProperty()
   projectId: number;

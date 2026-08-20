@@ -133,6 +133,19 @@ export class NoteService {
   }
 
   /**
+   * Loads a note by its ID, throwing if it doesn't exist. Unlike `findOne`,
+   */
+  public async findById(id: number): Promise<Note> {
+    const note = await this.noteRepository.findOne({
+      where: { id, deletedAt: IsNull() },
+    });
+    if (!note) {
+      throw new NotFoundException(`Note with ID ${id} not found`);
+    }
+    return note;
+  }
+
+  /**
    * Validates that `parentId` refers to an existing, active note within the
    * same project as `childId`, that they aren't the same note, and that
    * linking them wouldn't create a cycle in the note relation graph (a DAG,
