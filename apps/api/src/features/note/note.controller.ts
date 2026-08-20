@@ -15,6 +15,8 @@ import type { PaginateQuery } from 'nestjs-paginate';
 import { NoteService, notePaginateConfig } from './note.service';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
+import { AddNoteParentDto } from './dto/add-note-parent.dto';
+import { AddNoteChildDto } from './dto/add-note-child.dto';
 import { CreateNoteLogEntryDto } from './dto/create-note-log-entry.dto';
 import { NoteResponseDto, toNoteResponseDto } from './dto/note-response.dto';
 import {
@@ -126,6 +128,110 @@ export class NoteController {
     @Body() updateNoteDto: UpdateNoteDto,
   ): Promise<NoteResponseDto> {
     const note = await this.noteService.update(projectId, id, updateNoteDto);
+    if (!note) {
+      throw new NotFoundException(`Note with ID ${id} not found`);
+    }
+    return toNoteResponseDto(note);
+  }
+
+  @Post(':id/parents')
+  @ApiOperation({
+    summary:
+      'Add another note as a parent of this note (notes may have multiple parents/children; this adds a relation without replacing any existing ones)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'The relation has been successfully added.',
+    type: NoteResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Invalid relation (self-link, already exists, or would create a cycle).',
+  })
+  @ApiResponse({ status: 404, description: 'Note not found.' })
+  async addParent(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() addNoteParentDto: AddNoteParentDto,
+  ): Promise<NoteResponseDto> {
+    await this.noteService.addRelation(
+      projectId,
+      addNoteParentDto.parentId,
+      id,
+    );
+    const note = await this.noteService.findOne(projectId, id);
+    if (!note) {
+      throw new NotFoundException(`Note with ID ${id} not found`);
+    }
+    return toNoteResponseDto(note);
+  }
+
+  @Delete(':id/parents/:parentId')
+  @ApiOperation({ summary: 'Remove a parent relation from this note' })
+  @ApiResponse({
+    status: 200,
+    description: 'The relation has been successfully removed.',
+    type: NoteResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Note or relation not found.' })
+  async removeParent(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('parentId', ParseIntPipe) parentId: number,
+  ): Promise<NoteResponseDto> {
+    await this.noteService.removeRelation(projectId, parentId, id);
+    const note = await this.noteService.findOne(projectId, id);
+    if (!note) {
+      throw new NotFoundException(`Note with ID ${id} not found`);
+    }
+    return toNoteResponseDto(note);
+  }
+
+  @Post(':id/children')
+  @ApiOperation({
+    summary:
+      'Add another note as a child of this note (notes may have multiple parents/children; this adds a relation without replacing any existing ones)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'The relation has been successfully added.',
+    type: NoteResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Invalid relation (self-link, already exists, or would create a cycle).',
+  })
+  @ApiResponse({ status: 404, description: 'Note not found.' })
+  async addChild(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() addNoteChildDto: AddNoteChildDto,
+  ): Promise<NoteResponseDto> {
+    await this.noteService.addRelation(projectId, id, addNoteChildDto.childId);
+    const note = await this.noteService.findOne(projectId, id);
+    if (!note) {
+      throw new NotFoundException(`Note with ID ${id} not found`);
+    }
+    return toNoteResponseDto(note);
+  }
+
+  @Delete(':id/children/:childId')
+  @ApiOperation({ summary: 'Remove a child relation from this note' })
+  @ApiResponse({
+    status: 200,
+    description: 'The relation has been successfully removed.',
+    type: NoteResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Note or relation not found.' })
+  async removeChild(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('childId', ParseIntPipe) childId: number,
+  ): Promise<NoteResponseDto> {
+    await this.noteService.removeRelation(projectId, id, childId);
+    const note = await this.noteService.findOne(projectId, id);
     if (!note) {
       throw new NotFoundException(`Note with ID ${id} not found`);
     }

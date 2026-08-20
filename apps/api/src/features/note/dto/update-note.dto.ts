@@ -1,11 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsString,
-  IsOptional,
-  IsArray,
-  IsInt,
-  IsNumber,
-} from 'class-validator';
+import { IsString, IsOptional, IsArray, IsNumber } from 'class-validator';
 
 export class UpdateNoteDto {
   @IsString()
@@ -33,17 +27,6 @@ export class UpdateNoteDto {
     type: [String],
   })
   tags?: string[];
-
-  @IsInt()
-  @IsOptional()
-  @ApiProperty({
-    description:
-      'ID of the parent note this note should be nested under. Set to null to detach and make this a top-level (root) note.',
-    required: false,
-    type: Number,
-    nullable: true,
-  })
-  parentId?: number | null;
 
   @IsNumber()
   @IsOptional()

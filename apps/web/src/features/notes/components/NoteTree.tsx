@@ -27,10 +27,12 @@ type NoteTreeProps = {
 };
 
 /**
- * Left-column hierarchical tree of a project's notes. Each row can be
- * expanded/collapsed (if it has children), selected (opens it in the
- * editor), given a child note, or deleted (cascades to its descendants on
- * the backend).
+ * Left-column tree of a project's notes, grouped by parent/child relations
+ * (a directed acyclic graph — a note may have multiple parents, in which
+ * case it appears once under each). Each row can be expanded/collapsed (if
+ * it has children), selected (opens it in the editor), given a child note,
+ * or deleted (does not cascade — child notes remain, keeping any other
+ * parent relations they have).
  */
 export function NoteTree({
 	notes,
@@ -82,8 +84,7 @@ export function NoteTree({
 							/>
 						))}
 					</div>
-				)}
-			</div>
+				)}			</div>
 		</div>
 	);
 }
@@ -169,7 +170,7 @@ function NoteTreeItem({
 						variant="ghost"
 						size="icon-xs"
 						title="Delete note"
-						description={`Delete "${getNoteLabel(note)}" and all of its nested notes? This cannot be undone.`}
+						description={`Delete "${getNoteLabel(note)}"? Any notes linked to it as children will remain (losing this parent connection). This cannot be undone.`}
 						confirmText="Delete"
 						disabled={isMutating}
 						onClick={() => onDelete(note.id)}

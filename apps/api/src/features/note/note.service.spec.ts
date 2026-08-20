@@ -5,6 +5,7 @@ import { In, IsNull } from 'typeorm';
 import { NoteService } from './note.service';
 import { Note } from './entities/note.entity';
 import { NoteHistoryEntry } from './entities/note-history-entry.entity';
+import { NoteRelation } from './entities/note-relation.entity';
 import { NoteLocation } from './entities/note-location.entity';
 import { NoteLogEntry } from './entities/note-log-entry.entity';
 import { ProjectAccessService } from '../project/project-access.service';
@@ -26,6 +27,14 @@ describe('NoteService', () => {
     create: jest.fn(),
     save: jest.fn(),
     find: jest.fn(),
+  };
+  const mockNoteRelationRepository = {
+    create: jest.fn(),
+    save: jest.fn(),
+    find: jest.fn(),
+    findOne: jest.fn(),
+    remove: jest.fn(),
+    delete: jest.fn(),
   };
   const mockNoteLocationRepository = {
     create: jest.fn(),
@@ -59,6 +68,10 @@ describe('NoteService', () => {
           useValue: mockNoteHistoryRepository,
         },
         {
+          provide: getRepositoryToken(NoteRelation),
+          useValue: mockNoteRelationRepository,
+        },
+        {
           provide: getRepositoryToken(NoteLocation),
           useValue: mockNoteLocationRepository,
         },
@@ -88,6 +101,19 @@ describe('NoteService', () => {
     mockNoteHistoryRepository.save.mockImplementation(
       (entry: Partial<NoteHistoryEntry>) => Promise.resolve(entry),
     );
+
+    // Default: no existing relations, so tests that don't care about
+    // parent/child relations don't need to stub this repository.
+    mockNoteRelationRepository.create.mockImplementation(
+      (relation: Partial<NoteRelation>) => relation,
+    );
+    mockNoteRelationRepository.save.mockImplementation((relations: unknown) =>
+      Promise.resolve(relations),
+    );
+    mockNoteRelationRepository.find.mockResolvedValue([]);
+    mockNoteRelationRepository.findOne.mockResolvedValue(null);
+    mockNoteRelationRepository.remove.mockResolvedValue(undefined);
+    mockNoteRelationRepository.delete.mockResolvedValue({ affected: 0 });
 
     // Default pass-through behavior for the location repository, so tests
     // that don't care about location sync don't need to stub it.
@@ -197,7 +223,6 @@ describe('NoteService', () => {
         projectId,
         content: 'old content',
         tags: ['a'],
-        parentId: null,
       } as unknown as Note;
       const updateNoteDto = {
         content: 'new content',
@@ -259,24 +284,18 @@ describe('NoteService', () => {
         projectId,
         content: 'important content',
         tags: ['keep', 'me'],
-        parentId: 7,
+        canvasX: 1,
       } as unknown as Note;
       // Simulates a class-transformer-produced DTO instance where every
-      // declared field is present as an own property, but only `parentId`
+      // declared field is present as an own property, but only `canvasX`
       // was actually supplied in the request body.
       const updateNoteDto = {
         content: undefined,
         tags: undefined,
-        parentId: 3,
+        canvasX: 42,
       };
 
-      mockNoteRepository.findOne
-        .mockResolvedValueOnce(existingNote) // note being updated
-        .mockResolvedValueOnce({ id: 3, projectId, parentId: null }); // new parent
-      mockNoteRepository.find.mockResolvedValue([
-        { id: 1, parentId: null },
-        { id: 3, parentId: null },
-      ]);
+      mockNoteRepository.findOne.mockResolvedValueOnce(existingNote); // note being updated
 
       mockNoteRepository.save.mockImplementation((note: Note) =>
         Promise.resolve(note),
@@ -286,7 +305,7 @@ describe('NoteService', () => {
 
       expect(result?.content).toBe('important content');
       expect(result?.tags).toEqual(['keep', 'me']);
-      expect(result?.parentId).toBe(3);
+      expect(result?.canvasX).toBe(42);
     });
   });
 
@@ -882,33 +901,39 @@ describe('NoteService', () => {
     });
   });
 
-  describe('nesting (parentId)', () => {
-    it('creates a note with a valid parentId', async () => {
+  describe('create with parentIds', () => {
+    it('creates a note with valid parentIds and links them', async () => {
       const projectId = 1;
-      const createNoteDto = { content: 'child note', parentId: 5 };
+      const createNoteDto = { content: 'child note', parentIds: [5] };
       const createdNote = {
         id: 10,
         projectId,
         content: 'child note',
-        parentId: 5,
       } as unknown as Note;
 
       mockNoteRepository.findOne.mockResolvedValue({
         id: 5,
         projectId,
-        parentId: null,
       });
       mockNoteRepository.create.mockReturnValue(createdNote);
       mockNoteRepository.save.mockResolvedValue(createdNote);
 
       const result = await service.create(projectId, createNoteDto);
 
-      expect(result.parentId).toBe(5);
+      expect(mockNoteRepository.create).toHaveBeenCalledWith({
+        content: 'child note',
+        parentIds: [5],
+        projectId,
+      });
+      expect(mockNoteRelationRepository.save).toHaveBeenCalledWith([
+        { parentId: 5, childId: 10 },
+      ]);
+      expect(result.id).toBe(10);
     });
 
     it('rejects creating a note with a parentId from another project', async () => {
       const projectId = 1;
-      const createNoteDto = { content: 'child note', parentId: 5 };
+      const createNoteDto = { content: 'child note', parentIds: [5] };
 
       mockNoteRepository.findOne.mockResolvedValue(null);
 
@@ -916,58 +941,194 @@ describe('NoteService', () => {
         NotFoundException,
       );
     });
+  });
 
-    it('rejects a note being its own parent on update', async () => {
+  describe('addRelation / removeRelation', () => {
+    it('adds a parent/child relation between two active notes', async () => {
       const projectId = 1;
-      const existingNote = { id: 1, projectId, parentId: null } as Note;
-
       mockNoteRepository.findOne
-        .mockResolvedValueOnce(existingNote) // findOne for the note being updated
-        .mockResolvedValueOnce(existingNote); // findOne for the note being updated
+        .mockResolvedValueOnce({ id: 1, projectId }) // parent
+        .mockResolvedValueOnce({ id: 2, projectId }); // child
+      mockNoteRepository.find.mockResolvedValue([{ id: 1 }, { id: 2 }]);
+      mockNoteRelationRepository.find.mockResolvedValue([]);
+      mockNoteRelationRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        service.update(projectId, 1, { parentId: 1 }),
-      ).rejects.toThrow(BadRequestException);
+      await service.addRelation(projectId, 1, 2);
+
+      expect(mockNoteRelationRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ parentId: 1, childId: 2 }),
+      );
+      expect(mockNoteHistoryRepository.save).toHaveBeenCalledWith([
+        expect.objectContaining({
+          noteId: 2,
+          changeType: 'link_added',
+          relatedNoteId: 1,
+          direction: 'parent',
+        }),
+        expect.objectContaining({
+          noteId: 1,
+          changeType: 'link_added',
+          relatedNoteId: 2,
+          direction: 'child',
+        }),
+      ]);
     });
 
-    it('rejects a circular parent relationship on update', async () => {
-      const projectId = 1;
-      // Hierarchy: note 1 (root) -> note 2 (child of 1). Attempt to set
-      // note 1's parent to note 2, which would create a cycle.
-      const note1 = { id: 1, projectId, parentId: null } as Note;
-      const note2 = { id: 2, projectId, parentId: 1 } as Note;
-
-      mockNoteRepository.findOne
-        .mockResolvedValueOnce(note1) // the note being updated (id: 1)
-        .mockResolvedValueOnce(note2); // the proposed parent (id: 2)
-      mockNoteRepository.find.mockResolvedValue([note1, note2]);
-
-      await expect(
-        service.update(projectId, 1, { parentId: 2 }),
-      ).rejects.toThrow(BadRequestException);
+    it('rejects linking a note to itself', async () => {
+      await expect(service.addRelation(1, 5, 5)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
-    it('cascades soft-delete to all descendants', async () => {
-      const projectId = 1;
-      // Hierarchy: 1 -> 2 -> 3 (3 is grandchild of 1)
-      const note1 = { id: 1, projectId, parentId: null } as Note;
-      const note2 = { id: 2, projectId, parentId: 1 } as Note;
-      const note3 = { id: 3, projectId, parentId: 2 } as Note;
+    it('rejects linking to a parent note from another project', async () => {
+      mockNoteRepository.findOne
+        .mockResolvedValueOnce(null) // parent not found in this project
+        .mockResolvedValueOnce({ id: 2, projectId: 1 });
 
-      mockNoteRepository.findOne.mockResolvedValue(note1);
-      mockNoteRepository.find.mockResolvedValue([note1, note2, note3]);
-      mockNoteRepository.update.mockResolvedValue({ affected: 3 });
+      await expect(service.addRelation(1, 99, 2)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('rejects a relation that already exists', async () => {
+      const projectId = 1;
+      mockNoteRepository.findOne
+        .mockResolvedValueOnce({ id: 1, projectId })
+        .mockResolvedValueOnce({ id: 2, projectId });
+      mockNoteRepository.find.mockResolvedValue([{ id: 1 }, { id: 2 }]);
+      mockNoteRelationRepository.find.mockResolvedValue([]);
+      mockNoteRelationRepository.findOne.mockResolvedValue({
+        id: 1,
+        parentId: 1,
+        childId: 2,
+      });
+
+      await expect(service.addRelation(projectId, 1, 2)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('rejects a relation that would create a circular note graph', async () => {
+      const projectId = 1;
+      // Existing relation: 1 -> 2 (1 is parent of 2). Attempting to add
+      // 2 -> 1 (making 2 the parent of 1) would create a cycle.
+      mockNoteRepository.findOne
+        .mockResolvedValueOnce({ id: 2, projectId }) // proposed parent
+        .mockResolvedValueOnce({ id: 1, projectId }); // proposed child
+      mockNoteRepository.find.mockResolvedValue([{ id: 1 }, { id: 2 }]);
+      mockNoteRelationRepository.find.mockResolvedValue([
+        { parentId: 1, childId: 2 },
+      ]);
+
+      await expect(service.addRelation(projectId, 2, 1)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('allows a note to have multiple parents (not a cycle)', async () => {
+      const projectId = 1;
+      // Existing relation: 1 -> 3. Adding 2 -> 3 gives note 3 two parents,
+      // which is valid in a DAG (not a cycle).
+      mockNoteRepository.findOne
+        .mockResolvedValueOnce({ id: 2, projectId })
+        .mockResolvedValueOnce({ id: 3, projectId });
+      mockNoteRepository.find.mockResolvedValue([
+        { id: 1 },
+        { id: 2 },
+        { id: 3 },
+      ]);
+      mockNoteRelationRepository.find.mockResolvedValue([
+        { parentId: 1, childId: 3 },
+      ]);
+      mockNoteRelationRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.addRelation(projectId, 2, 3),
+      ).resolves.toBeUndefined();
+      expect(mockNoteRelationRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ parentId: 2, childId: 3 }),
+      );
+    });
+
+    it('removes an existing relation', async () => {
+      const projectId = 1;
+      mockNoteRepository.findOne
+        .mockResolvedValueOnce({ id: 1, projectId })
+        .mockResolvedValueOnce({ id: 2, projectId });
+      mockNoteRelationRepository.findOne.mockResolvedValue({
+        id: 1,
+        parentId: 1,
+        childId: 2,
+      });
+
+      await service.removeRelation(projectId, 1, 2);
+
+      expect(mockNoteRelationRepository.remove).toHaveBeenCalledWith({
+        id: 1,
+        parentId: 1,
+        childId: 2,
+      });
+      expect(mockNoteHistoryRepository.save).toHaveBeenCalledWith([
+        expect.objectContaining({
+          noteId: 2,
+          changeType: 'link_removed',
+          relatedNoteId: 1,
+          direction: 'parent',
+        }),
+        expect.objectContaining({
+          noteId: 1,
+          changeType: 'link_removed',
+          relatedNoteId: 2,
+          direction: 'child',
+        }),
+      ]);
+    });
+
+    it('throws NotFoundException when removing a relation that does not exist', async () => {
+      const projectId = 1;
+      mockNoteRepository.findOne
+        .mockResolvedValueOnce({ id: 1, projectId })
+        .mockResolvedValueOnce({ id: 2, projectId });
+      mockNoteRelationRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.removeRelation(projectId, 1, 2)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('remove', () => {
+    it('soft-deletes only the note itself, without cascading to children', async () => {
+      const projectId = 1;
+      const note = { id: 1, projectId } as Note;
+
+      mockNoteRepository.findOne.mockResolvedValue(note);
+      mockNoteRepository.update.mockResolvedValue({ affected: 1 });
 
       const result = await service.remove(projectId, 1);
 
       expect(result).toBe(true);
       const [whereArg, updateArg] = mockNoteRepository.update.mock.calls[0] as [
-        { projectId: number; id: { value: number[] } },
+        { id: number; projectId: number },
         { deletedAt: Date },
       ];
-      expect(whereArg.projectId).toBe(projectId);
-      expect(whereArg.id.value).toEqual(expect.arrayContaining([1, 2, 3]));
+      expect(whereArg).toEqual({ id: 1, projectId });
       expect(updateArg.deletedAt).toBeInstanceOf(Date);
+      expect(mockNoteRelationRepository.delete).toHaveBeenCalledWith({
+        parentId: 1,
+      });
+      expect(mockNoteRelationRepository.delete).toHaveBeenCalledWith({
+        childId: 1,
+      });
+    });
+
+    it('returns false when the note does not exist', async () => {
+      mockNoteRepository.findOne.mockResolvedValue(null);
+
+      const result = await service.remove(1, 999);
+
+      expect(result).toBe(false);
+      expect(mockNoteRepository.update).not.toHaveBeenCalled();
     });
   });
 });

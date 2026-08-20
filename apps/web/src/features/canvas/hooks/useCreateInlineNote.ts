@@ -8,7 +8,7 @@ export type CreateInlineNotePayload = {
 	type: NoteType;
 	canvasX: number;
 	canvasY: number;
-	parentId?: number | null;
+	parentIds?: number[];
 };
 
 /**

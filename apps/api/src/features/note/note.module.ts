@@ -5,6 +5,7 @@ import { NoteService } from './note.service';
 import { GeocodingService } from './geocoding.service';
 import { Note } from './entities/note.entity';
 import { NoteHistoryEntry } from './entities/note-history-entry.entity';
+import { NoteRelation } from './entities/note-relation.entity';
 import { NoteLocation } from './entities/note-location.entity';
 import { NoteLogEntry } from './entities/note-log-entry.entity';
 import { ProjectModule } from '../project/project.module';
@@ -14,6 +15,7 @@ import { ProjectModule } from '../project/project.module';
     TypeOrmModule.forFeature([
       Note,
       NoteHistoryEntry,
+      NoteRelation,
       NoteLocation,
       NoteLogEntry,
     ]),

@@ -60,22 +60,17 @@ export class Note extends BaseEntity {
   })
   tags: string[];
 
-  @Column({ type: 'int', nullable: true })
-  @ApiProperty({
-    description:
-      'ID of the parent note this note is nested under, if any. Null means the note is a top-level (root) note.',
-    required: false,
-    nullable: true,
-    type: 'number',
-  })
-  parentId: number | null;
+  /**
+   * IDs of this note's parent notes, if any. Not a database column — notes
+   * form a directed acyclic graph via `NoteRelation` join rows, and this
+   * property is populated at read time (see `NoteService.attachRelationIds`)
+   * purely to carry that data through to `NoteResponseDto` without callers
+   * needing a separate request.
+   */
+  parentIds?: number[];
 
-  @ManyToOne(() => Note, (note) => note.children, { nullable: true })
-  @JoinColumn({ name: 'parentId' })
-  parent: Note | null;
-
-  @OneToMany(() => Note, (note) => note.parent)
-  children: Note[];
+  /** IDs of this note's child notes, if any. See `parentIds` for details. */
+  childIds?: number[];
 
   @Column({ type: 'float', nullable: true })
   @ApiProperty({

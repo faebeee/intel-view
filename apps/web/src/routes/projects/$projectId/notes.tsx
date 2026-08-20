@@ -20,6 +20,12 @@ import { NoteLogEditorPane } from "#/features/notes/components/NoteLogEditorPane
 import { NoteSettingsPanel } from "#/features/notes/components/NoteSettingsPanel.tsx";
 import { NoteTree } from "#/features/notes/components/NoteTree.tsx";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
+import {
+	useAddNoteChild,
+	useAddNoteParent,
+	useRemoveNoteChild,
+	useRemoveNoteParent,
+} from "#/features/notes/hooks/useNoteRelationMutations.ts";
 import { useProjectQuery } from "#/features/projects/hooks/useProjectQuery.ts";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 import { toastApiError } from "#/lib/api-error.ts";
@@ -106,7 +112,7 @@ function NotesRouteComponent(): JSX.Element {
 				body: {
 					title: "",
 					content: "",
-					parentId: args.parentId,
+					parentIds: args.parentId !== null ? [args.parentId] : undefined,
 					type: args.type,
 				},
 			});
@@ -127,7 +133,7 @@ function NotesRouteComponent(): JSX.Element {
 	const updateNoteMutation = useMutation({
 		mutationFn: async (args: {
 			id: number;
-			patch: Partial<Pick<Note, "title" | "content" | "tags" | "parentId">>;
+			patch: Partial<Pick<Note, "title" | "content" | "tags">>;
 		}) => {
 			const res = await noteControllerUpdate({
 				path: { projectId, id: args.id },
@@ -140,6 +146,11 @@ function NotesRouteComponent(): JSX.Element {
 			invalidateNoteHistory(variables.id);
 		},
 	});
+
+	const addNoteParentMutation = useAddNoteParent(projectId);
+	const removeNoteParentMutation = useRemoveNoteParent(projectId);
+	const addNoteChildMutation = useAddNoteChild(projectId);
+	const removeNoteChildMutation = useRemoveNoteChild(projectId);
 
 	const deleteNoteMutation = useMutation({
 		mutationFn: async (id: number) => {
@@ -245,12 +256,24 @@ function NotesRouteComponent(): JSX.Element {
 
 	// --- Handlers ------------------------------------------------------------
 
-	const handleParentChange = (parentId: number | null) => {
+	const handleAddParent = (parentId: number) => {
 		if (!selectedNote) return;
-		updateNoteMutation.mutate(
-			{ id: selectedNote.id, patch: { parentId } },
-			{ onError: toastApiError("update note's parent") },
-		);
+		addNoteParentMutation.mutate({ id: selectedNote.id, parentId });
+	};
+
+	const handleRemoveParent = (parentId: number) => {
+		if (!selectedNote) return;
+		removeNoteParentMutation.mutate({ id: selectedNote.id, parentId });
+	};
+
+	const handleAddChild = (childId: number) => {
+		if (!selectedNote) return;
+		addNoteChildMutation.mutate({ id: selectedNote.id, childId });
+	};
+
+	const handleRemoveChild = (childId: number) => {
+		if (!selectedNote) return;
+		removeNoteChildMutation.mutate({ id: selectedNote.id, childId });
 	};
 
 	const handleTagsChange = (nextTags: string[]) => {
@@ -380,8 +403,11 @@ function NotesRouteComponent(): JSX.Element {
 								note={selectedNote}
 								notes={notes}
 								tags={tags}
-								onParentChange={handleParentChange}
-								onTagsChange={handleTagsChange}
+							onAddParent={handleAddParent}
+							onRemoveParent={handleRemoveParent}
+							onAddChild={handleAddChild}
+							onRemoveChild={handleRemoveChild}
+							onTagsChange={handleTagsChange}
 								onDelete={() => deleteNoteMutation.mutate(selectedNote.id)}
 								isMutating={
 									updateNoteMutation.isPending || deleteNoteMutation.isPending

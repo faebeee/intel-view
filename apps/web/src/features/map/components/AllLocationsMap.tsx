@@ -135,10 +135,12 @@ export function AllLocationsMap({
 	);
 
 	/**
-	 * Solid lines connecting a note's location(s) to its parent note's
-	 * location(s) — one line per parent/child pair that both have at least
-	 * one visible location, drawn between the centroid of each note's pins
-	 * (so it still works cleanly when either side has multiple locations).
+	 * Solid lines connecting a note's location(s) to each of its parent
+	 * notes' location(s) — one line per parent/child pair that both have at
+	 * least one visible location, drawn between the centroid of each note's
+	 * pins (so it still works cleanly when either side has multiple
+	 * locations). A note may have multiple parents, in which case it gets
+	 * one connection line per parent.
 	 */
 	const parentChildConnections = React.useMemo(() => {
 		if (!notes || notes.length === 0) return [];
@@ -155,18 +157,20 @@ export function AllLocationsMap({
 		}> = [];
 
 		for (const note of notes) {
-			if (note.parentId === null || note.parentId === undefined) continue;
 			const childLocations = locationsByNoteId.get(note.id);
-			const parentLocations = locationsByNoteId.get(note.parentId);
-			if (!childLocations || !parentLocations) continue;
+			if (!childLocations) continue;
+			for (const parentId of note.parentIds ?? []) {
+				const parentLocations = locationsByNoteId.get(parentId);
+				if (!parentLocations) continue;
 
-			connections.push({
-				key: `parent-${note.parentId}-${note.id}`,
-				positions: [centroidOf(parentLocations), centroidOf(childLocations)],
-				color:
-					colorsByLocationId.get(childLocations[0].id)?.[0] ??
-					DEFAULT_MARKER_COLOR,
-			});
+				connections.push({
+					key: `parent-${parentId}-${note.id}`,
+					positions: [centroidOf(parentLocations), centroidOf(childLocations)],
+					color:
+						colorsByLocationId.get(childLocations[0].id)?.[0] ??
+						DEFAULT_MARKER_COLOR,
+				});
+			}
 		}
 
 		return connections;

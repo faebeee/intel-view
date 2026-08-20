@@ -55,18 +55,15 @@ function MapRouteComponent(): JSX.Element {
 
 	/**
 	 * Locations shown on the map: everything when nothing's selected, or
-	 * just the selected note's own pins plus its parent note's pins (if any)
-	 * when one is focused — so a note and the parent it's nested under (and
-	 * the connecting line drawn between them) are both visible together.
+	 * just the selected note's own pins plus its parent notes' pins (if any)
+	 * when one is focused — so a note and the parent(s) it's linked under
+	 * (and the connecting lines drawn between them) are all visible together.
 	 */
 	const visibleLocations = React.useMemo(() => {
 		if (selectedNoteId === null) return locations;
 		const relevantNoteIds = new Set<number>([selectedNoteId]);
-		if (
-			selectedNote?.parentId !== null &&
-			selectedNote?.parentId !== undefined
-		) {
-			relevantNoteIds.add(selectedNote.parentId);
+		for (const parentId of selectedNote?.parentIds ?? []) {
+			relevantNoteIds.add(parentId);
 		}
 		return locations.filter((location) => relevantNoteIds.has(location.noteId));
 	}, [locations, selectedNoteId, selectedNote]);

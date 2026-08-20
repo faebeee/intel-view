@@ -7,15 +7,17 @@ export type UpdateNotePayload = {
 	title?: string;
 	content?: string;
 	tags?: string[];
-	parentId?: number | null;
 	canvasX?: number | null;
 	canvasY?: number | null;
 };
 
 /**
  * Generic note update mutation used by the canvas view to persist node
- * position (`canvasX`/`canvasY`) and connections (`parentId`) without
- * duplicating invalidation/error handling logic across call sites.
+ * position (`canvasX`/`canvasY`) and other note fields, without duplicating
+ * invalidation/error handling logic across call sites. Parent/child
+ * relations are managed separately via the dedicated
+ * `useAddNoteParent`/`useRemoveNoteParent`/`useAddNoteChild`/
+ * `useRemoveNoteChild` mutations.
  */
 export function useUpdateNote(projectId: number) {
 	const queryClient = useQueryClient();

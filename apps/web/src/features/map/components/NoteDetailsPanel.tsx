@@ -36,9 +36,12 @@ export function NoteDetailsPanel({
 	notes,
 	className,
 }: NoteDetailsPanelProps) {
-	const parent = React.useMemo(
-		() => notes.find((n) => n.id === note.parentId) ?? null,
-		[notes, note.parentId],
+	const parents = React.useMemo(
+		() =>
+			(note.parentIds ?? [])
+				.map((id) => notes.find((n) => n.id === id))
+				.filter((n): n is Note => n !== undefined),
+		[notes, note.parentIds],
 	);
 	const { data: tags = [] } = useAllTagsQuery(projectId);
 	const tagColorMap = useTagColorMap(tags);
@@ -68,10 +71,12 @@ export function NoteDetailsPanel({
 
 					<div className="flex flex-col gap-1 px-1">
 						<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
-							Parent Note
+							Parent Notes
 						</span>
 						<span className="text-xs text-sea-ink-soft truncate">
-							{parent ? getNoteLabel(parent) : "None (root note)"}
+							{parents.length > 0
+								? parents.map((p) => getNoteLabel(p)).join(", ")
+								: "None (root note)"}
 						</span>
 					</div>
 

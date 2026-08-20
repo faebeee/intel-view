@@ -3,11 +3,27 @@ import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Note } from './note.entity';
 
-/** The kind of event a `NoteHistoryEntry` records. */
-export type NoteHistoryChangeType = 'created' | 'updated';
+/**
+ * The kind of event a `NoteHistoryEntry` records. `'link_added'`/
+ * `'link_removed'` record a parent/child relation being added to or removed
+ * from this note (see `relatedNoteId`/`direction`); they're recorded
+ * separately from `'updated'` field diffs since relations aren't a plain
+ * column on `Note`.
+ */
+export type NoteHistoryChangeType =
+  'created' | 'updated' | 'link_added' | 'link_removed';
 export const NOTE_HISTORY_CHANGE_TYPES: NoteHistoryChangeType[] = [
   'created',
   'updated',
+  'link_added',
+  'link_removed',
+];
+
+/** Which side of a parent/child relation this note was on, for `'link_added'`/`'link_removed'` entries. */
+export type NoteHistoryLinkDirection = 'parent' | 'child';
+export const NOTE_HISTORY_LINK_DIRECTIONS: NoteHistoryLinkDirection[] = [
+  'parent',
+  'child',
 ];
 
 /** A single field-level diff captured within an 'updated' history entry. */
@@ -46,10 +62,30 @@ export class NoteHistoryEntry extends BaseEntity {
   @Column({ type: 'json', nullable: true })
   @ApiProperty({
     description:
-      "For 'updated' entries, the list of fields that changed in that edit, each with their previous and new value. Null for 'created' entries.",
+      "For 'updated' entries, the list of fields that changed in that edit, each with their previous and new value. Null for 'created'/'link_added'/'link_removed' entries.",
     type: [Object],
     required: false,
     nullable: true,
   })
   changes: NoteFieldChange[] | null;
+
+  @Column({ type: 'int', nullable: true })
+  @ApiProperty({
+    description:
+      "For 'link_added'/'link_removed' entries, the ID of the other note involved in the relation. Null otherwise.",
+    required: false,
+    nullable: true,
+    type: 'number',
+  })
+  relatedNoteId: number | null;
+
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  @ApiProperty({
+    description:
+      "For 'link_added'/'link_removed' entries, whether `relatedNoteId` was added/removed as this note's parent or child. Null otherwise.",
+    enum: NOTE_HISTORY_LINK_DIRECTIONS,
+    required: false,
+    nullable: true,
+  })
+  direction: NoteHistoryLinkDirection | null;
 }

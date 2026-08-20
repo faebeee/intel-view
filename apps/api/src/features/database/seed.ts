@@ -160,7 +160,6 @@ async function seed(): Promise<void> {
         title,
         content,
         tags: pickSome(tagNames, randomInt(1, 3)),
-        parentId: null,
       }),
     );
   }

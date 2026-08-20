@@ -34,13 +34,16 @@ export class NoteResponseDto {
   tags: string[];
 
   @ApiProperty({
-    description:
-      'ID of the parent note this note is nested under, if any. Null means the note is a top-level (root) note.',
-    required: false,
-    nullable: true,
-    type: 'number',
+    description: 'IDs of the parent notes this note is nested under, if any.',
+    type: [Number],
   })
-  parentId: number | null;
+  parentIds: number[];
+
+  @ApiProperty({
+    description: 'IDs of the child notes nested under this note, if any.',
+    type: [Number],
+  })
+  childIds: number[];
 
   @ApiProperty({
     description:
@@ -118,7 +121,8 @@ export function toNoteResponseDto(note: Note): NoteResponseDto {
     title: note.title,
     content: note.content,
     tags: note.tags,
-    parentId: note.parentId,
+    parentIds: note.parentIds ?? [],
+    childIds: note.childIds ?? [],
     canvasX: note.canvasX,
     canvasY: note.canvasY,
     latitude: note.latitude,

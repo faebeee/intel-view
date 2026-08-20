@@ -14,6 +14,7 @@ import {
 import { Note } from './entities/note.entity';
 import { NoteHistoryEntry } from './entities/note-history-entry.entity';
 import type { NoteFieldChange } from './entities/note-history-entry.entity';
+import { NoteRelation } from './entities/note-relation.entity';
 import { NoteLocation } from './entities/note-location.entity';
 import { NoteLogEntry } from './entities/note-log-entry.entity';
 import { parseNoteLocations } from './note-location.util';
@@ -32,20 +33,16 @@ export const notePaginateConfig: PaginateConfig<Note> = {
   filterableColumns: {
     title: true,
     content: true,
-    parentId: true,
   },
 };
 
 /**
  * Fields on `Note` that are tracked for automatic history entries when
- * changed via `update()`.
+ * changed via `update()`. Parent/child relations are tracked separately as
+ * dedicated `'link_added'`/`'link_removed'` history entries (see
+ * `addRelation`/`removeRelation`), since they're no longer a plain column.
  */
-const HISTORY_TRACKED_FIELDS = [
-  'title',
-  'content',
-  'tags',
-  'parentId',
-] as const;
+const HISTORY_TRACKED_FIELDS = ['title', 'content', 'tags'] as const;
 
 /**
  * Structurally compares two field values for equality, using JSON
@@ -105,6 +102,8 @@ export class NoteService {
     private readonly noteRepository: Repository<Note>,
     @InjectRepository(NoteHistoryEntry)
     private readonly noteHistoryRepository: Repository<NoteHistoryEntry>,
+    @InjectRepository(NoteRelation)
+    private readonly noteRelationRepository: Repository<NoteRelation>,
     @InjectRepository(NoteLocation)
     private readonly noteLocationRepository: Repository<NoteLocation>,
     @InjectRepository(NoteLogEntry)
@@ -119,87 +118,229 @@ export class NoteService {
 
   /**
    * Validates that `parentId` refers to an existing, active note within the
-   * same project, is not the note itself (`excludeId`), and does not create
-   * a cycle in the note hierarchy.
+   * same project as `childId`, that they aren't the same note, and that
+   * linking them wouldn't create a cycle in the note relation graph (a DAG,
+   * since a note may have multiple parents/children). Does not check
+   * whether the relation already exists — callers should check that
+   * separately where relevant (e.g. `addRelation`).
    */
-  private async assertParentValid(
+  private async assertLinkValid(
     projectId: number,
     parentId: number,
-    excludeId?: number,
+    childId: number,
   ): Promise<void> {
-    if (parentId === excludeId) {
-      throw new BadRequestException('A note cannot be its own parent');
+    if (parentId === childId) {
+      throw new BadRequestException('A note cannot be linked to itself');
     }
 
-    const parent = await this.noteRepository.findOne({
-      where: { id: parentId, projectId, deletedAt: IsNull() },
-    });
+    const [parent, child] = await Promise.all([
+      this.noteRepository.findOne({
+        where: { id: parentId, projectId, deletedAt: IsNull() },
+      }),
+      this.noteRepository.findOne({
+        where: { id: childId, projectId, deletedAt: IsNull() },
+      }),
+    ]);
     if (!parent) {
       throw new NotFoundException(
         `Parent note with ID ${parentId} not found in this project`,
       );
     }
-
-    if (excludeId === undefined) {
-      return;
+    if (!child) {
+      throw new NotFoundException(
+        `Child note with ID ${childId} not found in this project`,
+      );
     }
 
-    // Walk up the ancestor chain of the proposed parent to ensure `excludeId`
-    // (the note being created/updated) is not among its ancestors, which
-    // would otherwise create a cycle.
-    const allNotes = await this.noteRepository.find({
-      where: { projectId, deletedAt: IsNull() },
-      select: { id: true, parentId: true },
-    });
-    const parentById = new Map(allNotes.map((n) => [n.id, n.parentId]));
-
-    let currentId: number | null = parentId;
-    const visited = new Set<number>();
-    while (currentId !== null && currentId !== undefined) {
-      if (currentId === excludeId) {
-        throw new BadRequestException(
-          'Cannot set parent: this would create a circular note hierarchy',
-        );
-      }
-      if (visited.has(currentId)) {
-        break;
-      }
-      visited.add(currentId);
-      currentId = parentById.get(currentId) ?? null;
+    // Adding parentId -> childId would create a cycle if parentId is
+    // already reachable by walking down from childId through its existing
+    // descendants (i.e. parentId is already a descendant of childId).
+    const descendantIds = await this.getDescendantIds(projectId, childId);
+    if (descendantIds.includes(parentId)) {
+      throw new BadRequestException(
+        'Cannot add this relation: it would create a circular note hierarchy',
+      );
     }
   }
 
   /**
    * Collects the IDs of all descendants (children, grandchildren, etc.) of
-   * `rootId` within the given project, based on active (non-deleted) notes.
+   * `rootId` within the given project, based on active (non-deleted) notes'
+   * `NoteRelation` rows. Since a note may have multiple parents, the same
+   * descendant may be reachable via multiple paths — each is only visited
+   * (and included) once.
    */
   private async getDescendantIds(
     projectId: number,
     rootId: number,
   ): Promise<number[]> {
-    const allNotes = await this.noteRepository.find({
-      where: { projectId, deletedAt: IsNull() },
-      select: { id: true, parentId: true },
+    const activeNoteIds = new Set(
+      (
+        await this.noteRepository.find({
+          where: { projectId, deletedAt: IsNull() },
+          select: { id: true },
+        })
+      ).map((n) => n.id),
+    );
+
+    const relations = await this.noteRelationRepository.find({
+      where: [
+        { parentId: In([...activeNoteIds]) },
+        { childId: In([...activeNoteIds]) },
+      ],
     });
 
     const childrenByParent = new Map<number, number[]>();
-    for (const n of allNotes) {
-      if (n.parentId === null || n.parentId === undefined) continue;
-      const siblings = childrenByParent.get(n.parentId) ?? [];
-      siblings.push(n.id);
-      childrenByParent.set(n.parentId, siblings);
+    for (const relation of relations) {
+      if (
+        !activeNoteIds.has(relation.parentId) ||
+        !activeNoteIds.has(relation.childId)
+      ) {
+        continue;
+      }
+      const siblings = childrenByParent.get(relation.parentId) ?? [];
+      siblings.push(relation.childId);
+      childrenByParent.set(relation.parentId, siblings);
     }
 
     const descendants: number[] = [];
+    const visited = new Set<number>();
     const queue: number[] = [...(childrenByParent.get(rootId) ?? [])];
     while (queue.length > 0) {
       const id = queue.shift()!;
+      if (visited.has(id)) continue;
+      visited.add(id);
       descendants.push(id);
       const children = childrenByParent.get(id) ?? [];
       queue.push(...children);
     }
 
     return descendants;
+  }
+
+  /**
+   * Populates the transient `parentIds`/`childIds` properties on each given
+   * note (mutating in place) from the current `NoteRelation` rows, so
+   * `toNoteResponseDto` can include them without a separate request per
+   * note.
+   */
+  private async attachRelationIds(notes: Note[]): Promise<void> {
+    if (notes.length === 0) return;
+    const ids = notes.map((n) => n.id);
+    const relations = await this.noteRelationRepository.find({
+      where: [{ parentId: In(ids) }, { childId: In(ids) }],
+    });
+
+    const parentIdsByChild = new Map<number, number[]>();
+    const childIdsByParent = new Map<number, number[]>();
+    for (const relation of relations) {
+      const parents = parentIdsByChild.get(relation.childId) ?? [];
+      parents.push(relation.parentId);
+      parentIdsByChild.set(relation.childId, parents);
+
+      const children = childIdsByParent.get(relation.parentId) ?? [];
+      children.push(relation.childId);
+      childIdsByParent.set(relation.parentId, children);
+    }
+
+    for (const note of notes) {
+      note.parentIds = parentIdsByChild.get(note.id) ?? [];
+      note.childIds = childIdsByParent.get(note.id) ?? [];
+    }
+  }
+
+  /**
+   * Adds a directed parent -> child relation between two notes in the same
+   * project, after validating it (existence, not self-linked, no cycle) and
+   * that it doesn't already exist. Records a `'link_added'` history entry on
+   * both notes.
+   */
+  async addRelation(
+    projectId: number,
+    parentId: number,
+    childId: number,
+  ): Promise<void> {
+    await this.assertLinkValid(projectId, parentId, childId);
+
+    const existing = await this.noteRelationRepository.findOne({
+      where: { parentId, childId },
+    });
+    if (existing) {
+      throw new BadRequestException('This relation already exists');
+    }
+
+    await this.noteRelationRepository.save(
+      this.noteRelationRepository.create({ parentId, childId }),
+    );
+
+    await this.noteHistoryRepository.save([
+      this.noteHistoryRepository.create({
+        noteId: childId,
+        changeType: 'link_added',
+        changes: null,
+        relatedNoteId: parentId,
+        direction: 'parent',
+      }),
+      this.noteHistoryRepository.create({
+        noteId: parentId,
+        changeType: 'link_added',
+        changes: null,
+        relatedNoteId: childId,
+        direction: 'child',
+      }),
+    ]);
+  }
+
+  /**
+   * Removes a directed parent -> child relation between two notes, if it
+   * exists. Records a `'link_removed'` history entry on both notes.
+   * Throws `NotFoundException` if either note doesn't exist in the project,
+   * or if the relation doesn't exist.
+   */
+  async removeRelation(
+    projectId: number,
+    parentId: number,
+    childId: number,
+  ): Promise<void> {
+    const [parent, child] = await Promise.all([
+      this.findOne(projectId, parentId),
+      this.findOne(projectId, childId),
+    ]);
+    if (!parent) {
+      throw new NotFoundException(
+        `Parent note with ID ${parentId} not found in this project`,
+      );
+    }
+    if (!child) {
+      throw new NotFoundException(
+        `Child note with ID ${childId} not found in this project`,
+      );
+    }
+
+    const existing = await this.noteRelationRepository.findOne({
+      where: { parentId, childId },
+    });
+    if (!existing) {
+      throw new NotFoundException('This relation does not exist');
+    }
+    await this.noteRelationRepository.remove(existing);
+
+    await this.noteHistoryRepository.save([
+      this.noteHistoryRepository.create({
+        noteId: childId,
+        changeType: 'link_removed',
+        changes: null,
+        relatedNoteId: parentId,
+        direction: 'parent',
+      }),
+      this.noteHistoryRepository.create({
+        noteId: parentId,
+        changeType: 'link_removed',
+        changes: null,
+        relatedNoteId: childId,
+        direction: 'child',
+      }),
+    ]);
   }
 
   /**
@@ -273,14 +414,31 @@ export class NoteService {
 
   async create(projectId: number, createNoteDto: CreateNoteDto): Promise<Note> {
     await this.assertProjectExists(projectId);
-    if (
-      createNoteDto.parentId !== undefined &&
-      createNoteDto.parentId !== null
-    ) {
-      await this.assertParentValid(projectId, createNoteDto.parentId);
+    const parentIds = createNoteDto.parentIds ?? [];
+    for (const parentId of parentIds) {
+      const parent = await this.noteRepository.findOne({
+        where: { id: parentId, projectId, deletedAt: IsNull() },
+      });
+      if (!parent) {
+        throw new NotFoundException(
+          `Parent note with ID ${parentId} not found in this project`,
+        );
+      }
     }
+
     const note = this.noteRepository.create({ ...createNoteDto, projectId });
     const savedNote = await this.noteRepository.save(note);
+
+    if (parentIds.length > 0) {
+      await this.noteRelationRepository.save(
+        parentIds.map((parentId) =>
+          this.noteRelationRepository.create({
+            parentId,
+            childId: savedNote.id,
+          }),
+        ),
+      );
+    }
 
     await this.noteHistoryRepository.save(
       this.noteHistoryRepository.create({
@@ -297,6 +455,8 @@ export class NoteService {
       await this.noteRepository.save(savedNote);
     }
 
+    await this.attachRelationIds([savedNote]);
+
     return savedNote;
   }
 
@@ -305,16 +465,21 @@ export class NoteService {
     query: PaginateQuery,
   ): Promise<Paginated<Note>> {
     await this.assertProjectExists(projectId);
-    return paginate(query, this.noteRepository, {
+    const paginated = await paginate(query, this.noteRepository, {
       ...notePaginateConfig,
       where: { deletedAt: IsNull(), projectId },
     });
+    await this.attachRelationIds(paginated.data);
+    return paginated;
   }
 
   async findOne(projectId: number, id: number): Promise<Note | null> {
-    return this.noteRepository.findOne({
+    const note = await this.noteRepository.findOne({
       where: { id, projectId, deletedAt: IsNull() },
     });
+    if (!note) return null;
+    await this.attachRelationIds([note]);
+    return note;
   }
 
   /**
@@ -523,13 +688,6 @@ export class NoteService {
       return null;
     }
 
-    if (
-      updateNoteDto.parentId !== undefined &&
-      updateNoteDto.parentId !== null
-    ) {
-      await this.assertParentValid(projectId, updateNoteDto.parentId, id);
-    }
-
     // Compute field-level diffs for tracked fields before applying the
     // update, so we can record an automatic history entry for this edit.
     const changes: NoteFieldChange[] = [];
@@ -588,20 +746,29 @@ export class NoteService {
       }
     }
 
+    await this.attachRelationIds([savedNote]);
+
     return savedNote;
   }
 
+  /**
+   * Soft-deletes a single note. Does not cascade to its children — since a
+   * note may have multiple parents, a child note may still be reachable
+   * through another parent after this one is deleted, so its lifecycle is
+   * left independent. Only this note's own `NoteRelation` rows (as either
+   * parent or child) are cleaned up.
+   */
   async remove(projectId: number, id: number): Promise<boolean> {
     const note = await this.findOne(projectId, id);
     if (!note) {
       return false;
     }
-    const descendantIds = await this.getDescendantIds(projectId, id);
-    const idsToDelete = [id, ...descendantIds];
     const result = await this.noteRepository.update(
-      { id: In(idsToDelete), projectId },
+      { id, projectId },
       { deletedAt: new Date() },
     );
+    await this.noteRelationRepository.delete({ parentId: id });
+    await this.noteRelationRepository.delete({ childId: id });
     return (result.affected ?? 0) > 0;
   }
 }

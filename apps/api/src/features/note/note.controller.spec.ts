@@ -16,6 +16,8 @@ describe('NoteController', () => {
     findAllLocations: jest.fn(),
     createLogEntry: jest.fn(),
     findLogEntries: jest.fn(),
+    addRelation: jest.fn(),
+    removeRelation: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -47,7 +49,8 @@ describe('NoteController', () => {
         projectId,
         content: 'hello world',
         tags: [],
-        parentId: null,
+        parentIds: [],
+        childIds: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -63,18 +66,19 @@ describe('NoteController', () => {
       expect(result.content).toBe('hello world');
     });
 
-    it('creates a nested note and maps parentId in the response', async () => {
+    it('creates a nested note and maps parentIds in the response', async () => {
       const projectId = 1;
       const createNoteDto = {
         content: 'child note',
-        parentId: 5,
+        parentIds: [5],
       };
       const createdNote = {
         id: 2,
         projectId,
         content: 'child note',
         tags: [],
-        parentId: 5,
+        parentIds: [5],
+        childIds: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -87,7 +91,85 @@ describe('NoteController', () => {
         projectId,
         createNoteDto,
       );
-      expect(result.parentId).toBe(5);
+      expect(result.parentIds).toEqual([5]);
+    });
+  });
+
+  describe('addParent / removeParent / addChild / removeChild', () => {
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('adds a parent relation and returns the refetched note', async () => {
+      const projectId = 1;
+      const note = {
+        id: 2,
+        projectId,
+        parentIds: [5],
+        childIds: [],
+      };
+      mockNoteService.addRelation.mockResolvedValue(undefined);
+      mockNoteService.findOne.mockResolvedValue(note);
+
+      const result = await controller.addParent(projectId, 2, {
+        parentId: 5,
+      });
+
+      expect(mockNoteService.addRelation).toHaveBeenCalledWith(projectId, 5, 2);
+      expect(result.parentIds).toEqual([5]);
+    });
+
+    it('removes a parent relation and returns the refetched note', async () => {
+      const projectId = 1;
+      const note = { id: 2, projectId, parentIds: [], childIds: [] };
+      mockNoteService.removeRelation.mockResolvedValue(undefined);
+      mockNoteService.findOne.mockResolvedValue(note);
+
+      const result = await controller.removeParent(projectId, 2, 5);
+
+      expect(mockNoteService.removeRelation).toHaveBeenCalledWith(
+        projectId,
+        5,
+        2,
+      );
+      expect(result.parentIds).toEqual([]);
+    });
+
+    it('adds a child relation and returns the refetched note', async () => {
+      const projectId = 1;
+      const note = { id: 1, projectId, parentIds: [], childIds: [2] };
+      mockNoteService.addRelation.mockResolvedValue(undefined);
+      mockNoteService.findOne.mockResolvedValue(note);
+
+      const result = await controller.addChild(projectId, 1, { childId: 2 });
+
+      expect(mockNoteService.addRelation).toHaveBeenCalledWith(projectId, 1, 2);
+      expect(result.childIds).toEqual([2]);
+    });
+
+    it('removes a child relation and returns the refetched note', async () => {
+      const projectId = 1;
+      const note = { id: 1, projectId, parentIds: [], childIds: [] };
+      mockNoteService.removeRelation.mockResolvedValue(undefined);
+      mockNoteService.findOne.mockResolvedValue(note);
+
+      const result = await controller.removeChild(projectId, 1, 2);
+
+      expect(mockNoteService.removeRelation).toHaveBeenCalledWith(
+        projectId,
+        1,
+        2,
+      );
+      expect(result.childIds).toEqual([]);
+    });
+
+    it('throws NotFoundException when the refetched note is missing', async () => {
+      mockNoteService.addRelation.mockResolvedValue(undefined);
+      mockNoteService.findOne.mockResolvedValue(null);
+
+      await expect(controller.addParent(1, 2, { parentId: 5 })).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -184,10 +266,7 @@ describe('NoteController', () => {
 
       const result = await controller.findLogEntries(projectId, 1);
 
-      expect(mockNoteService.findLogEntries).toHaveBeenCalledWith(
-        projectId,
-        1,
-      );
+      expect(mockNoteService.findLogEntries).toHaveBeenCalledWith(projectId, 1);
       expect(result).toHaveLength(2);
       expect(result[0].content).toBe('second');
       expect(result[1].content).toBe('first');

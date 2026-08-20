@@ -8,7 +8,6 @@ import {
 	ComboboxChipsInput,
 	ComboboxContent,
 	ComboboxEmpty,
-	ComboboxInput,
 	ComboboxItem,
 	ComboboxList,
 	ComboboxValue,
@@ -20,6 +19,7 @@ import { NoteHistorySection } from "#/features/notes/components/NoteHistorySecti
 import { useNoteHistoryQuery } from "#/features/notes/hooks/useNoteHistoryQuery.ts";
 import {
 	getNoteLabel,
+	useInvalidChildIds,
 	useInvalidParentIds,
 } from "#/features/notes/hooks/useNoteTree.ts";
 import { useTagColorMap } from "#/features/tags/hooks/useTagColorMap.ts";
@@ -29,7 +29,10 @@ type NoteSettingsPanelProps = {
 	note: Note;
 	notes: Note[];
 	tags: Tag[];
-	onParentChange: (parentId: number | null) => void;
+	onAddParent: (parentId: number) => void;
+	onRemoveParent: (parentId: number) => void;
+	onAddChild: (childId: number) => void;
+	onRemoveChild: (childId: number) => void;
 	onTagsChange: (tags: string[]) => void;
 	onDelete: () => void;
 	isMutating?: boolean;
@@ -38,30 +41,80 @@ type NoteSettingsPanelProps = {
 
 /**
  * Right-column panel exposing metadata/settings for the currently open
- * note: which note it's nested under (parent picker, excluding itself and
- * its own descendants to prevent cycles), its tags (multi-select sourced
- * from the project's tag registry, with free-text entries allowed for tags
- * not yet in the registry), timestamps, and delete.
+ * note: which notes it's linked under/over (parent/child pickers, excluding
+ * self and any relation that would create a cycle), its tags (multi-select
+ * sourced from the project's tag registry, with free-text entries allowed
+ * for tags not yet in the registry), timestamps, and delete.
  */
 export function NoteSettingsPanel({
 	projectId,
 	note,
 	notes,
 	tags,
-	onParentChange,
+	onAddParent,
+	onRemoveParent,
+	onAddChild,
+	onRemoveChild,
 	onTagsChange,
 	onDelete,
 	isMutating = false,
 	className,
 }: NoteSettingsPanelProps) {
+	const notesById = React.useMemo(
+		() => new Map(notes.map((n) => [n.id, n])),
+		[notes],
+	);
+
 	const invalidParentIds = useInvalidParentIds(notes, note.id);
 	const parentOptions = React.useMemo(
 		() => notes.filter((n) => !invalidParentIds.has(n.id)),
 		[notes, invalidParentIds],
 	);
-	const currentParent = React.useMemo(
-		() => notes.find((n) => n.id === note.parentId) ?? null,
-		[notes, note.parentId],
+	const currentParents = React.useMemo(
+		() =>
+			(note.parentIds ?? [])
+				.map((id) => notesById.get(id))
+				.filter((n): n is Note => n !== undefined),
+		[note.parentIds, notesById],
+	);
+	const handleParentsChange = React.useCallback(
+		(value: Note[]) => {
+			const nextIds = new Set(value.map((n) => n.id));
+			const previousIds = new Set(currentParents.map((n) => n.id));
+			for (const id of nextIds) {
+				if (!previousIds.has(id)) onAddParent(id);
+			}
+			for (const id of previousIds) {
+				if (!nextIds.has(id)) onRemoveParent(id);
+			}
+		},
+		[currentParents, onAddParent, onRemoveParent],
+	);
+
+	const invalidChildIds = useInvalidChildIds(notes, note.id);
+	const childOptions = React.useMemo(
+		() => notes.filter((n) => !invalidChildIds.has(n.id)),
+		[notes, invalidChildIds],
+	);
+	const currentChildren = React.useMemo(
+		() =>
+			(note.childIds ?? [])
+				.map((id) => notesById.get(id))
+				.filter((n): n is Note => n !== undefined),
+		[note.childIds, notesById],
+	);
+	const handleChildrenChange = React.useCallback(
+		(value: Note[]) => {
+			const nextIds = new Set(value.map((n) => n.id));
+			const previousIds = new Set(currentChildren.map((n) => n.id));
+			for (const id of nextIds) {
+				if (!previousIds.has(id)) onAddChild(id);
+			}
+			for (const id of previousIds) {
+				if (!nextIds.has(id)) onRemoveChild(id);
+			}
+		},
+		[currentChildren, onAddChild, onRemoveChild],
 	);
 
 	const tagColorMap = useTagColorMap(tags);
@@ -107,21 +160,78 @@ export function NoteSettingsPanel({
 					</span>
 				</div>
 
-				<FormField label="Parent Note" htmlFor="note-parent" className="px-1">
+				<FormField label="Parent Notes" htmlFor="note-parents" className="px-1">
 					<Combobox
 						items={parentOptions}
-						value={currentParent}
-						onValueChange={(value) => onParentChange(value ? value.id : null)}
+						multiple
+						value={currentParents}
+						onValueChange={(value) => handleParentsChange(value as Note[])}
 						itemToStringLabel={(n: Note) => getNoteLabel(n)}
 						isItemEqualToValue={(a: Note, b: Note) => a.id === b.id}
 					>
-						<ComboboxInput
-							id="note-parent"
-							placeholder="No parent (root note)"
-							className="w-full"
-							showClear
-							disabled={isMutating}
-						/>
+						<ComboboxChips>
+							<ComboboxValue>
+								{(value: Note[]) => (
+									<>
+										{value.map((parent) => (
+											<ComboboxChip key={parent.id}>
+												{getNoteLabel(parent)}
+											</ComboboxChip>
+										))}
+										<ComboboxChipsInput
+											id="note-parents"
+											placeholder={
+												value.length ? "" : "No parents (root note)"
+											}
+											disabled={isMutating}
+										/>
+									</>
+								)}
+							</ComboboxValue>
+						</ComboboxChips>
+						<ComboboxContent>
+							<ComboboxEmpty>No notes found.</ComboboxEmpty>
+							<ComboboxList>
+								{(item: Note) => (
+									<ComboboxItem key={item.id} value={item}>
+										<span className="font-mono text-[10px] font-bold text-palm shrink-0">
+											#{item.id}
+										</span>
+										<span className="truncate">{getNoteLabel(item)}</span>
+									</ComboboxItem>
+								)}
+							</ComboboxList>
+						</ComboboxContent>
+					</Combobox>
+				</FormField>
+
+				<FormField label="Child Notes" htmlFor="note-children" className="px-1">
+					<Combobox
+						items={childOptions}
+						multiple
+						value={currentChildren}
+						onValueChange={(value) => handleChildrenChange(value as Note[])}
+						itemToStringLabel={(n: Note) => getNoteLabel(n)}
+						isItemEqualToValue={(a: Note, b: Note) => a.id === b.id}
+					>
+						<ComboboxChips>
+							<ComboboxValue>
+								{(value: Note[]) => (
+									<>
+										{value.map((child) => (
+											<ComboboxChip key={child.id}>
+												{getNoteLabel(child)}
+											</ComboboxChip>
+										))}
+										<ComboboxChipsInput
+											id="note-children"
+											placeholder={value.length ? "" : "No children"}
+											disabled={isMutating}
+										/>
+									</>
+								)}
+							</ComboboxValue>
+						</ComboboxChips>
 						<ComboboxContent>
 							<ComboboxEmpty>No notes found.</ComboboxEmpty>
 							<ComboboxList>
@@ -239,7 +349,7 @@ export function NoteSettingsPanel({
 					size="sm"
 					className="mx-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 border-red-500/30"
 					title="Delete Note"
-					description="Are you sure you want to permanently delete this note and all of its nested notes?"
+					description="Are you sure you want to permanently delete this note? Any notes linked to it as children will remain (losing this parent connection)."
 					confirmText="Delete"
 					disabled={isMutating}
 					onClick={() => onDelete()}

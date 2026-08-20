@@ -12,6 +12,12 @@ import { NoteLogEditorPane } from "#/features/notes/components/NoteLogEditorPane
 import { NoteAddressEditorPane } from "#/features/notes/components/NoteAddressEditorPane.tsx";
 import { NoteSettingsPanel } from "#/features/notes/components/NoteSettingsPanel.tsx";
 import { getNoteLabel } from "#/features/notes/hooks/useNoteTree.ts";
+import {
+	useAddNoteChild,
+	useAddNoteParent,
+	useRemoveNoteChild,
+	useRemoveNoteParent,
+} from "#/features/notes/hooks/useNoteRelationMutations.ts";
 import { cn } from "#/lib/utils.ts";
 import { useDeleteNote } from "../hooks/useDeleteNote";
 import { useUpdateNote } from "../hooks/useUpdateNote";
@@ -46,6 +52,10 @@ export function CanvasNoteSidebar({
 }: CanvasNoteSidebarProps) {
 	const updateNoteMutation = useUpdateNote(projectId);
 	const deleteNoteMutation = useDeleteNote(projectId);
+	const addNoteParentMutation = useAddNoteParent(projectId);
+	const removeNoteParentMutation = useRemoveNoteParent(projectId);
+	const addNoteChildMutation = useAddNoteChild(projectId);
+	const removeNoteChildMutation = useRemoveNoteChild(projectId);
 
 	const [draftTitle, setDraftTitle] = React.useState(note.title ?? "");
 	const [draftContent, setDraftContent] = React.useState(note.content ?? "");
@@ -97,11 +107,32 @@ export function CanvasNoteSidebar({
 		[notes],
 	);
 
-	const handleParentChange = React.useCallback(
-		(parentId: number | null) => {
-			updateNoteMutation.mutate({ id: note.id, payload: { parentId } });
+	const handleAddParent = React.useCallback(
+		(parentId: number) => {
+			addNoteParentMutation.mutate({ id: note.id, parentId });
 		},
-		[updateNoteMutation, note.id],
+		[addNoteParentMutation, note.id],
+	);
+
+	const handleRemoveParent = React.useCallback(
+		(parentId: number) => {
+			removeNoteParentMutation.mutate({ id: note.id, parentId });
+		},
+		[removeNoteParentMutation, note.id],
+	);
+
+	const handleAddChild = React.useCallback(
+		(childId: number) => {
+			addNoteChildMutation.mutate({ id: note.id, childId });
+		},
+		[addNoteChildMutation, note.id],
+	);
+
+	const handleRemoveChild = React.useCallback(
+		(childId: number) => {
+			removeNoteChildMutation.mutate({ id: note.id, childId });
+		},
+		[removeNoteChildMutation, note.id],
 	);
 
 	const handleTagsChange = React.useCallback(
@@ -171,7 +202,10 @@ export function CanvasNoteSidebar({
 					note={note}
 					notes={notes}
 					tags={tags}
-					onParentChange={handleParentChange}
+					onAddParent={handleAddParent}
+					onRemoveParent={handleRemoveParent}
+					onAddChild={handleAddChild}
+					onRemoveChild={handleRemoveChild}
 					onTagsChange={handleTagsChange}
 					onDelete={handleDelete}
 					isMutating={

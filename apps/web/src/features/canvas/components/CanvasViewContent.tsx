@@ -21,6 +21,10 @@ import { useCreateInlineNote } from "../hooks/useCreateInlineNote";
 import { useDeleteNote } from "../hooks/useDeleteNote";
 import { useUpdateNote } from "../hooks/useUpdateNote";
 import {
+	useAddNoteParent,
+	useRemoveNoteParent,
+} from "#/features/notes/hooks/useNoteRelationMutations.ts";
+import {
 	CANVAS_GRID_CELL_HEIGHT,
 	CANVAS_GRID_CELL_WIDTH,
 	CANVAS_GRID_COLUMNS,
@@ -67,6 +71,8 @@ function CanvasInnerView({
 	const updateNoteMutation = useUpdateNote(projectId);
 	const createInlineNoteMutation = useCreateInlineNote(projectId);
 	const deleteNoteMutation = useDeleteNote(projectId);
+	const addNoteParentMutation = useAddNoteParent(projectId);
+	const removeNoteParentMutation = useRemoveNoteParent(projectId);
 	const { screenToFlowPosition } = useReactFlow();
 
 	const [nodes, setNodes] = React.useState<Node[]>([]);
@@ -120,24 +126,24 @@ function CanvasInnerView({
 		});
 	}, [notes, handleDeleteNote, selectedNoteId]);
 
-	/** Solid edges from the explicit `parentId` hierarchy — draggable/connectable to (re)parent notes. */
+	/** Solid edges from each note's `childIds` — draggable/connectable to add or remove parent/child relations. A note may have multiple parents/children, so multiple edges per note are expected. */
 	const hierarchyEdges: Edge[] = React.useMemo(() => {
 		const idsPresent = new Set(notes.map((n) => n.id));
-		return notes
-			.filter(
-				(note) =>
-					note.parentId !== null &&
-					note.parentId !== undefined &&
-					idsPresent.has(note.parentId),
-			)
-			.map((note) => ({
-				id: `hierarchy-${note.parentId}-${note.id}`,
-				source: String(note.parentId),
-				target: String(note.id),
-				animated: true,
-				style: { stroke: "var(--palm)", strokeWidth: 1.5 },
-				data: { edgeKind: "hierarchy" },
-			}));
+		const edges: Edge[] = [];
+		for (const note of notes) {
+			for (const childId of note.childIds ?? []) {
+				if (!idsPresent.has(childId)) continue;
+				edges.push({
+					id: `hierarchy-${note.id}-${childId}`,
+					source: String(note.id),
+					target: String(childId),
+					animated: true,
+					style: { stroke: "var(--palm)", strokeWidth: 1.5 },
+					data: { edgeKind: "hierarchy" },
+				});
+			}
+		}
+		return edges;
 	}, [notes]);
 
 	/**
@@ -209,28 +215,23 @@ function CanvasInnerView({
 		(connection: Connection) => {
 			if (!connection.source || !connection.target) return;
 			if (connection.source === connection.target) return;
-			const targetId = Number(connection.target);
-			const sourceId = Number(connection.source);
-			updateNoteMutation.mutate({
-				id: targetId,
-				payload: { parentId: sourceId },
-			});
+			const parentId = Number(connection.source);
+			const childId = Number(connection.target);
+			addNoteParentMutation.mutate({ id: childId, parentId });
 		},
-		[updateNoteMutation],
+		[addNoteParentMutation],
 	);
 
 	const onEdgesDelete = React.useCallback(
 		(deleted: Edge[]) => {
 			for (const edge of deleted) {
 				if (edge.data?.edgeKind !== "hierarchy") continue;
-				const targetId = Number(edge.target);
-				updateNoteMutation.mutate({
-					id: targetId,
-					payload: { parentId: null },
-				});
+				const parentId = Number(edge.source);
+				const childId = Number(edge.target);
+				removeNoteParentMutation.mutate({ id: childId, parentId });
 			}
 		},
-		[updateNoteMutation],
+		[removeNoteParentMutation],
 	);
 
 	const handleCreateDraftAt = React.useCallback((x: number, y: number) => {

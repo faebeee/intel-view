@@ -48,16 +48,16 @@ export class CreateNoteDto {
   })
   tags?: string[];
 
-  @IsInt()
+  @IsInt({ each: true })
+  @IsArray()
   @IsOptional()
   @ApiProperty({
     description:
-      'ID of the parent note this note should be nested under. Omit or set to null for a top-level (root) note.',
+      'IDs of the parent notes this note should be nested under, if any. Omit or leave empty for a top-level (root) note.',
     required: false,
-    type: Number,
-    nullable: true,
+    type: [Number],
   })
-  parentId?: number | null;
+  parentIds?: number[];
 
   @IsNumber()
   @IsOptional()
