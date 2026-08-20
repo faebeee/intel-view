@@ -13,6 +13,7 @@ import { PlusCircle, RefreshCw } from "lucide-react";
 import * as React from "react";
 import { useTheme } from "#/components/theme-provider.tsx";
 import { Button } from "#/components/ui/button.tsx";
+import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal.tsx";
 import { extractNoteReferenceIds } from "#/lib/note-references.ts";
 import type { NoteType } from "#/types/note.ts";
 import { useCanvasNotesQuery } from "../hooks/useCanvasNotesQuery";
@@ -25,37 +26,16 @@ import {
 	CANVAS_GRID_COLUMNS,
 	type NoteNodeData,
 } from "../types";
-import { InlineNoteCard } from "./InlineNoteCard";
 import { NoteNode } from "./NoteNode";
 
 const nodeTypes = {
 	noteNode: NoteNode,
-	inlineNoteDraft: InlineNoteDraftNode,
 };
 
 type DraftNote = {
-	id: string;
 	x: number;
 	y: number;
 };
-
-function InlineNoteDraftNode({
-	data,
-}: {
-	data: {
-		pending: boolean;
-		onSave: (payload: { type: NoteType; content: string }) => void;
-		onCancel: () => void;
-	};
-}) {
-	return (
-		<InlineNoteCard
-			pending={data.pending}
-			onSave={data.onSave}
-			onCancel={data.onCancel}
-		/>
-	);
-}
 
 function gridPosition(index: number): { x: number; y: number } {
 	const col = index % CANVAS_GRID_COLUMNS;
@@ -254,7 +234,7 @@ function CanvasInnerView({
 	);
 
 	const handleCreateDraftAt = React.useCallback((x: number, y: number) => {
-		setDraft({ id: `draft-${Date.now()}`, x, y });
+		setDraft({ x, y });
 	}, []);
 
 	const onPaneDoubleClick = React.useCallback(
@@ -280,58 +260,25 @@ function CanvasInnerView({
 		handleCreateDraftAt(position.x, position.y);
 	}, [screenToFlowPosition, handleCreateDraftAt]);
 
-	const handleSaveDraft = React.useCallback(
-		(payload: { type: NoteType; content: string }) => {
+	const handleCreateNote = React.useCallback(
+		(type: NoteType) => {
 			if (!draft) return;
 			createInlineNoteMutation.mutate(
 				{
-					type: payload.type,
-					content: payload.content,
+					type,
 					canvasX: draft.x,
 					canvasY: draft.y,
 				},
 				{
-					onSuccess: () => setDraft(null),
+					onSuccess: (note) => {
+						setDraft(null);
+						onSelectNote(note.id);
+					},
 				},
 			);
 		},
-		[draft, createInlineNoteMutation],
+		[draft, createInlineNoteMutation, onSelectNote],
 	);
-
-	const handleCancelDraft = React.useCallback(() => setDraft(null), []);
-
-	const renderedNodes: Node[] = React.useMemo(() => {
-		if (!draft) return nodes;
-		return [
-			...nodes,
-			{
-				id: draft.id,
-				type: "inlineNoteDraft",
-				position: { x: draft.x, y: draft.y },
-				// Explicit width/height mark the node as already "measured", so
-				// React Flow renders it immediately instead of keeping it
-				// `visibility: hidden` until a ResizeObserver reports its size
-				// (which never happens here since this node lives outside the
-				// `nodes` state that `onNodesChange` reconciles dimension
-				// changes into).
-				width: 256,
-				height: 160,
-				data: {
-					pending: createInlineNoteMutation.isPending,
-					onSave: handleSaveDraft,
-					onCancel: handleCancelDraft,
-				},
-				draggable: false,
-				deletable: false,
-			},
-		];
-	}, [
-		nodes,
-		draft,
-		createInlineNoteMutation.isPending,
-		handleSaveDraft,
-		handleCancelDraft,
-	]);
 
 	return (
 		<div className="flex flex-col h-full w-full min-h-0 bg-background">
@@ -340,7 +287,7 @@ function CanvasInnerView({
 					<h1 className="text-lg font-bold text-sea-ink">Canvas</h1>
 					<p className="text-xs text-muted-foreground">
 						Drag notes to arrange them, connect nodes to link notes, and
-						double-click an empty area to add a note inline.
+						double-click an empty area to add a note.
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
@@ -375,7 +322,7 @@ function CanvasInnerView({
 						}}
 					>
 						<ReactFlow
-							nodes={renderedNodes}
+							nodes={nodes}
 							edges={edges}
 							nodeTypes={nodeTypes}
 							onNodesChange={onNodesChange}
@@ -396,6 +343,15 @@ function CanvasInnerView({
 					</div>
 				)}
 			</div>
+
+			<CreateNoteModal
+				open={draft !== null}
+				onOpenChange={(open) => {
+					if (!open) setDraft(null);
+				}}
+				onCreate={handleCreateNote}
+				isCreating={createInlineNoteMutation.isPending}
+			/>
 		</div>
 	);
 }
