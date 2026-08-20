@@ -7,9 +7,20 @@ import {
   Param,
   Delete,
   NotFoundException,
+  BadRequestException,
   ParseIntPipe,
+  StreamableFile,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiConsumes,
+} from '@nestjs/swagger';
 import { Paginate, Paginated, ApiPaginationQuery } from 'nestjs-paginate';
 import type { PaginateQuery } from 'nestjs-paginate';
 import { NoteService, notePaginateConfig } from './note.service';
@@ -304,6 +315,91 @@ export class NoteController {
       throw new NotFoundException(`Note with ID ${id} not found`);
     }
     return entries.map(toNoteLogEntryResponseDto);
+  }
+
+  @Post(':id/file')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'The file to attach to the note.',
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @ApiOperation({
+    summary:
+      "Upload the file of a 'file'-type note, replacing any file it already has. 400 if the note isn't type 'file'.",
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'The file has been successfully stored.',
+    type: NoteResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Note not found.' })
+  @ApiResponse({
+    status: 400,
+    description: "No file provided, or note is not of type 'file'.",
+  })
+  async uploadFile(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @UploadedFile() file?: Express.Multer.File,
+  ): Promise<NoteResponseDto> {
+    if (!file) {
+      throw new BadRequestException('No file was uploaded');
+    }
+    const note = await this.noteService.uploadFile(projectId, id, file);
+    return toNoteResponseDto(note);
+  }
+
+  @Get(':id/file')
+  @ApiOperation({
+    summary: "Download the file attached to a 'file'-type note",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "The note's stored file.",
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Note not found, or it has no file attached.',
+  })
+  async downloadFile(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<StreamableFile> {
+    const file = await this.noteService.downloadFile(projectId, id);
+    return new StreamableFile(file.stream, {
+      type: file.mimeType,
+      disposition: `inline; filename="${encodeURIComponent(file.fileName)}"`,
+      length: file.size ?? undefined,
+    });
+  }
+
+  @Delete(':id/file')
+  @ApiOperation({
+    summary:
+      "Remove the file attached to a 'file'-type note, keeping the note itself",
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'The file has been successfully removed.',
+    type: NoteResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Note not found, or it has no file attached.',
+  })
+  async removeFile(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<NoteResponseDto> {
+    const note = await this.noteService.removeFile(projectId, id);
+    return toNoteResponseDto(note);
   }
 
   @Get(':id/locations')

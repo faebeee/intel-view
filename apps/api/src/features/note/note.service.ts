@@ -24,6 +24,8 @@ import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { CreateNoteLogEntryDto } from './dto/create-note-log-entry.dto';
 import { ProjectAccessService } from '../project/project-access.service';
+import { StorageService } from '../storage/storage.service';
+import type { Readable } from 'stream';
 
 export const notePaginateConfig: PaginateConfig<Note> = {
   sortableColumns: ['id', 'createdAt', 'updatedAt'],
@@ -83,6 +85,19 @@ export type NoteLocationWithLabel = {
   tags: string[];
 };
 
+/**
+ * The parts of a multipart upload the service needs to persist a note's
+ * file. Structurally compatible with `Express.Multer.File` (the controller
+ * passes one straight through), but declared here so the service layer
+ * doesn't depend on the HTTP layer's types.
+ */
+export type UploadedNoteFile = {
+  originalname: string;
+  mimetype: string;
+  size: number;
+  buffer: Buffer;
+};
+
 /** The minimal shape of a `Note` needed to derive its synthetic address pin, if any. */
 type AddressPinSource = Pick<
   Note,
@@ -110,6 +125,7 @@ export class NoteService {
     private readonly noteLogEntryRepository: Repository<NoteLogEntry>,
     private readonly projectAccessService: ProjectAccessService,
     private readonly geocodingService: GeocodingService,
+    private readonly storageService: StorageService,
   ) {}
 
   private async assertProjectExists(projectId: number): Promise<void> {
@@ -526,6 +542,156 @@ export class NoteService {
         content: createNoteLogEntryDto.content,
       }),
     );
+  }
+
+  /**
+   * Loads a `'file'`-type note, throwing if it doesn't exist or is of any
+   * other type — file attachments are only a valid concept for that type.
+   */
+  private async findFileNote(projectId: number, id: number): Promise<Note> {
+    const note = await this.findOne(projectId, id);
+    if (!note) {
+      throw new NotFoundException(`Note with ID ${id} not found`);
+    }
+    if (note.type !== 'file') {
+      throw new BadRequestException(
+        'Files can only be attached to notes of type "file"',
+      );
+    }
+    return note;
+  }
+
+  /**
+   * Stores an uploaded file for a `'file'`-type note, replacing (and
+   * deleting) any file previously attached to it, and records an `'updated'`
+   * history entry describing the swap. The bytes live in object storage; the
+   * note only keeps the key and the file's metadata.
+   */
+  async uploadFile(
+    projectId: number,
+    id: number,
+    file: UploadedNoteFile,
+  ): Promise<Note> {
+    const note = await this.findFileNote(projectId, id);
+    const previousKey = note.fileKey;
+    const previousName = note.fileName;
+
+    const key = this.storageService.buildNoteFileKey(
+      projectId,
+      id,
+      file.originalname,
+    );
+    await this.storageService.put(key, {
+      buffer: file.buffer,
+      size: file.size,
+      mimeType: file.mimetype,
+    });
+
+    note.fileKey = key;
+    note.fileName = file.originalname;
+    note.fileMimeType = file.mimetype;
+    note.fileSize = file.size;
+    note.updatedAt = new Date();
+    const savedNote = await this.noteRepository.save(note);
+
+    if (previousKey) {
+      await this.removeStoredObject(previousKey);
+    }
+
+    await this.noteHistoryRepository.save(
+      this.noteHistoryRepository.create({
+        noteId: savedNote.id,
+        changeType: 'updated',
+        changes: [
+          {
+            field: 'fileName',
+            previousValue: previousName,
+            newValue: file.originalname,
+          },
+        ],
+      }),
+    );
+
+    await this.attachRelationIds([savedNote]);
+    return savedNote;
+  }
+
+  /**
+   * Returns a readable stream of a file note's stored bytes along with the
+   * metadata needed to serve it (name, MIME type, size). Throws if the note
+   * isn't a file note or has no file attached yet.
+   */
+  async downloadFile(
+    projectId: number,
+    id: number,
+  ): Promise<{
+    stream: Readable;
+    fileName: string;
+    mimeType: string;
+    size: number | null;
+  }> {
+    const note = await this.findFileNote(projectId, id);
+    if (!note.fileKey) {
+      throw new NotFoundException(`Note with ID ${id} has no file attached`);
+    }
+    return {
+      stream: await this.storageService.get(note.fileKey),
+      fileName: note.fileName ?? `note-${id}`,
+      mimeType: note.fileMimeType ?? 'application/octet-stream',
+      size: note.fileSize,
+    };
+  }
+
+  /**
+   * Detaches a file note's file, deleting the stored object and clearing the
+   * note's file metadata. The note itself is kept, ready for a new upload.
+   */
+  async removeFile(projectId: number, id: number): Promise<Note> {
+    const note = await this.findFileNote(projectId, id);
+    if (!note.fileKey) {
+      throw new NotFoundException(`Note with ID ${id} has no file attached`);
+    }
+
+    const previousKey = note.fileKey;
+    const previousName = note.fileName;
+    note.fileKey = null;
+    note.fileName = null;
+    note.fileMimeType = null;
+    note.fileSize = null;
+    note.updatedAt = new Date();
+    const savedNote = await this.noteRepository.save(note);
+
+    await this.removeStoredObject(previousKey);
+
+    await this.noteHistoryRepository.save(
+      this.noteHistoryRepository.create({
+        noteId: savedNote.id,
+        changeType: 'updated',
+        changes: [
+          {
+            field: 'fileName',
+            previousValue: previousName,
+            newValue: null,
+          },
+        ],
+      }),
+    );
+
+    await this.attachRelationIds([savedNote]);
+    return savedNote;
+  }
+
+  /**
+   * Deletes an object from storage, swallowing failures: an orphaned object
+   * is preferable to failing a request whose database state has already been
+   * updated to no longer reference it.
+   */
+  private async removeStoredObject(key: string): Promise<void> {
+    try {
+      await this.storageService.remove(key);
+    } catch {
+      // Intentionally ignored — see doc comment.
+    }
   }
 
   /**

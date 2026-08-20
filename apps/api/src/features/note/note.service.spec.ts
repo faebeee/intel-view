@@ -10,6 +10,7 @@ import { NoteLocation } from './entities/note-location.entity';
 import { NoteLogEntry } from './entities/note-log-entry.entity';
 import { ProjectAccessService } from '../project/project-access.service';
 import { GeocodingService } from './geocoding.service';
+import { StorageService } from '../storage/storage.service';
 
 describe('NoteService', () => {
   let service: NoteService;
@@ -50,6 +51,12 @@ describe('NoteService', () => {
   const mockGeocodingService = {
     resolve: jest.fn(),
   };
+  const mockStorageService = {
+    buildNoteFileKey: jest.fn(),
+    put: jest.fn(),
+    get: jest.fn(),
+    remove: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -82,6 +89,10 @@ describe('NoteService', () => {
         {
           provide: GeocodingService,
           useValue: mockGeocodingService,
+        },
+        {
+          provide: StorageService,
+          useValue: mockStorageService,
         },
       ],
     }).compile();
@@ -136,6 +147,12 @@ describe('NoteService', () => {
 
     // Default: no geocoding stub set per-test unless overridden.
     mockGeocodingService.resolve.mockReset();
+
+    // Default pass-through behavior for object storage, so file tests only
+    // need to assert on the calls they care about.
+    mockStorageService.buildNoteFileKey.mockReturnValue('stored/key');
+    mockStorageService.put.mockResolvedValue(undefined);
+    mockStorageService.remove.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -898,6 +915,150 @@ describe('NoteService', () => {
       const result = await service.findLogEntries(1, 999);
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('file notes', () => {
+    const uploadedFile = {
+      originalname: 'report.pdf',
+      mimetype: 'application/pdf',
+      size: 1234,
+      buffer: Buffer.from('pdf bytes'),
+    };
+
+    it("stores an uploaded file and records it on the note", async () => {
+      const projectId = 1;
+      const note = {
+        id: 3,
+        projectId,
+        type: 'file',
+        fileKey: null,
+        fileName: null,
+      } as unknown as Note;
+
+      mockNoteRepository.findOne.mockResolvedValue(note);
+      mockNoteRepository.save.mockImplementation((saved: Note) =>
+        Promise.resolve(saved),
+      );
+
+      const result = await service.uploadFile(projectId, 3, uploadedFile);
+
+      expect(mockStorageService.buildNoteFileKey).toHaveBeenCalledWith(
+        projectId,
+        3,
+        'report.pdf',
+      );
+      expect(mockStorageService.put).toHaveBeenCalledWith('stored/key', {
+        buffer: uploadedFile.buffer,
+        size: 1234,
+        mimeType: 'application/pdf',
+      });
+      expect(result.fileKey).toBe('stored/key');
+      expect(result.fileName).toBe('report.pdf');
+      expect(result.fileMimeType).toBe('application/pdf');
+      expect(result.fileSize).toBe(1234);
+    });
+
+    it('deletes the previously stored object when a file is replaced', async () => {
+      const note = {
+        id: 3,
+        projectId: 1,
+        type: 'file',
+        fileKey: 'old/key',
+        fileName: 'old.pdf',
+      } as unknown as Note;
+
+      mockNoteRepository.findOne.mockResolvedValue(note);
+      mockNoteRepository.save.mockImplementation((saved: Note) =>
+        Promise.resolve(saved),
+      );
+
+      await service.uploadFile(1, 3, uploadedFile);
+
+      expect(mockStorageService.remove).toHaveBeenCalledWith('old/key');
+    });
+
+    it('rejects uploading a file to a note that is not a file note', async () => {
+      mockNoteRepository.findOne.mockResolvedValue({
+        id: 3,
+        projectId: 1,
+        type: 'standard',
+      } as Note);
+
+      await expect(service.uploadFile(1, 3, uploadedFile)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockStorageService.put).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when uploading to a non-existent note', async () => {
+      mockNoteRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.uploadFile(1, 999, uploadedFile)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it("streams a file note's stored object with its metadata", async () => {
+      const stream = { pipe: jest.fn() };
+      mockNoteRepository.findOne.mockResolvedValue({
+        id: 3,
+        projectId: 1,
+        type: 'file',
+        fileKey: 'stored/key',
+        fileName: 'report.pdf',
+        fileMimeType: 'application/pdf',
+        fileSize: 1234,
+      } as unknown as Note);
+      mockStorageService.get.mockResolvedValue(stream);
+
+      const result = await service.downloadFile(1, 3);
+
+      expect(mockStorageService.get).toHaveBeenCalledWith('stored/key');
+      expect(result).toEqual({
+        stream,
+        fileName: 'report.pdf',
+        mimeType: 'application/pdf',
+        size: 1234,
+      });
+    });
+
+    it('throws NotFoundException when downloading a file note with no file', async () => {
+      mockNoteRepository.findOne.mockResolvedValue({
+        id: 3,
+        projectId: 1,
+        type: 'file',
+        fileKey: null,
+      } as unknown as Note);
+
+      await expect(service.downloadFile(1, 3)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('clears the file metadata and deletes the object when removing a file', async () => {
+      const note = {
+        id: 3,
+        projectId: 1,
+        type: 'file',
+        fileKey: 'stored/key',
+        fileName: 'report.pdf',
+        fileMimeType: 'application/pdf',
+        fileSize: 1234,
+      } as unknown as Note;
+
+      mockNoteRepository.findOne.mockResolvedValue(note);
+      mockNoteRepository.save.mockImplementation((saved: Note) =>
+        Promise.resolve(saved),
+      );
+
+      const result = await service.removeFile(1, 3);
+
+      expect(mockStorageService.remove).toHaveBeenCalledWith('stored/key');
+      expect(result.fileKey).toBeNull();
+      expect(result.fileName).toBeNull();
+      expect(result.fileMimeType).toBeNull();
+      expect(result.fileSize).toBeNull();
     });
   });
 
