@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { NoteModule } from './features/note/note.module';
 import { TagModule } from './features/tag/tag.module';
 import { ProjectModule } from './features/project/project.module';
+import { ProjectGroupModule } from './features/project-group/project-group.module';
 import { DatabaseModule } from './features/database/database.module';
 
 @Module({
@@ -19,9 +20,10 @@ import { DatabaseModule } from './features/database/database.module';
       autoLoadEntities: true,
     }),
     DatabaseModule,
+    ProjectGroupModule,
     ProjectModule,
     NoteModule,
     TagModule,
   ],
 })
-export class AppModule { }
+export class AppModule {}

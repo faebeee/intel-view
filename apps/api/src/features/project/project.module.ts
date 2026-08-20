@@ -6,9 +6,10 @@ import { ProjectAccessService } from './project-access.service';
 import { Project } from './entities/project.entity';
 import { Note } from '../note/entities/note.entity';
 import { Tag } from '../tag/entities/tag.entity';
+import { ProjectGroupModule } from '../project-group/project-group.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Project, Note, Tag])],
+  imports: [TypeOrmModule.forFeature([Project, Note, Tag]), ProjectGroupModule],
   controllers: [ProjectController],
   providers: [ProjectService, ProjectAccessService],
   exports: [ProjectService, ProjectAccessService],

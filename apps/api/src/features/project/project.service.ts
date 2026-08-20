@@ -12,6 +12,7 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { Note } from '../note/entities/note.entity';
 import { Tag } from '../tag/entities/tag.entity';
+import { ProjectGroupService } from '../project-group/project-group.service';
 
 export const projectPaginateConfig: PaginateConfig<Project> = {
   sortableColumns: ['id', 'name', 'createdAt', 'updatedAt'],
@@ -20,7 +21,9 @@ export const projectPaginateConfig: PaginateConfig<Project> = {
   searchableColumns: ['name', 'description'],
   filterableColumns: {
     name: true,
+    groupId: true,
   },
+  relations: ['group'],
 };
 
 @Injectable()
@@ -29,9 +32,13 @@ export class ProjectService {
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
     private readonly dataSource: DataSource,
+    private readonly projectGroupService: ProjectGroupService,
   ) {}
 
   async create(createProjectDto: CreateProjectDto): Promise<Project> {
+    if (createProjectDto.groupId != null) {
+      await this.projectGroupService.assertExists(createProjectDto.groupId);
+    }
     const project = this.projectRepository.create(createProjectDto);
     return this.projectRepository.save(project);
   }
@@ -46,6 +53,7 @@ export class ProjectService {
   async findOne(id: number): Promise<Project | null> {
     return this.projectRepository.findOne({
       where: { id, deletedAt: IsNull() },
+      relations: { group: true },
     });
   }
 
@@ -59,10 +67,15 @@ export class ProjectService {
       return null;
     }
 
+    if (updateProjectDto.groupId != null) {
+      await this.projectGroupService.assertExists(updateProjectDto.groupId);
+    }
+
     Object.assign(project, updateProjectDto);
 
     project.updatedAt = new Date();
-    return this.projectRepository.save(project);
+    const saved = await this.projectRepository.save(project);
+    return this.findOne(saved.id);
   }
 
   async remove(id: number): Promise<boolean> {

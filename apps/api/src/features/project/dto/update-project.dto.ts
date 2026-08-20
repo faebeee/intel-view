@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional } from 'class-validator';
+import { IsInt, IsOptional, IsString } from 'class-validator';
 
 export class UpdateProjectDto {
   @IsString()
@@ -14,4 +14,15 @@ export class UpdateProjectDto {
     required: false,
   })
   description?: string;
+
+  @IsInt()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'ID of the group this project belongs to. Pass null to unassign.',
+    type: 'number',
+    required: false,
+    nullable: true,
+  })
+  groupId?: number | null;
 }

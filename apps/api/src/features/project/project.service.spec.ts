@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ProjectService } from './project.service';
 import { Project } from './entities/project.entity';
+import { ProjectGroupService } from '../project-group/project-group.service';
 
 describe('ProjectService', () => {
   let service: ProjectService;
@@ -15,6 +16,9 @@ describe('ProjectService', () => {
   };
   const mockDataSource = {
     transaction: jest.fn(),
+  };
+  const mockProjectGroupService = {
+    assertExists: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -30,6 +34,10 @@ describe('ProjectService', () => {
         {
           provide: DataSource,
           useValue: mockDataSource,
+        },
+        {
+          provide: ProjectGroupService,
+          useValue: mockProjectGroupService,
         },
       ],
     }).compile();
@@ -59,6 +67,18 @@ describe('ProjectService', () => {
       expect(mockProjectRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ description: 'Updated' }),
       );
+    });
+
+    it('validates the group exists when assigning a groupId', async () => {
+      const existingProject = { id: 1, name: 'Op Blue Horizon', groupId: null };
+      mockProjectRepository.findOne.mockResolvedValue(existingProject);
+      mockProjectRepository.save.mockImplementation(
+        (project: unknown) => project,
+      );
+
+      await service.update(1, { groupId: 5 });
+
+      expect(mockProjectGroupService.assertExists).toHaveBeenCalledWith(5);
     });
   });
 

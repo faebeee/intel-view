@@ -1,6 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Project } from '../entities/project.entity';
 
+export class ProjectGroupSummaryDto {
+  @ApiProperty()
+  id: number;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  color: string;
+}
+
 export class ProjectResponseDto {
   @ApiProperty()
   id: number;
@@ -10,6 +21,16 @@ export class ProjectResponseDto {
 
   @ApiProperty({ type: 'string', nullable: true, required: false })
   description: string | null;
+
+  @ApiProperty({ type: 'number', nullable: true, required: false })
+  groupId: number | null;
+
+  @ApiProperty({
+    type: ProjectGroupSummaryDto,
+    nullable: true,
+    required: false,
+  })
+  group: ProjectGroupSummaryDto | null;
 
   @ApiProperty()
   createdAt: Date;
@@ -23,6 +44,14 @@ export function toProjectResponseDto(project: Project): ProjectResponseDto {
     id: project.id,
     name: project.name,
     description: project.description,
+    groupId: project.groupId,
+    group: project.group
+      ? {
+          id: project.group.id,
+          name: project.group.name,
+          color: project.group.color,
+        }
+      : null,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
   };

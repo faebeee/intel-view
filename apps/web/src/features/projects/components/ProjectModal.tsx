@@ -15,7 +15,12 @@ import {
 } from "#/components/ui/dialog";
 import { FormField, HUD_INPUT_CLASS } from "#/components/ui/form-field.tsx";
 import { Input } from "#/components/ui/input";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "#/components/ui/native-select.tsx";
 import { Textarea } from "#/components/ui/textarea";
+import { useAllProjectGroupsQuery } from "#/features/project-groups/hooks/useAllProjectGroupsQuery.ts";
 import { toastApiError } from "#/lib/api-error.ts";
 
 type ProjectModalProps = {
@@ -40,7 +45,9 @@ export function ProjectModal({
 	const isEditing = project !== null;
 	const [name, setName] = React.useState("");
 	const [description, setDescription] = React.useState("");
+	const [groupId, setGroupId] = React.useState<string>("");
 	const queryClient = useQueryClient();
+	const { data: groups = [] } = useAllProjectGroupsQuery();
 
 	// Reset (create mode) or prefill (edit mode) the form whenever the modal
 	// opens, or the project being edited changes.
@@ -49,14 +56,20 @@ export function ProjectModal({
 		if (project) {
 			setName(project.name || "");
 			setDescription(project.description || "");
+			setGroupId(project.groupId != null ? String(project.groupId) : "");
 		} else {
 			setName("");
 			setDescription("");
+			setGroupId("");
 		}
 	}, [open, project]);
 
 	const saveProjectMutation = useMutation({
-		mutationFn: async (payload: { name: string; description?: string }) => {
+		mutationFn: async (payload: {
+			name: string;
+			description?: string;
+			groupId: number | null;
+		}) => {
 			if (isEditing) {
 				if (!project) throw new Error("No project selected");
 				const res = await projectControllerUpdate({
@@ -97,6 +110,7 @@ export function ProjectModal({
 		saveProjectMutation.mutate({
 			name: name.trim(),
 			description: description.trim() || undefined,
+			groupId: groupId ? Number(groupId) : null,
 		});
 	};
 
@@ -140,6 +154,23 @@ export function ProjectModal({
 							onChange={(e) => setDescription(e.target.value)}
 							disabled={saveProjectMutation.isPending}
 						/>
+					</FormField>
+
+					<FormField label="Group (optional)" htmlFor="project-group">
+						<NativeSelect
+							id="project-group"
+							className={`${HUD_INPUT_CLASS} w-full`}
+							value={groupId}
+							onChange={(e) => setGroupId(e.target.value)}
+							disabled={saveProjectMutation.isPending}
+						>
+							<NativeSelectOption value="">No group</NativeSelectOption>
+							{groups.map((group) => (
+								<NativeSelectOption key={group.id} value={String(group.id)}>
+									{group.name}
+								</NativeSelectOption>
+							))}
+						</NativeSelect>
 					</FormField>
 
 					<DialogFooter className="pt-2">
