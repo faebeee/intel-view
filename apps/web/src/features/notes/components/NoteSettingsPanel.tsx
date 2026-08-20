@@ -99,7 +99,11 @@ export function NoteSettingsPanel({
 						Type
 					</span>
 					<span className="text-xs font-mono text-sea-ink-soft">
-						{note.type === "log" ? "Log" : "Standard"}
+						{note.type === "log"
+							? "Log"
+							: note.type === "address"
+								? "Address"
+								: "Standard"}
 					</span>
 				</div>
 

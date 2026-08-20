@@ -8,6 +8,7 @@ import { NoteHistoryEntry } from './entities/note-history-entry.entity';
 import { NoteLocation } from './entities/note-location.entity';
 import { NoteLogEntry } from './entities/note-log-entry.entity';
 import { ProjectAccessService } from '../project/project-access.service';
+import { GeocodingService } from './geocoding.service';
 
 describe('NoteService', () => {
   let service: NoteService;
@@ -37,6 +38,9 @@ describe('NoteService', () => {
     save: jest.fn(),
     find: jest.fn(),
   };
+  const mockGeocodingService = {
+    resolve: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -61,6 +65,10 @@ describe('NoteService', () => {
         {
           provide: getRepositoryToken(NoteLogEntry),
           useValue: mockNoteLogEntryRepository,
+        },
+        {
+          provide: GeocodingService,
+          useValue: mockGeocodingService,
         },
       ],
     }).compile();
@@ -99,6 +107,9 @@ describe('NoteService', () => {
     mockNoteLogEntryRepository.save.mockImplementation(
       (entry: Partial<NoteLogEntry>) => Promise.resolve(entry),
     );
+
+    // Default: no geocoding stub set per-test unless overridden.
+    mockGeocodingService.resolve.mockReset();
   });
 
   afterEach(() => {
@@ -351,6 +362,194 @@ describe('NoteService', () => {
     });
   });
 
+  describe('address geocoding', () => {
+    it("resolves an 'address' note's content to coordinates on create", async () => {
+      const projectId = 1;
+      const createNoteDto = {
+        type: 'address' as const,
+        content: '1 Infinite Loop',
+      };
+      const createdNote = {
+        id: 7,
+        projectId,
+        type: 'address',
+        content: '1 Infinite Loop',
+      } as unknown as Note;
+
+      mockNoteRepository.create.mockReturnValue(createdNote);
+      mockNoteRepository.save.mockImplementation((note: Note) =>
+        Promise.resolve(note),
+      );
+      mockGeocodingService.resolve.mockResolvedValue({
+        lat: 37.33,
+        lng: -122.03,
+        label: 'Apple Park, Cupertino, California, United States',
+      });
+
+      const result = await service.create(projectId, createNoteDto);
+
+      expect(mockGeocodingService.resolve).toHaveBeenCalledWith(
+        '1 Infinite Loop',
+      );
+      expect(result.latitude).toBe(37.33);
+      expect(result.longitude).toBe(-122.03);
+      expect(result.geocodeStatus).toBe('resolved');
+      expect(result.geocodedLabel).toBe(
+        'Apple Park, Cupertino, California, United States',
+      );
+      expect(result.geocodeError).toBeNull();
+      // Saved twice: once for the initial create, once with the geocode result.
+      expect(mockNoteRepository.save).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not attempt to geocode non-address notes', async () => {
+      const projectId = 1;
+      const createNoteDto = { content: 'hello world' };
+      const createdNote = {
+        id: 1,
+        projectId,
+        type: 'standard',
+        content: 'hello world',
+      } as unknown as Note;
+
+      mockNoteRepository.create.mockReturnValue(createdNote);
+      mockNoteRepository.save.mockResolvedValue(createdNote);
+
+      await service.create(projectId, createNoteDto);
+
+      expect(mockGeocodingService.resolve).not.toHaveBeenCalled();
+    });
+
+    it('records a failed status when no matching location is found', async () => {
+      const projectId = 1;
+      const createNoteDto = {
+        type: 'address' as const,
+        content: 'asdkjhaskjdh nowhere',
+      };
+      const createdNote = {
+        id: 1,
+        projectId,
+        type: 'address',
+        content: 'asdkjhaskjdh nowhere',
+      } as unknown as Note;
+
+      mockNoteRepository.create.mockReturnValue(createdNote);
+      mockNoteRepository.save.mockImplementation((note: Note) =>
+        Promise.resolve(note),
+      );
+      mockGeocodingService.resolve.mockResolvedValue(null);
+
+      const result = await service.create(projectId, createNoteDto);
+
+      expect(result.latitude).toBeNull();
+      expect(result.longitude).toBeNull();
+      expect(result.geocodeStatus).toBe('failed');
+      expect(result.geocodeError).toBeTruthy();
+    });
+
+    it('records a failed status (without throwing) when the geocoding request errors', async () => {
+      const projectId = 1;
+      const createNoteDto = {
+        type: 'address' as const,
+        content: '1 Infinite Loop',
+      };
+      const createdNote = {
+        id: 1,
+        projectId,
+        type: 'address',
+        content: '1 Infinite Loop',
+      } as unknown as Note;
+
+      mockNoteRepository.create.mockReturnValue(createdNote);
+      mockNoteRepository.save.mockImplementation((note: Note) =>
+        Promise.resolve(note),
+      );
+      mockGeocodingService.resolve.mockRejectedValue(
+        new Error('network unreachable'),
+      );
+
+      const result = await service.create(projectId, createNoteDto);
+
+      expect(result.geocodeStatus).toBe('failed');
+      expect(result.geocodeError).toBe('network unreachable');
+    });
+
+    it('re-resolves an address note when its content is updated', async () => {
+      const projectId = 1;
+      const existingNote = {
+        id: 1,
+        projectId,
+        type: 'address',
+        content: 'old address',
+        latitude: 1,
+        longitude: 1,
+        geocodeStatus: 'resolved',
+        geocodedLabel: 'Old Place',
+        geocodeError: null,
+      } as unknown as Note;
+      const updateNoteDto = { content: 'new address' };
+
+      mockNoteRepository.findOne.mockResolvedValue(existingNote);
+      mockNoteRepository.save.mockImplementation((note: Note) =>
+        Promise.resolve(note),
+      );
+      mockGeocodingService.resolve.mockResolvedValue({
+        lat: 2,
+        lng: 2,
+        label: 'New Place',
+      });
+
+      const result = await service.update(projectId, 1, updateNoteDto);
+
+      expect(mockGeocodingService.resolve).toHaveBeenCalledWith('new address');
+      expect(result?.latitude).toBe(2);
+      expect(result?.longitude).toBe(2);
+      expect(result?.geocodedLabel).toBe('New Place');
+    });
+
+    it('does not re-resolve an address note when content is not part of the update', async () => {
+      const projectId = 1;
+      const existingNote = {
+        id: 1,
+        projectId,
+        type: 'address',
+        content: 'old address',
+        title: 'old title',
+      } as unknown as Note;
+      const updateNoteDto = { title: 'new title' };
+
+      mockNoteRepository.findOne.mockResolvedValue(existingNote);
+      mockNoteRepository.save.mockImplementation((note: Note) =>
+        Promise.resolve(note),
+      );
+
+      await service.update(projectId, 1, updateNoteDto);
+
+      expect(mockGeocodingService.resolve).not.toHaveBeenCalled();
+    });
+
+    it('does not re-resolve an address note when content is present but unchanged (e.g. a title-only autosave)', async () => {
+      const projectId = 1;
+      const existingNote = {
+        id: 1,
+        projectId,
+        type: 'address',
+        content: 'same address',
+        title: 'old title',
+      } as unknown as Note;
+      const updateNoteDto = { title: 'new title', content: 'same address' };
+
+      mockNoteRepository.findOne.mockResolvedValue(existingNote);
+      mockNoteRepository.save.mockImplementation((note: Note) =>
+        Promise.resolve(note),
+      );
+
+      await service.update(projectId, 1, updateNoteDto);
+
+      expect(mockGeocodingService.resolve).not.toHaveBeenCalled();
+    });
+  });
+
   describe('findLocations', () => {
     it("returns a note's derived locations enriched with the note's label and tags", async () => {
       const projectId = 1;
@@ -409,6 +608,65 @@ describe('NoteService', () => {
 
       expect(result).toBeNull();
     });
+
+    it("appends a synthetic pin for a resolved 'address'-type note", async () => {
+      const projectId = 1;
+      const note = {
+        id: 5,
+        projectId,
+        title: 'HQ',
+        content: '1 Infinite Loop',
+        tags: ['work'],
+        type: 'address',
+        latitude: 37.33,
+        longitude: -122.03,
+        geocodeStatus: 'resolved',
+        geocodedLabel: 'Apple Park, Cupertino',
+        createdAt: new Date('2024-01-01'),
+      } as unknown as Note;
+
+      mockNoteRepository.findOne.mockResolvedValue(note);
+      mockNoteLocationRepository.find.mockResolvedValue([]);
+
+      const result = await service.findLocations(projectId, 5);
+
+      expect(result).toEqual([
+        {
+          id: -5,
+          noteId: 5,
+          lat: 37.33,
+          lng: -122.03,
+          label: 'Apple Park, Cupertino',
+          createdAt: note.createdAt,
+          noteLabel: 'HQ',
+          tags: ['work'],
+        },
+      ]);
+    });
+
+    it("does not append a pin for an 'address'-type note that failed to geocode", async () => {
+      const projectId = 1;
+      const note = {
+        id: 6,
+        projectId,
+        title: 'Nowhere',
+        content: 'gibberish',
+        tags: [],
+        type: 'address',
+        latitude: null,
+        longitude: null,
+        geocodeStatus: 'failed',
+        geocodedLabel: null,
+        createdAt: new Date('2024-01-02'),
+      } as unknown as Note;
+
+      mockNoteRepository.findOne.mockResolvedValue(note);
+      mockNoteLocationRepository.find.mockResolvedValue([]);
+
+      const result = await service.findLocations(projectId, 6);
+
+      expect(result).toEqual([]);
+    });
   });
 
   describe('findAllLocations', () => {
@@ -435,7 +693,18 @@ describe('NoteService', () => {
 
       expect(mockNoteRepository.find).toHaveBeenCalledWith({
         where: { projectId, deletedAt: IsNull() },
-        select: { id: true, title: true, content: true, tags: true },
+        select: {
+          id: true,
+          title: true,
+          content: true,
+          tags: true,
+          type: true,
+          latitude: true,
+          longitude: true,
+          geocodeStatus: true,
+          geocodedLabel: true,
+          createdAt: true,
+        },
       });
       expect(mockNoteLocationRepository.find).toHaveBeenCalledWith({
         where: { noteId: In([1, 2]) },
@@ -447,6 +716,59 @@ describe('NoteService', () => {
           ...locations[1],
           noteLabel: 'Some long note content here',
           tags: [],
+        },
+      ]);
+    });
+
+    it("includes a synthetic pin for each resolved 'address'-type note, alongside [[geo:...]] pins", async () => {
+      const projectId = 1;
+      const notes = [
+        { id: 1, title: 'Home', content: null, tags: ['family'] },
+        {
+          id: 5,
+          title: 'HQ',
+          content: '1 Infinite Loop',
+          tags: ['work'],
+          type: 'address',
+          latitude: 37.33,
+          longitude: -122.03,
+          geocodeStatus: 'resolved',
+          geocodedLabel: 'Apple Park, Cupertino',
+          createdAt: new Date('2024-01-01'),
+        },
+        {
+          id: 6,
+          title: 'Nowhere',
+          content: 'gibberish',
+          tags: [],
+          type: 'address',
+          latitude: null,
+          longitude: null,
+          geocodeStatus: 'failed',
+          geocodedLabel: null,
+          createdAt: new Date('2024-01-02'),
+        },
+      ] as unknown as Note[];
+      const locations = [
+        { id: 10, noteId: 1, lat: 1, lng: 1, label: null },
+      ] as NoteLocation[];
+
+      mockNoteRepository.find.mockResolvedValue(notes);
+      mockNoteLocationRepository.find.mockResolvedValue(locations);
+
+      const result = await service.findAllLocations(projectId);
+
+      expect(result).toEqual([
+        { ...locations[0], noteLabel: 'Home', tags: ['family'] },
+        {
+          id: -5,
+          noteId: 5,
+          lat: 37.33,
+          lng: -122.03,
+          label: 'Apple Park, Cupertino',
+          createdAt: notes[1].createdAt,
+          noteLabel: 'HQ',
+          tags: ['work'],
         },
       ]);
     });

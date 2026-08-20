@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Project } from '../entities/project.entity';
+import { PROJECT_MAP_THEMES, Project } from '../entities/project.entity';
+import type { ProjectMapTheme } from '../entities/project.entity';
 
 export class ProjectGroupSummaryDto {
   @ApiProperty()
@@ -32,6 +33,13 @@ export class ProjectResponseDto {
   })
   group: ProjectGroupSummaryDto | null;
 
+  @ApiProperty({
+    description:
+      "The selected base map tile style for this project's map view.",
+    enum: PROJECT_MAP_THEMES,
+  })
+  mapTheme: ProjectMapTheme;
+
   @ApiProperty()
   createdAt: Date;
 
@@ -52,6 +60,7 @@ export function toProjectResponseDto(project: Project): ProjectResponseDto {
           color: project.group.color,
         }
       : null,
+    mapTheme: project.mapTheme,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
   };

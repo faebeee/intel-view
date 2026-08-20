@@ -11,6 +11,7 @@ import {
 	LeafletMap,
 	LeafletMarker,
 } from "#/features/map/components/LeafletMap.tsx";
+import type { MapThemeId } from "#/features/map/lib/map-themes.ts";
 import {
 	DEFAULT_MARKER_COLOR,
 	getTagMarkerIcon,
@@ -57,6 +58,10 @@ export type AllLocationsMapProps = {
 	selectedNoteId?: number | null;
 	/** Called with a note's id when one of its markers is clicked, so the caller can focus that note (e.g. re-filtering/re-framing the map to just its locations) the same way clicking it in the sidebar does. */
 	onNoteSelect?: (noteId: number) => void;
+	/** The project's persisted base map theme, used as the layers control's initially-checked theme. Defaults to `DEFAULT_MAP_THEME` ('street') if omitted. */
+	mapTheme?: MapThemeId;
+	/** Called with the newly selected theme's id whenever the user switches base layers, so the caller can persist the choice (e.g. onto the `Project` entity). */
+	onMapThemeChange?: (theme: MapThemeId) => void;
 	className?: string;
 };
 
@@ -74,6 +79,8 @@ export function AllLocationsMap({
 	notes,
 	selectedNoteId,
 	onNoteSelect,
+	mapTheme,
+	onMapThemeChange,
 	className,
 }: AllLocationsMapProps) {
 	const { data: tags = [] } = useAllTagsQuery(parseInt(projectId, 10));
@@ -171,6 +178,8 @@ export function AllLocationsMap({
 				center={DEFAULT_MAP_CENTER}
 				zoom={DEFAULT_MAP_ZOOM}
 				className="h-full w-full"
+				theme={mapTheme}
+				onThemeChange={onMapThemeChange}
 			>
 				<FitBoundsToMarkers
 					positions={positions}

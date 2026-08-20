@@ -10,6 +10,8 @@ import { NotesMapSidebar } from "#/features/map/components/NotesMapSidebar.tsx";
 import { useAllNoteLocationsQuery } from "#/features/notes/hooks/useAllNoteLocationsQuery.ts";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 import { useProjectQuery } from "#/features/projects/hooks/useProjectQuery.ts";
+import { useUpdateProject } from "#/features/projects/hooks/useUpdateProject.ts";
+import type { MapThemeId } from "#/features/map/lib/map-themes.ts";
 
 export const Route = createFileRoute("/projects/$projectId/map")({
 	component: MapRouteComponent,
@@ -29,6 +31,14 @@ function MapRouteComponent(): JSX.Element {
 	} = useAllNoteLocationsQuery(projectId);
 	const { data: notes = [], refetch: refetchNotes } =
 		useAllNotesQuery(projectId);
+
+	const updateProjectMutation = useUpdateProject(projectId);
+	const handleMapThemeChange = React.useCallback(
+		(theme: MapThemeId) => {
+			updateProjectMutation.mutate({ mapTheme: theme });
+		},
+		[updateProjectMutation],
+	);
 
 	const [selectedNoteId, setSelectedNoteId] = React.useState<number | null>(
 		null,
@@ -138,6 +148,8 @@ function MapRouteComponent(): JSX.Element {
 								notes={notes}
 								selectedNoteId={selectedNoteId}
 								onNoteSelect={handleSelectNote}
+								mapTheme={project.mapTheme}
+								onMapThemeChange={handleMapThemeChange}
 								className="h-full w-full"
 							/>
 							{selectedNoteHasNoLocations && (

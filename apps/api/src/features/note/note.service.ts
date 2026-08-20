@@ -18,6 +18,7 @@ import { NoteLocation } from './entities/note-location.entity';
 import { NoteLogEntry } from './entities/note-log-entry.entity';
 import { parseNoteLocations } from './note-location.util';
 import { getNoteLabel } from './note-label.util';
+import { GeocodingService } from './geocoding.service';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { CreateNoteLogEntryDto } from './dto/create-note-log-entry.dto';
@@ -65,14 +66,37 @@ function valuesAreEqual(a: unknown, b: unknown): boolean {
 }
 
 /**
- * A `NoteLocation` enriched with the owning note's derived display label and
+ * A geographic pin enriched with the owning note's derived display label and
  * tags, for consumers (e.g. controllers) that shouldn't need to separately
  * fetch the note to show a meaningful label/tags alongside each pin.
+ * Represents either a real `NoteLocation` row (derived from `[[geo:...]]`
+ * content tokens) or a synthetic pin derived from an `'address'`-type
+ * note's resolved coordinates (see `buildAddressPin`) — the two are merged
+ * into one flat list for map consumers, which don't need to distinguish
+ * between them.
  */
-export type NoteLocationWithLabel = NoteLocation & {
+export type NoteLocationWithLabel = {
+  id: number;
+  noteId: number;
+  lat: number;
+  lng: number;
+  label: string | null;
+  createdAt: Date;
   noteLabel: string;
   tags: string[];
 };
+
+/** The minimal shape of a `Note` needed to derive its synthetic address pin, if any. */
+type AddressPinSource = Pick<
+  Note,
+  | 'id'
+  | 'type'
+  | 'latitude'
+  | 'longitude'
+  | 'geocodeStatus'
+  | 'geocodedLabel'
+  | 'createdAt'
+>;
 
 @Injectable()
 export class NoteService {
@@ -86,6 +110,7 @@ export class NoteService {
     @InjectRepository(NoteLogEntry)
     private readonly noteLogEntryRepository: Repository<NoteLogEntry>,
     private readonly projectAccessService: ProjectAccessService,
+    private readonly geocodingService: GeocodingService,
   ) {}
 
   private async assertProjectExists(projectId: number): Promise<void> {
@@ -200,6 +225,52 @@ export class NoteService {
     );
   }
 
+  /**
+   * Resolves an `'address'`-type note's `content` (the address text) to map
+   * coordinates via `GeocodingService`, mutating `note` in place with the
+   * outcome. Called whenever an address note is created or its `content` is
+   * updated. Never throws — geocoding failures (no match, network error)
+   * are recorded on the note (`geocodeStatus`/`geocodeError`) rather than
+   * blocking the save, so a note is never lost just because its address
+   * couldn't be resolved.
+   */
+  private async resolveAddressGeocode(note: Note): Promise<void> {
+    const query = note.content?.trim();
+    if (!query) {
+      note.latitude = null;
+      note.longitude = null;
+      note.geocodeStatus = null;
+      note.geocodedLabel = null;
+      note.geocodeError = null;
+      return;
+    }
+
+    try {
+      const result = await this.geocodingService.resolve(query);
+      if (!result) {
+        note.latitude = null;
+        note.longitude = null;
+        note.geocodeStatus = 'failed';
+        note.geocodedLabel = null;
+        note.geocodeError = 'No matching location found for this address';
+        return;
+      }
+
+      note.latitude = result.lat;
+      note.longitude = result.lng;
+      note.geocodeStatus = 'resolved';
+      note.geocodedLabel = result.label;
+      note.geocodeError = null;
+    } catch (error) {
+      note.latitude = null;
+      note.longitude = null;
+      note.geocodeStatus = 'failed';
+      note.geocodedLabel = null;
+      note.geocodeError =
+        error instanceof Error ? error.message : 'Failed to resolve address';
+    }
+  }
+
   async create(projectId: number, createNoteDto: CreateNoteDto): Promise<Note> {
     await this.assertProjectExists(projectId);
     if (
@@ -220,6 +291,11 @@ export class NoteService {
     );
 
     await this.syncLocations(savedNote.id, savedNote.content);
+
+    if (savedNote.type === 'address') {
+      await this.resolveAddressGeocode(savedNote);
+      await this.noteRepository.save(savedNote);
+    }
 
     return savedNote;
   }
@@ -306,8 +382,40 @@ export class NoteService {
   }
 
   /**
+   * Derives a synthetic geographic pin from an `'address'`-type note's
+   * resolved coordinates, or `null` if the note isn't an address note, its
+   * address hasn't successfully resolved, or it's not this note's pin to
+   * show. Uses a negative id (`-note.id`) so it can never collide with a
+   * real, positively-numbered `NoteLocation` row when merged into the same
+   * flat list of pins.
+   */
+  private buildAddressPin(
+    note: AddressPinSource,
+  ): Omit<NoteLocationWithLabel, 'noteLabel' | 'tags'> | null {
+    if (note.type !== 'address') {
+      return null;
+    }
+    if (
+      note.geocodeStatus !== 'resolved' ||
+      note.latitude == null ||
+      note.longitude == null
+    ) {
+      return null;
+    }
+    return {
+      id: -note.id,
+      noteId: note.id,
+      lat: note.latitude,
+      lng: note.longitude,
+      label: note.geocodedLabel,
+      createdAt: note.createdAt,
+    };
+  }
+
+  /**
    * Returns the geographic pins derived from a note's `[[geo:...]]` content
-   * tokens, or `null` if the note does not exist.
+   * tokens, plus its synthetic address pin if it's a resolved `'address'`
+   * note, or `null` if the note does not exist.
    */
   async findLocations(
     projectId: number,
@@ -323,21 +431,44 @@ export class NoteService {
     });
     const noteLabel = getNoteLabel(note);
     const tags = note.tags ?? [];
-    return locations.map((location) => ({ ...location, noteLabel, tags }));
+    const result: NoteLocationWithLabel[] = locations.map((location) => ({
+      ...location,
+      noteLabel,
+      tags,
+    }));
+
+    const addressPin = this.buildAddressPin(note);
+    if (addressPin) {
+      result.push({ ...addressPin, noteLabel, tags });
+    }
+
+    return result;
   }
 
   /**
    * Returns every geographic pin derived from every active note's content
-   * across the whole project, each enriched with its owning note's display
-   * label and tags. Used to power a project-wide map view of all note
-   * locations.
+   * across the whole project — both `[[geo:...]]`-token pins and synthetic
+   * pins for resolved `'address'`-type notes — each enriched with its
+   * owning note's display label and tags. Used to power a project-wide map
+   * view of all note locations.
    */
   async findAllLocations(projectId: number): Promise<NoteLocationWithLabel[]> {
     await this.assertProjectExists(projectId);
 
     const notes = await this.noteRepository.find({
       where: { projectId, deletedAt: IsNull() },
-      select: { id: true, title: true, content: true, tags: true },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        tags: true,
+        type: true,
+        latitude: true,
+        longitude: true,
+        geocodeStatus: true,
+        geocodedLabel: true,
+        createdAt: true,
+      },
     });
     if (notes.length === 0) {
       return [];
@@ -355,11 +486,28 @@ export class NoteService {
     const tagsByNoteId = new Map(
       notes.map((note) => [note.id, note.tags ?? []]),
     );
-    return locations.map((location) => ({
+
+    const tokenPins = locations.map((location) => ({
       ...location,
       noteLabel: labelByNoteId.get(location.noteId) ?? 'Untitled note',
       tags: tagsByNoteId.get(location.noteId) ?? [],
     }));
+
+    const addressPins = notes
+      .map((note) => {
+        const pin = this.buildAddressPin(note);
+        if (!pin) {
+          return null;
+        }
+        return {
+          ...pin,
+          noteLabel: labelByNoteId.get(note.id) ?? 'Untitled note',
+          tags: tagsByNoteId.get(note.id) ?? [],
+        };
+      })
+      .filter((pin): pin is NoteLocationWithLabel => pin !== null);
+
+    return [...tokenPins, ...addressPins];
   }
 
   async update(
@@ -425,6 +573,19 @@ export class NoteService {
 
     if (updateNoteDto.content !== undefined) {
       await this.syncLocations(savedNote.id, savedNote.content);
+
+      // Only re-run geocoding when `content` actually changed value, not
+      // merely because it was present in the request body — callers (e.g.
+      // the frontend's title-autosave) may resend the unchanged `content`
+      // alongside other field updates, and geocoding is an external network
+      // call we don't want to redundantly repeat on every such save.
+      const contentActuallyChanged = changes.some(
+        (change) => change.field === 'content',
+      );
+      if (savedNote.type === 'address' && contentActuallyChanged) {
+        await this.resolveAddressGeocode(savedNote);
+        await this.noteRepository.save(savedNote);
+      }
     }
 
     return savedNote;

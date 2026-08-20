@@ -1,4 +1,5 @@
 import * as React from "react";
+import type { LeafletEvent } from "leaflet";
 import {
 	LayersControl,
 	MapContainer,
@@ -13,6 +14,7 @@ import {
 	DEFAULT_MAP_THEME,
 	MAP_THEMES,
 	type MapTheme,
+	type MapThemeId,
 } from "#/features/map/lib/map-themes.ts";
 import { cn } from "#/lib/utils.ts";
 
@@ -28,6 +30,26 @@ function MapClickHandler({
 	useMapEvents({
 		click(event) {
 			onClick(event.latlng.lat, event.latlng.lng);
+		},
+	});
+	return null;
+}
+
+/**
+ * Listens for the layers control's "base layer changed" event (fired by
+ * Leaflet whenever the user picks a different base layer from
+ * `LayersControl`) and reports the newly selected theme's id back to the
+ * caller, so it can be persisted (e.g. on the `Project` entity).
+ */
+function BaseLayerChangeHandler({
+	onThemeChange,
+}: {
+	onThemeChange: (theme: MapThemeId) => void;
+}) {
+	useMapEvents({
+		baselayerchange(event: LeafletEvent & { name: string }) {
+			const theme = MAP_THEMES.find((t) => t.label === event.name);
+			if (theme) onThemeChange(theme.id);
 		},
 	});
 	return null;
@@ -78,6 +100,10 @@ export type LeafletMapProps = {
 	pin?: { lat: number; lng: number } | null;
 	/** Whether to render the layer-switcher control letting users pick between the map themes (street/satellite/dark/futuristic, etc.). Defaults to `true`. */
 	showLayersControl?: boolean;
+	/** Which base map theme is initially checked in the layers control. Defaults to `DEFAULT_MAP_THEME` ('street'). */
+	theme?: MapThemeId;
+	/** Called with the newly selected theme's id whenever the user switches base layers via the layers control. Omit if the choice doesn't need to be persisted. */
+	onThemeChange?: (theme: MapThemeId) => void;
 	/** Additional markers/overlays (e.g. `<Marker />`, `<Popup />`) rendered inside the map. */
 	children?: React.ReactNode;
 };
@@ -120,6 +146,8 @@ export function LeafletMap({
 	flyTo,
 	pin,
 	showLayersControl = true,
+	theme = DEFAULT_MAP_THEME,
+	onThemeChange,
 	children,
 }: LeafletMapProps) {
 	ensureLeafletDefaultIcon();
@@ -133,18 +161,23 @@ export function LeafletMap({
 		>
 			{showLayersControl ? (
 				<LayersControl position="topright">
-					{MAP_THEMES.map((theme) => (
+					{MAP_THEMES.map((mapTheme) => (
 						<LayersControl.BaseLayer
-							key={theme.id}
-							name={theme.label}
-							checked={theme.id === DEFAULT_MAP_THEME}
+							key={mapTheme.id}
+							name={mapTheme.label}
+							checked={mapTheme.id === theme}
 						>
-							<MapThemeLayer theme={theme} />
+							<MapThemeLayer theme={mapTheme} />
 						</LayersControl.BaseLayer>
 					))}
 				</LayersControl>
 			) : (
-				<MapThemeLayer theme={MAP_THEMES[0]} />
+				<MapThemeLayer
+					theme={MAP_THEMES.find((t) => t.id === theme) ?? MAP_THEMES[0]}
+				/>
+			)}
+			{showLayersControl && onThemeChange && (
+				<BaseLayerChangeHandler onThemeChange={onThemeChange} />
 			)}
 			{onClick && <MapClickHandler onClick={onClick} />}
 			{flyTo && (

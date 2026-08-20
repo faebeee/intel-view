@@ -1,4 +1,4 @@
-import { FileText, ScrollText } from "lucide-react";
+import { FileText, MapPin, ScrollText } from "lucide-react";
 import * as React from "react";
 import { Button } from "#/components/ui/button.tsx";
 import {
@@ -41,6 +41,13 @@ const NOTE_TYPE_OPTIONS: NoteTypeOption[] = [
 		description:
 			"An append-only timestamped log — write entries over time instead of editing one document.",
 		icon: ScrollText,
+	},
+	{
+		value: "address",
+		label: "Address",
+		description:
+			"A note tied to one location — its address is automatically resolved to map coordinates.",
+		icon: MapPin,
 	},
 ];
 

@@ -1,6 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Note, NOTE_TYPES } from '../entities/note.entity';
-import type { NoteType } from '../entities/note.entity';
+import {
+  Note,
+  NOTE_TYPES,
+  NOTE_GEOCODE_STATUSES,
+} from '../entities/note.entity';
+import type { NoteType, NoteGeocodeStatus } from '../entities/note.entity';
 
 export class NoteResponseDto {
   @ApiProperty()
@@ -11,7 +15,7 @@ export class NoteResponseDto {
 
   @ApiProperty({
     description:
-      "The kind of note: 'standard' (freely-editable rich text) or 'log' (append-only timestamped entries)",
+      "The kind of note: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), or 'address' (content is a physical address, automatically resolved to coordinates)",
     enum: NOTE_TYPES,
   })
   type: NoteType;
@@ -56,6 +60,49 @@ export class NoteResponseDto {
   })
   canvasY: number | null;
 
+  @ApiProperty({
+    description:
+      "Latitude resolved from this note's content (only set for 'address'-type notes with a successfully geocoded address).",
+    required: false,
+    nullable: true,
+    type: 'number',
+  })
+  latitude: number | null;
+
+  @ApiProperty({
+    description:
+      "Longitude resolved from this note's content (only set for 'address'-type notes with a successfully geocoded address).",
+    required: false,
+    nullable: true,
+    type: 'number',
+  })
+  longitude: number | null;
+
+  @ApiProperty({
+    description:
+      "Outcome of the most recent attempt to geocode this note's content (only applicable to 'address'-type notes). Null until a save has been attempted.",
+    enum: NOTE_GEOCODE_STATUSES,
+    required: false,
+    nullable: true,
+  })
+  geocodeStatus: NoteGeocodeStatus | null;
+
+  @ApiProperty({
+    description:
+      'Human-readable place name returned by the geocoding provider for this address note, if resolution succeeded.',
+    required: false,
+    nullable: true,
+  })
+  geocodedLabel: string | null;
+
+  @ApiProperty({
+    description:
+      'Explanation of why geocoding failed for this address note, if resolution did not succeed.',
+    required: false,
+    nullable: true,
+  })
+  geocodeError: string | null;
+
   @ApiProperty()
   createdAt: Date;
 
@@ -74,6 +121,11 @@ export function toNoteResponseDto(note: Note): NoteResponseDto {
     parentId: note.parentId,
     canvasX: note.canvasX,
     canvasY: note.canvasY,
+    latitude: note.latitude,
+    longitude: note.longitude,
+    geocodeStatus: note.geocodeStatus,
+    geocodedLabel: note.geocodedLabel,
+    geocodeError: note.geocodeError,
     createdAt: note.createdAt,
     updatedAt: note.updatedAt,
   };

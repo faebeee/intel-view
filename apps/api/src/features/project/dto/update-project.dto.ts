@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString } from 'class-validator';
+import { PROJECT_MAP_THEMES } from '../entities/project.entity';
+import type { ProjectMapTheme } from '../entities/project.entity';
 
 export class UpdateProjectDto {
   @IsString()
@@ -25,4 +27,14 @@ export class UpdateProjectDto {
     nullable: true,
   })
   groupId?: number | null;
+
+  @IsIn(PROJECT_MAP_THEMES)
+  @IsOptional()
+  @ApiProperty({
+    description:
+      "The selected base map tile style for this project's map view.",
+    enum: PROJECT_MAP_THEMES,
+    required: false,
+  })
+  mapTheme?: ProjectMapTheme;
 }

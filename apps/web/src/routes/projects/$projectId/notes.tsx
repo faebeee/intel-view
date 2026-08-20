@@ -15,6 +15,7 @@ import { LoadingState, NotFoundState } from "#/components/ui/loading-state.tsx";
 import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal.tsx";
 import type { NoteSaveStatus } from "#/features/notes/components/NoteEditorPane.tsx";
 import { NoteEditorPane } from "#/features/notes/components/NoteEditorPane.tsx";
+import { NoteAddressEditorPane } from "#/features/notes/components/NoteAddressEditorPane.tsx";
 import { NoteLogEditorPane } from "#/features/notes/components/NoteLogEditorPane.tsx";
 import { NoteSettingsPanel } from "#/features/notes/components/NoteSettingsPanel.tsx";
 import { NoteTree } from "#/features/notes/components/NoteTree.tsx";
@@ -337,6 +338,15 @@ function NotesRouteComponent(): JSX.Element {
 									onTitleChange={setDraftTitle}
 									saveStatus={saveStatus}
 									notes={notes}
+									className="h-full"
+								/>
+							) : selectedNote.type === "address" ? (
+								<NoteAddressEditorPane
+									projectId={projectId}
+									note={selectedNote}
+									title={draftTitle}
+									onTitleChange={setDraftTitle}
+									saveStatus={saveStatus}
 									className="h-full"
 								/>
 							) : (

@@ -1,5 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { NoteLocation } from '../entities/note-location.entity';
+
+/**
+ * The minimal shape needed to render a pin: either a real `NoteLocation`
+ * row (derived from `[[geo:...]]` content tokens) or a synthetic pin
+ * derived from a resolved `'address'`-type note's coordinates (see
+ * `NoteService.buildAddressPin`) — both are mapped through the same DTO.
+ */
+type NoteLocationLike = {
+  id: number;
+  noteId: number;
+  lat: number;
+  lng: number;
+  label: string | null;
+  createdAt: Date;
+};
 
 export class NoteLocationResponseDto {
   @ApiProperty()
@@ -15,7 +29,7 @@ export class NoteLocationResponseDto {
   noteLabel: string;
 
   @ApiProperty({
-    description: "Plain text tags of the note this location belongs to",
+    description: 'Plain text tags of the note this location belongs to',
     type: [String],
   })
   tags: string[];
@@ -39,7 +53,7 @@ export class NoteLocationResponseDto {
 }
 
 export function toNoteLocationResponseDto(
-  location: NoteLocation,
+  location: NoteLocationLike,
   extra: { noteLabel: string; tags: string[] },
 ): NoteLocationResponseDto {
   return {
