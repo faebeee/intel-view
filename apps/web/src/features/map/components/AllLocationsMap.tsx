@@ -18,6 +18,18 @@ import {
 } from "#/features/map/lib/tag-marker-icon.ts";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 import { useTagColorMap } from "#/features/tags/hooks/useTagColorMap.ts";
+import { extractNoteReferenceIds } from "#/lib/note-references.ts";
+
+/** Dashed line color for `[[NOTE_ID]]` reference connections, matching the canvas view's reference-edge styling. */
+const REFERENCE_LINE_COLOR = "var(--reference-link)";
+
+/** The average lat/lng of a group of location pins, used as a single connectable point for a note that may have multiple pins. */
+function centroidOf(group: NoteLocationResponseDto[]): [number, number] {
+	return [
+		group.reduce((sum, location) => sum + location.lat, 0) / group.length,
+		group.reduce((sum, location) => sum + location.lng, 0) / group.length,
+	];
+}
 
 /**
  * Imperatively fits the map's viewport to contain every given point once per
@@ -52,7 +64,7 @@ function FitBoundsToMarkers({
 export type AllLocationsMapProps = {
 	projectId: string;
 	locations: NoteLocationResponseDto[];
-	/** Every note in the project, used only to resolve parent/child relationships for the solid parent-child connection lines. Omit to skip drawing those lines. */
+	/** Every note in the project, used to resolve both the parent/child hierarchy (for the solid connection lines) and `[[NOTE_ID]]` references in note content (for the dashed reference connection lines). Omit to skip drawing either. */
 	notes?: NoteResponseDto[];
 	/** The currently focused note (if any), used only to key `FitBoundsToMarkers` so re-framing happens whenever the sidebar's selection changes, not just once ever. */
 	selectedNoteId?: number | null;
@@ -145,11 +157,6 @@ export function AllLocationsMap({
 	const parentChildConnections = React.useMemo(() => {
 		if (!notes || notes.length === 0) return [];
 
-		const centroidOf = (group: NoteLocationResponseDto[]): [number, number] => [
-			group.reduce((sum, location) => sum + location.lat, 0) / group.length,
-			group.reduce((sum, location) => sum + location.lng, 0) / group.length,
-		];
-
 		const connections: Array<{
 			key: string;
 			positions: [[number, number], [number, number]];
@@ -176,6 +183,41 @@ export function AllLocationsMap({
 		return connections;
 	}, [notes, locationsByNoteId, colorsByLocationId]);
 
+	/**
+	 * Dashed lines connecting a note's location(s) to each note it
+	 * references via `[[NOTE_ID]]` syntax in its content — mirroring the
+	 * reference edges already drawn on the canvas view
+	 * (`extractNoteReferenceIds`). Self-references and references to notes
+	 * without any visible location are skipped. Drawn between the centroid
+	 * of each note's pins, same as parent-child connections.
+	 */
+	const referenceConnections = React.useMemo(() => {
+		if (!notes || notes.length === 0) return [];
+
+		const connections: Array<{
+			key: string;
+			positions: [[number, number], [number, number]];
+		}> = [];
+
+		for (const note of notes) {
+			const sourceLocations = locationsByNoteId.get(note.id);
+			if (!sourceLocations) continue;
+
+			for (const referencedId of extractNoteReferenceIds(note.content)) {
+				if (referencedId === note.id) continue;
+				const targetLocations = locationsByNoteId.get(referencedId);
+				if (!targetLocations) continue;
+
+				connections.push({
+					key: `reference-${note.id}-${referencedId}`,
+					positions: [centroidOf(sourceLocations), centroidOf(targetLocations)],
+				});
+			}
+		}
+
+		return connections;
+	}, [notes, locationsByNoteId]);
+
 	return (
 		<div className={className}>
 			<LeafletMap
@@ -197,6 +239,18 @@ export function AllLocationsMap({
 							color: connection.color,
 							weight: 2,
 							opacity: 0.75,
+						}}
+					/>
+				))}
+				{referenceConnections.map((connection) => (
+					<Polyline
+						key={connection.key}
+						positions={connection.positions}
+						pathOptions={{
+							color: REFERENCE_LINE_COLOR,
+							weight: 2,
+							opacity: 0.75,
+							dashArray: "4 4",
 						}}
 					/>
 				))}
