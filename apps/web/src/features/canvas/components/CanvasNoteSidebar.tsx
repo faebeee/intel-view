@@ -10,6 +10,7 @@ import {
 } from "#/features/notes/components/NoteEditorPane.tsx";
 import { NoteLogEditorPane } from "#/features/notes/components/NoteLogEditorPane.tsx";
 import { NoteAddressEditorPane } from "#/features/notes/components/NoteAddressEditorPane.tsx";
+import { NoteFileEditorPane } from "#/features/notes/components/NoteFileEditorPane.tsx";
 import { NoteSettingsPanel } from "#/features/notes/components/NoteSettingsPanel.tsx";
 import { getNoteLabel } from "#/features/notes/hooks/useNoteTree.ts";
 import {
@@ -170,6 +171,15 @@ export function CanvasNoteSidebar({
 					/>
 				) : note.type === "address" ? (
 					<NoteAddressEditorPane
+						projectId={projectId}
+						note={note}
+						title={draftTitle}
+						onTitleChange={setDraftTitle}
+						saveStatus={saveStatus}
+						className="h-auto min-h-0 overflow-visible p-0 shrink-0"
+					/>
+				) : note.type === "file" ? (
+					<NoteFileEditorPane
 						projectId={projectId}
 						note={note}
 						title={draftTitle}

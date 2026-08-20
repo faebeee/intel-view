@@ -31,9 +31,10 @@ It's built as a Turborepo monorepo with a decoupled [TanStack Start](https://tan
 ## Features
 
 - **Projects** — top-level containers for grouping related notes and tags.
-- **Notes** — the core content unit, supporting two note types:
+- **Notes** — the core content unit, supporting several note types:
   - `standard` — freely-editable rich text edited with a [Tiptap](https://tiptap.dev/)-based markdown editor.
   - `log` — an append-only note: instead of editing shared content, users append timestamped `NoteLogEntry` records that are never edited or removed.
+  - `file` — a note holding a single uploaded file. Bytes live in MinIO (S3-compatible object storage); the note itself only keeps the object key plus the original filename, MIME type and size. Uploads and downloads are proxied by the API (`POST`/`GET`/`DELETE /projects/:projectId/notes/:id/file`), so the bucket stays private and images can be previewed inline in the note editor.
   - Notes can be nested under a parent note (with cycle/self-parent protection and cascading soft-delete of descendants) and positioned on the canvas (`canvasX`/`canvasY`).
   - Geo-pins aren't a separate field — they're derived automatically by parsing `[[geo:LAT,LNG,LABEL]]` tokens out of a note's markdown content (inserted via a toolbar button in the editor), and re-synced whenever the content changes.
 - **Note history** — every note automatically records `created`/`updated` audit entries with field-level diffs. `log` notes additionally have their own append-only `NoteLogEntry` sequence, separate from this audit trail.
@@ -63,7 +64,7 @@ apps/web  (TanStack Start, Vite, React 19)  ───▶  apps/api  (NestJS, Typ
 
 - [Node.js](https://nodejs.org/) >= 18
 - [npm](https://www.npmjs.com/) 11.x (this repo uses npm workspaces, not pnpm/yarn)
-- [Docker](https://www.docker.com/) (for the local PostgreSQL database)
+- [Docker](https://www.docker.com/) (for the local PostgreSQL database and MinIO object storage)
 
 ### 1. Clone and install dependencies
 
@@ -79,7 +80,7 @@ npm install
 docker compose up -d
 ```
 
-This starts a PostgreSQL 15 container (`intel-view-db`) on port `5432` with database `intel_view`, user `postgres`, password `postgres`.
+This starts a PostgreSQL 15 container (`intel-view-db`) on port `5432` with database `intel_view`, user `postgres`, password `postgres`, and a MinIO container (`intel-view-minio`) with its S3 API on port `9000` and its web console on port `9001` (user/password `minioadmin`).
 
 ### 3. Configure environment variables
 
@@ -172,6 +173,12 @@ This fetches the live OpenAPI schema from `${VITE_API_URL}/docs-json` (configure
 | `apps/api/.env`     | `DB_DATABASE`   | Postgres database name used by the running app. Defaults to `intel_view`.                        | `intel_view`                                               |
 | `apps/api/.env`     | `APP_URL`       | Origin allowed by CORS for the web app, in addition to two hardcoded origins in `main.ts` (`http://192.168.50.15:4000` and `http://intel.local:4000`). Defaults to `http://localhost:4000`. | `http://localhost:4000` |
 | `apps/api/.env`     | `PORT`          | Port the NestJS server listens on. Defaults to `4010`.                                           | `4010`                                                     |
+| `apps/api/.env`     | `MINIO_ENDPOINT` | Host of the MinIO server backing `file` notes. Defaults to `localhost`.                         | `localhost`                                                |
+| `apps/api/.env`     | `MINIO_PORT`    | MinIO API port. Defaults to `9000`.                                                              | `9000`                                                     |
+| `apps/api/.env`     | `MINIO_USE_SSL` | Whether to talk to MinIO over HTTPS. Defaults to `false`.                                        | `false`                                                    |
+| `apps/api/.env`     | `MINIO_ACCESS_KEY` | MinIO access key. Defaults to `minioadmin`.                                                   | `minioadmin`                                               |
+| `apps/api/.env`     | `MINIO_SECRET_KEY` | MinIO secret key. Defaults to `minioadmin`.                                                   | `minioadmin`                                               |
+| `apps/api/.env`     | `MINIO_BUCKET`  | Bucket that note files are stored in; created on API startup if missing. Defaults to `intel-view-files`. | `intel-view-files`                              |
 | `apps/web/.env`     | `VITE_API_URL`  | Base URL the web app uses to call the API. Read directly by `apps/web/src/routes/__root.tsx` (no fallback — the app asserts this is set at request time). | `http://localhost:4010` |
 | `apps/web/.env`     | `PORT`          | Port the Vite dev server / Nitro server listens on. Defaults to `4000`.                          | `4000`                                                     |
 | `packages/sdk/.env` | `VITE_API_URL`  | Base URL used to fetch the OpenAPI schema when regenerating the SDK.                             | `http://localhost:4010`                                    |

@@ -9,6 +9,7 @@ import { NoteRelation } from './entities/note-relation.entity';
 import { NoteLocation } from './entities/note-location.entity';
 import { NoteLogEntry } from './entities/note-log-entry.entity';
 import { ProjectModule } from '../project/project.module';
+import { StorageModule } from '../storage/storage.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ProjectModule } from '../project/project.module';
       NoteLogEntry,
     ]),
     ProjectModule,
+    StorageModule,
   ],
   controllers: [NoteController],
   providers: [NoteService, GeocodingService],

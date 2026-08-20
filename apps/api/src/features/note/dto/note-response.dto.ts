@@ -15,7 +15,7 @@ export class NoteResponseDto {
 
   @ApiProperty({
     description:
-      "The kind of note: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), or 'address' (content is a physical address, automatically resolved to coordinates)",
+      "The kind of note: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'address' (content is a physical address, automatically resolved to coordinates), or 'file' (holds a single uploaded file stored in object storage)",
     enum: NOTE_TYPES,
   })
   type: NoteType;
@@ -106,6 +106,31 @@ export class NoteResponseDto {
   })
   geocodeError: string | null;
 
+  @ApiProperty({
+    description:
+      "Original name of the file uploaded to this note (only set for 'file'-type notes that have a file).",
+    required: false,
+    nullable: true,
+    type: 'string',
+  })
+  fileName: string | null;
+
+  @ApiProperty({
+    description: 'MIME type of the file uploaded to this note.',
+    required: false,
+    nullable: true,
+    type: 'string',
+  })
+  fileMimeType: string | null;
+
+  @ApiProperty({
+    description: 'Size in bytes of the file uploaded to this note.',
+    required: false,
+    nullable: true,
+    type: 'number',
+  })
+  fileSize: number | null;
+
   @ApiProperty()
   createdAt: Date;
 
@@ -130,6 +155,9 @@ export function toNoteResponseDto(note: Note): NoteResponseDto {
     geocodeStatus: note.geocodeStatus,
     geocodedLabel: note.geocodedLabel,
     geocodeError: note.geocodeError,
+    fileName: note.fileName,
+    fileMimeType: note.fileMimeType,
+    fileSize: note.fileSize,
     createdAt: note.createdAt,
     updatedAt: note.updatedAt,
   };

@@ -15,7 +15,7 @@ export class CreateNoteDto {
   @IsOptional()
   @ApiProperty({
     description:
-      "The kind of note to create: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), or 'address' (content is a physical address, automatically resolved to coordinates). Defaults to 'standard'. Immutable after creation.",
+      "The kind of note to create: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'address' (content is a physical address, automatically resolved to coordinates), or 'file' (holds a single uploaded file stored in object storage). Defaults to 'standard'. Immutable after creation.",
     required: false,
     enum: NOTE_TYPES,
     default: 'standard',

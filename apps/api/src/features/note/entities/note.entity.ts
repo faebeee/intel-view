@@ -12,11 +12,12 @@ import { NoteLogEntry } from './note-log-entry.entity';
  * `NoteLogEntry` records (their own `content` field is unused). `'address'`
  * notes store a physical address in `content`, which is automatically
  * resolved to map coordinates (see `latitude`/`longitude`) whenever the note
- * is created or its `content` is updated. Set once at creation and never
- * changed afterwards.
+ * is created or its `content` is updated. `'file'` notes hold a single
+ * uploaded file, stored in MinIO object storage and described by the
+ * `file*` columns. Set once at creation and never changed afterwards.
  */
-export type NoteType = 'standard' | 'log' | 'address';
-export const NOTE_TYPES: NoteType[] = ['standard', 'log', 'address'];
+export type NoteType = 'standard' | 'log' | 'address' | 'file';
+export const NOTE_TYPES: NoteType[] = ['standard', 'log', 'address', 'file'];
 
 /** Outcome of the most recent attempt to geocode an `'address'` note's `content`. */
 export type NoteGeocodeStatus = 'resolved' | 'failed';
@@ -38,7 +39,7 @@ export class Note extends BaseEntity {
   @Column({ type: 'varchar', length: 20, default: 'standard' })
   @ApiProperty({
     description:
-      "The kind of note: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), or 'address' (content is a physical address, automatically resolved to coordinates). Set at creation and immutable afterwards.",
+      "The kind of note: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'address' (content is a physical address, automatically resolved to coordinates), or 'file' (holds a single uploaded file stored in object storage). Set at creation and immutable afterwards.",
     enum: NOTE_TYPES,
     default: 'standard',
   })
@@ -139,6 +140,52 @@ export class Note extends BaseEntity {
     nullable: true,
   })
   geocodeError: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  @ApiProperty({
+    description:
+      "Object storage key of the file uploaded to this note (only set for 'file'-type notes that have a file). Internal — never exposed through the API's response DTOs.",
+    required: false,
+    nullable: true,
+  })
+  fileKey: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  @ApiProperty({
+    description:
+      'Original name of the file uploaded to this note, as provided by the client.',
+    required: false,
+    nullable: true,
+  })
+  fileName: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  @ApiProperty({
+    description: 'MIME type of the file uploaded to this note.',
+    required: false,
+    nullable: true,
+  })
+  fileMimeType: string | null;
+
+  // `bigint` (rather than `int`) so files larger than 2 GB are representable;
+  // the transformer converts the driver's string representation back to a
+  // number, since JS numbers hold byte counts far beyond any realistic upload.
+  @Column({
+    type: 'bigint',
+    nullable: true,
+    transformer: {
+      to: (value: number | null): number | null => value,
+      from: (value: string | null): number | null =>
+        value === null ? null : Number(value),
+    },
+  })
+  @ApiProperty({
+    description: 'Size in bytes of the file uploaded to this note.',
+    required: false,
+    nullable: true,
+    type: 'number',
+  })
+  fileSize: number | null;
 
   @OneToMany(() => NoteHistoryEntry, (entry) => entry.note)
   history: NoteHistoryEntry[];

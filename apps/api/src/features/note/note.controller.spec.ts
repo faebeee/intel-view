@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { Readable } from 'stream';
 import { NoteController } from './note.controller';
 import { NoteService } from './note.service';
 
@@ -18,6 +19,9 @@ describe('NoteController', () => {
     findLogEntries: jest.fn(),
     addRelation: jest.fn(),
     removeRelation: jest.fn(),
+    uploadFile: jest.fn(),
+    downloadFile: jest.fn(),
+    removeFile: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -329,6 +333,88 @@ describe('NoteController', () => {
       await expect(controller.findLocations(1, 999)).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('file endpoints', () => {
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    const uploadedFile = {
+      originalname: 'report.pdf',
+      mimetype: 'application/pdf',
+      size: 1234,
+      buffer: Buffer.from('pdf bytes'),
+    } as Express.Multer.File;
+
+    it('uploads a file and maps the note to a NoteResponseDto', async () => {
+      mockNoteService.uploadFile.mockResolvedValue({
+        id: 3,
+        projectId: 1,
+        type: 'file',
+        fileName: 'report.pdf',
+        fileMimeType: 'application/pdf',
+        fileSize: 1234,
+        tags: [],
+        parentIds: [],
+        childIds: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await controller.uploadFile(1, 3, uploadedFile);
+
+      expect(mockNoteService.uploadFile).toHaveBeenCalledWith(
+        1,
+        3,
+        uploadedFile,
+      );
+      expect(result.fileName).toBe('report.pdf');
+      expect(result.fileSize).toBe(1234);
+    });
+
+    it('rejects an upload request without a file', async () => {
+      await expect(controller.uploadFile(1, 3, undefined)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockNoteService.uploadFile).not.toHaveBeenCalled();
+    });
+
+    it("streams the note's file with its content type and length", async () => {
+      mockNoteService.downloadFile.mockResolvedValue({
+        stream: Readable.from(['pdf bytes']),
+        fileName: 'report.pdf',
+        mimeType: 'application/pdf',
+        size: 1234,
+      });
+
+      const result = await controller.downloadFile(1, 3);
+
+      expect(mockNoteService.downloadFile).toHaveBeenCalledWith(1, 3);
+      expect(result.options.type).toBe('application/pdf');
+      expect(result.options.length).toBe(1234);
+    });
+
+    it('removes the file and maps the note to a NoteResponseDto', async () => {
+      mockNoteService.removeFile.mockResolvedValue({
+        id: 3,
+        projectId: 1,
+        type: 'file',
+        fileName: null,
+        fileMimeType: null,
+        fileSize: null,
+        tags: [],
+        parentIds: [],
+        childIds: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await controller.removeFile(1, 3);
+
+      expect(mockNoteService.removeFile).toHaveBeenCalledWith(1, 3);
+      expect(result.fileName).toBeNull();
     });
   });
 

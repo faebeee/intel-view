@@ -156,7 +156,9 @@ export function NoteSettingsPanel({
 							? "Log"
 							: note.type === "address"
 								? "Address"
-								: "Standard"}
+								: note.type === "file"
+									? "File"
+									: "Standard"}
 					</span>
 				</div>
 
