@@ -23,7 +23,7 @@ export const projectPaginateConfig: PaginateConfig<Project> = {
     name: true,
     groupId: true,
   },
-  relations: ['group'],
+  relations: ['group', 'tags'],
 };
 
 @Injectable()
@@ -39,8 +39,32 @@ export class ProjectService {
     if (createProjectDto.groupId != null) {
       await this.projectGroupService.assertExists(createProjectDto.groupId);
     }
-    const project = this.projectRepository.create(createProjectDto);
-    return this.projectRepository.save(project);
+
+    const { tags = [], ...projectData } = createProjectDto;
+
+    const savedProject = await this.dataSource.transaction(
+      async (manager): Promise<Project> => {
+        const project = manager.create(Project, projectData);
+        const createdProject = await manager.save(Project, project);
+
+        const uniqueTags = this.normalizeTags(tags);
+        if (uniqueTags.length > 0) {
+          const tagEntities = uniqueTags.map((name) =>
+            manager.create(Tag, {
+              projectId: createdProject.id,
+              name,
+              color: '#00f2ff',
+            }),
+          );
+          await manager.save(Tag, tagEntities);
+        }
+
+        return createdProject;
+      },
+    );
+
+    const reloadedProject = await this.findOne(savedProject.id);
+    return reloadedProject ?? savedProject;
   }
 
   async findAll(query: PaginateQuery): Promise<Paginated<Project>> {
@@ -53,7 +77,7 @@ export class ProjectService {
   async findOne(id: number): Promise<Project | null> {
     return this.projectRepository.findOne({
       where: { id, deletedAt: IsNull() },
-      relations: { group: true },
+      relations: { group: true, tags: true },
     });
   }
 
@@ -71,11 +95,41 @@ export class ProjectService {
       await this.projectGroupService.assertExists(updateProjectDto.groupId);
     }
 
-    Object.assign(project, updateProjectDto);
+    const { tags, ...projectData } = updateProjectDto;
+    Object.assign(project, projectData);
 
     project.updatedAt = new Date();
     const saved = await this.projectRepository.save(project);
+
+    if (tags !== undefined) {
+      await this.dataSource.transaction(async (manager) => {
+        await manager.update(
+          Tag,
+          { projectId: saved.id, deletedAt: IsNull() },
+          { deletedAt: new Date() },
+        );
+
+        const uniqueTags = this.normalizeTags(tags);
+        if (uniqueTags.length === 0) {
+          return;
+        }
+
+        const tagEntities = uniqueTags.map((name) =>
+          manager.create(Tag, {
+            projectId: saved.id,
+            name,
+            color: '#00f2ff',
+          }),
+        );
+        await manager.save(Tag, tagEntities);
+      });
+    }
+
     return this.findOne(saved.id);
+  }
+
+  private normalizeTags(tags: string[]): string[] {
+    return [...new Set(tags.map((tag) => tag.trim()).filter(Boolean))];
   }
 
   async remove(id: number): Promise<boolean> {

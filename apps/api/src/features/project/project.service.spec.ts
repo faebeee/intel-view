@@ -99,6 +99,69 @@ describe('ProjectService', () => {
         expect.objectContaining({ mapTheme: 'dark' }),
       );
     });
+
+    it('replaces project tags when tags are provided', async () => {
+      const existingProject = {
+        id: 1,
+        name: 'Op Blue Horizon',
+        mapTheme: 'street',
+        tags: [],
+      };
+      mockProjectRepository.findOne.mockResolvedValue(existingProject);
+      mockProjectRepository.save.mockImplementation(
+        (project: unknown) => project,
+      );
+      const manager = {
+        update: jest.fn(),
+        create: jest.fn((entity: unknown, payload: unknown) => payload),
+        save: jest.fn(),
+      };
+      mockDataSource.transaction.mockImplementation(
+        async (cb: (manager: unknown) => Promise<void>) => cb(manager),
+      );
+
+      await service.update(1, { tags: ['alpha', 'beta', 'alpha'] });
+
+      expect(manager.update).toHaveBeenCalledTimes(1);
+      expect(manager.save).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'alpha', color: '#00f2ff' }),
+          expect.objectContaining({ name: 'beta', color: '#00f2ff' }),
+        ]),
+      );
+    });
+  });
+
+  describe('create', () => {
+    it('persists normalized tags with the new project', async () => {
+      const manager = {
+        create: jest.fn((entity: unknown, payload: unknown) => payload),
+        save: jest.fn(async (target: unknown, entity: unknown) => {
+          if (target === Project) {
+            return { id: 1, name: 'New Project' };
+          }
+
+          return entity;
+        }),
+      };
+      mockDataSource.transaction.mockImplementation(
+        async (cb: (manager: unknown) => Promise<unknown>) => cb(manager),
+      );
+      mockProjectRepository.findOne.mockResolvedValueOnce({
+        id: 1,
+        name: 'New Project',
+        tags: [],
+      });
+
+      const result = await service.create({
+        name: 'New Project',
+        tags: ['alpha', ' beta ', 'alpha'],
+      });
+
+      expect(result).toBeDefined();
+      expect(manager.save).toHaveBeenCalled();
+    });
   });
 
   describe('remove', () => {

@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsIn, IsInt, IsOptional, IsString } from 'class-validator';
+import {
+  ArrayUnique,
+  IsArray,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { PROJECT_MAP_THEMES } from '../entities/project.entity';
 import type { ProjectMapTheme } from '../entities/project.entity';
 
@@ -37,4 +44,16 @@ export class UpdateProjectDto {
     required: false,
   })
   mapTheme?: ProjectMapTheme;
+
+  @IsArray()
+  @IsString({ each: true })
+  @ArrayUnique()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Project tags to replace the current tag set with. Pass an empty array to clear all tags.',
+    type: [String],
+    required: false,
+  })
+  tags?: string[];
 }

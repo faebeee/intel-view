@@ -29,6 +29,7 @@ import {
 	NativeSelect,
 	NativeSelectOption,
 } from "#/components/ui/native-select.tsx";
+import { TagChip } from "#/components/ui/tag-chip.tsx";
 import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
 import { ManageProjectGroupsModal } from "#/features/project-groups/components/ManageProjectGroupsModal.tsx";
 import { useAllProjectGroupsQuery } from "#/features/project-groups/hooks/useAllProjectGroupsQuery.ts";
@@ -216,23 +217,35 @@ function ProjectsOverview(): JSX.Element {
 										)}
 									</CardDescription>
 								</CardHeader>
-								<CardContent className="flex flex-col gap-2">
-									<span className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono">
-										<Calendar className="h-3 w-3" />
-										Created {createdDate}
-									</span>
-									{project.group && (
-										<span
-											className="inline-flex items-center gap-1.5 self-start rounded-full border border-line/50 bg-surface/60 px-2 py-0.5 text-[10px] font-mono text-sea-ink"
-										>
-											<span
-												className="size-2 rounded-full shrink-0"
-												style={{ backgroundColor: project.group.color }}
-											/>
-											{project.group.name}
-										</span>
-									)}
-								</CardContent>
+						<CardContent className="flex flex-col gap-2">
+							<span className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono">
+								<Calendar className="h-3 w-3" />
+								Created {createdDate}
+							</span>
+							{project.group && (
+								<span
+									className="inline-flex items-center gap-1.5 self-start rounded-full border border-line/50 bg-surface/60 px-2 py-0.5 text-[10px] font-mono text-sea-ink"
+								>
+									<span
+										className="size-2 rounded-full shrink-0"
+										style={{ backgroundColor: project.group.color }}
+									/>
+								{project.group.name}
+								</span>
+							)}
+							{project.tags.length > 0 && (
+								<div className="flex flex-wrap gap-1.5">
+									{project.tags.map((tag) => (
+										<TagChip
+											key={tag.id}
+											tag={tag.name}
+											color={tag.color}
+											size="xs"
+										/>
+									))}
+								</div>
+							)}
+						</CardContent>
 								<CardFooter className="flex items-center justify-between gap-2">
 									<Link
 										to="/projects/$projectId"

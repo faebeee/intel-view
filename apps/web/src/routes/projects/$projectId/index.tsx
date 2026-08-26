@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MapPin, StickyNote, Tag as TagIcon } from "lucide-react";
 import type { JSX } from "react";
+import { TagChip } from "#/components/ui/tag-chip.tsx";
 import { LoadingState, NotFoundState } from "#/components/ui/loading-state.tsx";
 import { useProjectQuery } from "#/features/projects/hooks/useProjectQuery.ts";
 
@@ -36,6 +37,18 @@ function ProjectDashboardComponent(): JSX.Element {
 				<p className="text-xs text-muted-foreground">
 					{project.description || "No description"}
 				</p>
+				{project.tags.length > 0 && (
+					<div className="flex flex-wrap gap-1.5 pt-2">
+						{project.tags.map((tag) => (
+							<TagChip
+								key={tag.id}
+								tag={tag.name}
+								color={tag.color}
+								size="sm"
+							/>
+						))}
+					</div>
+				)}
 			</div>
 
 			<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

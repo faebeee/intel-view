@@ -43,11 +43,12 @@ export function ProjectModal({
 	onSuccess,
 }: ProjectModalProps) {
 	const isEditing = project !== null;
-	const [name, setName] = React.useState("");
-	const [description, setDescription] = React.useState("");
-	const [groupId, setGroupId] = React.useState<string>("");
-	const queryClient = useQueryClient();
-	const { data: groups = [] } = useAllProjectGroupsQuery();
+ const [name, setName] = React.useState("");
+ const [description, setDescription] = React.useState("");
+ const [groupId, setGroupId] = React.useState<string>("");
+  const [tags, setTags] = React.useState("");
+  const queryClient = useQueryClient();
+  const { data: groups = [] } = useAllProjectGroupsQuery();
 
 	// Reset (create mode) or prefill (edit mode) the form whenever the modal
 	// opens, or the project being edited changes.
@@ -57,10 +58,12 @@ export function ProjectModal({
 			setName(project.name || "");
 			setDescription(project.description || "");
 			setGroupId(project.groupId != null ? String(project.groupId) : "");
+			setTags(project.tags.map((tag) => tag.name).join(", "));
 		} else {
 			setName("");
 			setDescription("");
 			setGroupId("");
+			setTags("");
 		}
 	}, [open, project]);
 
@@ -69,6 +72,7 @@ export function ProjectModal({
 			name: string;
 			description?: string;
 			groupId: number | null;
+			tags: string[];
 		}) => {
 			if (isEditing) {
 				if (!project) throw new Error("No project selected");
@@ -107,10 +111,16 @@ export function ProjectModal({
 			return;
 		}
 
+		const tagList = tags
+			.split(",")
+			.map((tag) => tag.trim())
+			.filter(Boolean);
+
 		saveProjectMutation.mutate({
 			name: name.trim(),
 			description: description.trim() || undefined,
 			groupId: groupId ? Number(groupId) : null,
+			tags: tagList,
 		});
 	};
 
@@ -171,6 +181,17 @@ export function ProjectModal({
 								</NativeSelectOption>
 							))}
 						</NativeSelect>
+					</FormField>
+
+					<FormField label="Tags (optional)" htmlFor="project-tags">
+						<Input
+							id="project-tags"
+							placeholder="intel, urgent, field-work"
+							className={HUD_INPUT_CLASS}
+							value={tags}
+							onChange={(e) => setTags(e.target.value)}
+							disabled={saveProjectMutation.isPending}
+						/>
 					</FormField>
 
 					<DialogFooter className="pt-2">

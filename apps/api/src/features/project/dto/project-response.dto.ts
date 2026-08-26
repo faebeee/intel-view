@@ -13,6 +13,17 @@ export class ProjectGroupSummaryDto {
   color: string;
 }
 
+export class ProjectTagSummaryDto {
+  @ApiProperty()
+  id: number;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  color: string;
+}
+
 export class ProjectResponseDto {
   @ApiProperty()
   id: number;
@@ -32,6 +43,9 @@ export class ProjectResponseDto {
     required: false,
   })
   group: ProjectGroupSummaryDto | null;
+
+  @ApiProperty({ type: [ProjectTagSummaryDto] })
+  tags: ProjectTagSummaryDto[];
 
   @ApiProperty({
     description:
@@ -60,6 +74,11 @@ export function toProjectResponseDto(project: Project): ProjectResponseDto {
           color: project.group.color,
         }
       : null,
+    tags: (project.tags ?? []).map((tag) => ({
+      id: tag.id,
+      name: tag.name,
+      color: tag.color,
+    })),
     mapTheme: project.mapTheme,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
