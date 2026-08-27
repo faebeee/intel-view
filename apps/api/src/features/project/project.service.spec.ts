@@ -100,6 +100,25 @@ describe('ProjectService', () => {
       );
     });
 
+    it('persists the selected accent color on the project', async () => {
+      const existingProject = {
+        id: 1,
+        name: 'Op Blue Horizon',
+        color: 'ocean',
+      };
+      mockProjectRepository.findOne.mockResolvedValue(existingProject);
+      mockProjectRepository.save.mockImplementation(
+        (project: unknown) => project,
+      );
+
+      const result = await service.update(1, { color: 'violet' });
+
+      expect(result).toMatchObject({ color: 'violet' });
+      expect(mockProjectRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ color: 'violet' }),
+      );
+    });
+
     it('replaces project tags when tags are provided', async () => {
       const existingProject = {
         id: 1,

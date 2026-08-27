@@ -8,8 +8,14 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { PROJECT_MAP_THEMES } from '../entities/project.entity';
-import type { ProjectMapTheme } from '../entities/project.entity';
+import {
+  PROJECT_COLOR_THEMES,
+  PROJECT_MAP_THEMES,
+} from '../entities/project.entity';
+import type {
+  ProjectColorTheme,
+  ProjectMapTheme,
+} from '../entities/project.entity';
 
 export class CreateProjectDto {
   @IsString()
@@ -44,6 +50,16 @@ export class CreateProjectDto {
     required: false,
   })
   mapTheme?: ProjectMapTheme;
+
+  @IsIn(PROJECT_COLOR_THEMES)
+  @IsOptional()
+  @ApiProperty({
+    description:
+      "The accent color palette applied app-wide while this project is open. Defaults to 'ocean'.",
+    enum: PROJECT_COLOR_THEMES,
+    required: false,
+  })
+  color?: ProjectColorTheme;
 
   @IsArray()
   @IsString({ each: true })

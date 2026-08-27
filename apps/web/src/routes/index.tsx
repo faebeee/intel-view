@@ -33,6 +33,7 @@ import { TagChip } from "#/components/ui/tag-chip.tsx";
 import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
 import { ManageProjectGroupsModal } from "#/features/project-groups/components/ManageProjectGroupsModal.tsx";
 import { useAllProjectGroupsQuery } from "#/features/project-groups/hooks/useAllProjectGroupsQuery.ts";
+import { ProjectColorBadge } from "#/features/projects/components/ProjectColorBadge.tsx";
 import { ProjectModal } from "#/features/projects/components/ProjectModal.tsx";
 import { useAllProjectsQuery } from "#/features/projects/hooks/useAllProjectsQuery.ts";
 import { toastApiError } from "#/lib/api-error.ts";
@@ -52,9 +53,8 @@ function ProjectsOverview(): JSX.Element {
 	} = useAllProjectsQuery();
 	const { data: groups = [] } = useAllProjectGroupsQuery();
 
-	const [groupFilter, setGroupFilter] = React.useState<string>(
-		ALL_GROUPS_FILTER,
-	);
+	const [groupFilter, setGroupFilter] =
+		React.useState<string>(ALL_GROUPS_FILTER);
 
 	const filteredProjects = React.useMemo(() => {
 		if (groupFilter === ALL_GROUPS_FILTER) return projects;
@@ -70,7 +70,6 @@ function ProjectsOverview(): JSX.Element {
 		React.useState<ProjectResponseDto | null>(null);
 	const [isEditOpen, setIsEditOpen] = React.useState(false);
 	const [isManageGroupsOpen, setIsManageGroupsOpen] = React.useState(false);
-
 
 	const removeProjectMutation = useMutation({
 		mutationFn: async (id: number) => {
@@ -217,35 +216,36 @@ function ProjectsOverview(): JSX.Element {
 										)}
 									</CardDescription>
 								</CardHeader>
-						<CardContent className="flex flex-col gap-2">
-							<span className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono">
-								<Calendar className="h-3 w-3" />
-								Created {createdDate}
-							</span>
-							{project.group && (
-								<span
-									className="inline-flex items-center gap-1.5 self-start rounded-full border border-line/50 bg-surface/60 px-2 py-0.5 text-[10px] font-mono text-sea-ink"
-								>
-									<span
-										className="size-2 rounded-full shrink-0"
-										style={{ backgroundColor: project.group.color }}
-									/>
-								{project.group.name}
-								</span>
-							)}
-							{project.tags.length > 0 && (
-								<div className="flex flex-wrap gap-1.5">
-									{project.tags.map((tag) => (
-										<TagChip
-											key={tag.id}
-											tag={tag.name}
-											color={tag.color}
-											size="xs"
-										/>
-									))}
-								</div>
-							)}
-						</CardContent>
+								<CardContent className="flex flex-col gap-2">
+									<span className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono">
+										<Calendar className="h-3 w-3" />
+										Created {createdDate}
+									</span>
+									<div className="flex flex-wrap gap-1.5">
+										<ProjectColorBadge color={project.color} />
+										{project.group && (
+											<span className="inline-flex items-center gap-1.5 self-start rounded-full border border-line/50 bg-surface/60 px-2 py-0.5 text-[10px] font-mono text-sea-ink">
+												<span
+													className="size-2 rounded-full shrink-0"
+													style={{ backgroundColor: project.group.color }}
+												/>
+												{project.group.name}
+											</span>
+										)}
+									</div>
+									{project.tags.length > 0 && (
+										<div className="flex flex-wrap gap-1.5">
+											{project.tags.map((tag) => (
+												<TagChip
+													key={tag.id}
+													tag={tag.name}
+													color={tag.color}
+													size="xs"
+												/>
+											))}
+										</div>
+									)}
+								</CardContent>
 								<CardFooter className="flex items-center justify-between gap-2">
 									<Link
 										to="/projects/$projectId"

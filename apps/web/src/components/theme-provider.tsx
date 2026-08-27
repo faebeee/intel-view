@@ -1,8 +1,12 @@
 import type { JSX, ReactNode } from "react";
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import {
-	COLOR_THEME_COOKIE,
-	type ColorTheme,
+	createContext,
+	useCallback,
+	useContext,
+	useEffect,
+	useState,
+} from "react";
+import {
 	resolveModeClass,
 	THEME_MODE_COOKIE,
 	type ThemeMode,
@@ -23,15 +27,12 @@ function getPrefersDark(): boolean {
 type ThemeProviderProps = {
 	children: ReactNode;
 	initialMode: ThemeMode;
-	initialColorTheme: ColorTheme;
 };
 
 type ThemeProviderState = {
 	mode: ThemeMode;
-	colorTheme: ColorTheme;
 	resolvedMode: "light" | "dark";
 	setMode: (mode: ThemeMode) => void;
-	setColorTheme: (colorTheme: ColorTheme) => void;
 };
 
 const ThemeProviderContext = createContext<ThemeProviderState | undefined>(
@@ -41,11 +42,8 @@ const ThemeProviderContext = createContext<ThemeProviderState | undefined>(
 export function ThemeProvider({
 	children,
 	initialMode,
-	initialColorTheme,
 }: ThemeProviderProps): JSX.Element {
 	const [mode, setModeState] = useState<ThemeMode>(initialMode);
-	const [colorTheme, setColorThemeState] =
-		useState<ColorTheme>(initialColorTheme);
 
 	const applyMode = useCallback((nextMode: ThemeMode) => {
 		const root = document.documentElement;
@@ -61,12 +59,6 @@ export function ThemeProvider({
 		},
 		[applyMode],
 	);
-
-	const setColorTheme = useCallback((nextColorTheme: ColorTheme) => {
-		setColorThemeState(nextColorTheme);
-		setCookie(COLOR_THEME_COOKIE, nextColorTheme);
-		document.documentElement.setAttribute("data-theme", nextColorTheme);
-	}, []);
 
 	// Correct the DOM after hydration in case the server's guess for
 	// "system" mode didn't match this client's actual OS preference.
@@ -92,9 +84,7 @@ export function ThemeProvider({
 			: (mode as "light" | "dark");
 
 	return (
-		<ThemeProviderContext.Provider
-			value={{ mode, colorTheme, resolvedMode, setMode, setColorTheme }}
-		>
+		<ThemeProviderContext.Provider value={{ mode, resolvedMode, setMode }}>
 			{children}
 		</ThemeProviderContext.Provider>
 	);

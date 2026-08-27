@@ -25,6 +25,7 @@ import {
 import { LoadingState, NotFoundState } from "#/components/ui/loading-state.tsx";
 import { useAllNoteLocationsQuery } from "#/features/notes/hooks/useAllNoteLocationsQuery.ts";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
+import { ProjectColorBadge } from "#/features/projects/components/ProjectColorBadge.tsx";
 import { useProjectQuery } from "#/features/projects/hooks/useProjectQuery.ts";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 
@@ -115,6 +116,10 @@ function ProjectDashboardComponent(): JSX.Element {
 						</p>
 					</div>
 					<div className="flex flex-wrap gap-2">
+							<ProjectColorBadge
+								color={project.color}
+								className="px-3 py-1 text-xs"
+							/>
 							{project.group ? (
 								<span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3 py-1 text-xs font-mono text-sea-ink">
 									<span

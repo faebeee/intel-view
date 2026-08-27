@@ -1,7 +1,7 @@
 import type { ProjectResponseDto } from "@repo/sdk";
 import { projectControllerCreate, projectControllerUpdate } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { RefreshCw } from "lucide-react";
+import { Check, RefreshCw } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
@@ -22,6 +22,13 @@ import {
 import { Textarea } from "#/components/ui/textarea";
 import { useAllProjectGroupsQuery } from "#/features/project-groups/hooks/useAllProjectGroupsQuery.ts";
 import { toastApiError } from "#/lib/api-error.ts";
+import {
+	COLOR_THEME_LABELS,
+	COLOR_THEME_SWATCH,
+	COLOR_THEMES,
+	type ColorTheme,
+	DEFAULT_COLOR_THEME,
+} from "#/lib/theme.ts";
 
 type ProjectModalProps = {
 	open: boolean;
@@ -43,12 +50,13 @@ export function ProjectModal({
 	onSuccess,
 }: ProjectModalProps) {
 	const isEditing = project !== null;
- const [name, setName] = React.useState("");
- const [description, setDescription] = React.useState("");
- const [groupId, setGroupId] = React.useState<string>("");
-  const [tags, setTags] = React.useState("");
-  const queryClient = useQueryClient();
-  const { data: groups = [] } = useAllProjectGroupsQuery();
+	const [name, setName] = React.useState("");
+	const [description, setDescription] = React.useState("");
+	const [groupId, setGroupId] = React.useState<string>("");
+	const [tags, setTags] = React.useState("");
+	const [color, setColor] = React.useState<ColorTheme>(DEFAULT_COLOR_THEME);
+	const queryClient = useQueryClient();
+	const { data: groups = [] } = useAllProjectGroupsQuery();
 
 	// Reset (create mode) or prefill (edit mode) the form whenever the modal
 	// opens, or the project being edited changes.
@@ -59,11 +67,13 @@ export function ProjectModal({
 			setDescription(project.description || "");
 			setGroupId(project.groupId != null ? String(project.groupId) : "");
 			setTags(project.tags.map((tag) => tag.name).join(", "));
+			setColor((project.color as ColorTheme) || DEFAULT_COLOR_THEME);
 		} else {
 			setName("");
 			setDescription("");
 			setGroupId("");
 			setTags("");
+			setColor(DEFAULT_COLOR_THEME);
 		}
 	}, [open, project]);
 
@@ -73,6 +83,7 @@ export function ProjectModal({
 			description?: string;
 			groupId: number | null;
 			tags: string[];
+			color: ColorTheme;
 		}) => {
 			if (isEditing) {
 				if (!project) throw new Error("No project selected");
@@ -121,6 +132,7 @@ export function ProjectModal({
 			description: description.trim() || undefined,
 			groupId: groupId ? Number(groupId) : null,
 			tags: tagList,
+			color,
 		});
 	};
 
@@ -133,8 +145,8 @@ export function ProjectModal({
 					</DialogTitle>
 					<DialogDescription className="text-xs text-muted-foreground leading-relaxed">
 						{isEditing
-							? "Update the project name and description."
-							: "Projects group related notes and tags together."}
+							? "Update the project name, description and accent color."
+							: "Projects group related notes and tags together. Pick an accent color to make this project recognizable when open."}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -192,6 +204,34 @@ export function ProjectModal({
 							onChange={(e) => setTags(e.target.value)}
 							disabled={saveProjectMutation.isPending}
 						/>
+					</FormField>
+
+					<FormField
+						label="Accent Color"
+						htmlFor="project-color"
+						className="gap-2"
+					>
+						<div className="flex flex-wrap gap-2">
+							{COLOR_THEMES.map((option) => (
+								<button
+									key={option}
+									type="button"
+									id={option === color ? "project-color" : undefined}
+									onClick={() => setColor(option)}
+									disabled={saveProjectMutation.isPending}
+									className="flex items-center gap-1.5 rounded-full border border-line/50 bg-surface/60 px-2.5 py-1 text-[11px] font-mono text-sea-ink hover:border-palm/40 transition-colors disabled:opacity-50"
+									aria-pressed={color === option}
+								>
+									<span
+										className={`size-3 rounded-full shrink-0 ${COLOR_THEME_SWATCH[option]}`}
+									/>
+									<span>{COLOR_THEME_LABELS[option]}</span>
+									{color === option ? (
+										<Check className="size-3 shrink-0" />
+									) : null}
+								</button>
+							))}
+						</div>
 					</FormField>
 
 					<DialogFooter className="pt-2">

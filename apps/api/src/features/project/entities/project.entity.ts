@@ -22,6 +22,29 @@ export const PROJECT_MAP_THEMES: ProjectMapTheme[] = [
 ];
 export const DEFAULT_PROJECT_MAP_THEME: ProjectMapTheme = 'street';
 
+/**
+ * The accent color palette applied app-wide (via the `data-theme` attribute
+ * on <html>, see the frontend's `apps/web/src/styles.css`) whenever this
+ * project is open. Replaces the old global, user-level color theme picker so
+ * each project can have its own visual identity.
+ */
+export type ProjectColorTheme =
+  | 'ocean'
+  | 'emerald'
+  | 'violet'
+  | 'monochrome'
+  | 'crimson'
+  | 'amber';
+export const PROJECT_COLOR_THEMES: ProjectColorTheme[] = [
+  'ocean',
+  'emerald',
+  'violet',
+  'monochrome',
+  'crimson',
+  'amber',
+];
+export const DEFAULT_PROJECT_COLOR_THEME: ProjectColorTheme = 'ocean';
+
 @Entity()
 export class Project extends BaseEntity {
   @Column({ type: 'varchar', length: 150 })
@@ -62,6 +85,19 @@ export class Project extends BaseEntity {
     default: DEFAULT_PROJECT_MAP_THEME,
   })
   mapTheme: ProjectMapTheme;
+
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: DEFAULT_PROJECT_COLOR_THEME,
+  })
+  @ApiProperty({
+    description:
+      "The accent color palette applied app-wide while this project is open.",
+    enum: PROJECT_COLOR_THEMES,
+    default: DEFAULT_PROJECT_COLOR_THEME,
+  })
+  color: ProjectColorTheme;
 
   @OneToMany(() => Note, (note) => note.project)
   notes: Note[];

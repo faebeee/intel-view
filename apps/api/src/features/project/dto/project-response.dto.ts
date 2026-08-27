@@ -1,6 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { PROJECT_MAP_THEMES, Project } from '../entities/project.entity';
-import type { ProjectMapTheme } from '../entities/project.entity';
+import {
+  PROJECT_COLOR_THEMES,
+  PROJECT_MAP_THEMES,
+  Project,
+} from '../entities/project.entity';
+import type {
+  ProjectColorTheme,
+  ProjectMapTheme,
+} from '../entities/project.entity';
 
 export class ProjectGroupSummaryDto {
   @ApiProperty()
@@ -54,6 +61,13 @@ export class ProjectResponseDto {
   })
   mapTheme: ProjectMapTheme;
 
+  @ApiProperty({
+    description:
+      "The accent color palette applied app-wide while this project is open.",
+    enum: PROJECT_COLOR_THEMES,
+  })
+  color: ProjectColorTheme;
+
   @ApiProperty()
   createdAt: Date;
 
@@ -74,12 +88,15 @@ export function toProjectResponseDto(project: Project): ProjectResponseDto {
           color: project.group.color,
         }
       : null,
-    tags: (project.tags ?? []).map((tag) => ({
-      id: tag.id,
-      name: tag.name,
-      color: tag.color,
-    })),
+    tags: (project.tags ?? [])
+      .filter((tag) => tag.deletedAt == null)
+      .map((tag) => ({
+        id: tag.id,
+        name: tag.name,
+        color: tag.color,
+      })),
     mapTheme: project.mapTheme,
+    color: project.color,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
   };
