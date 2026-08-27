@@ -24,23 +24,19 @@ export function Layout({ children }: LayoutProps): JSX.Element {
 		<div className="flex flex-col min-h-screen w-full bg-background text-foreground overflow-hidden">
 			{/* Small Header */}
 			<header className="sticky top-0 z-40 w-full h-16 border-b border-line bg-header-bg backdrop-blur-md shrink-0">
-				<div className="page-wrap h-full flex items-center justify-between gap-4">
-					<Link
-						to="/"
-						className="flex items-center gap-2 text-inherit no-underline"
-					>
-						<StickyNote className="w-6 h-6 text-palm" />
-					</Link>
+				<div className="page-wrap h-full grid grid-cols-[auto_1fr_auto] items-center gap-4">
+					<div className="min-w-0">
+						<Link
+							to="/"
+							className="nav-link text-sm font-bold flex items-center gap-1.5"
+						>
+							<FolderKanban className="w-4 h-4" />
+							<span>{project?.name || "Projects"}</span>
+						</Link>
+					</div>
 
 					{projectIdParam ? (
-						<nav className="flex items-center gap-6">
-							<Link
-								to="/"
-								className="nav-link text-sm font-bold flex items-center gap-1.5"
-							>
-								<FolderKanban className="w-4 h-4" />
-								<span>{project?.name || "Projects"}</span>
-							</Link>
+						<nav className="justify-self-center flex items-center gap-6">
 							<Link
 								to="/projects/$projectId/notes"
 								params={{ projectId: projectIdParam }}
@@ -49,15 +45,6 @@ export function Layout({ children }: LayoutProps): JSX.Element {
 							>
 								<StickyNote className="w-4 h-4" />
 								<span>Notes</span>
-							</Link>
-							<Link
-								to="/projects/$projectId/tags"
-								params={{ projectId: projectIdParam }}
-								className="nav-link text-sm font-bold flex items-center gap-1.5"
-								activeProps={{ className: "is-active" }}
-							>
-								<TagIcon className="w-4 h-4" />
-								<span>Tags</span>
 							</Link>
 							<Link
 								to="/projects/$projectId/map"
@@ -77,16 +64,21 @@ export function Layout({ children }: LayoutProps): JSX.Element {
 								<Waypoints className="w-4 h-4" />
 								<span>Canvas</span>
 							</Link>
+							<Link
+								to="/projects/$projectId/tags"
+								params={{ projectId: projectIdParam }}
+								className="nav-link text-sm font-bold flex items-center gap-1.5"
+								activeProps={{ className: "is-active" }}
+							>
+								<TagIcon className="w-4 h-4" />
+								<span>Tags</span>
+							</Link>
 						</nav>
 					) : (
-						<nav className="flex items-center gap-6">
-							<span className="text-sm font-bold text-sea-ink-soft uppercase tracking-wider">
-								Projects
-							</span>
-						</nav>
+						<div />
 					)}
 
-					<div className="flex items-center gap-3">
+					<div className="flex items-center justify-self-end gap-3">
 						<ThemeSwitcher />
 						<ParaglideLocaleSwitcher />
 					</div>
