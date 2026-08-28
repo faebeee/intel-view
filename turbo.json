@@ -34,11 +34,15 @@
         "^generate"
       ],
       "env": [
-        "API_URL"
+        "API_URL",
+        "VITE_SDK_URL"
       ],
       "inputs": [
         "$TURBO_DEFAULT$",
         ".env*"
+      ],
+      "outputs": [
+        "client/**"
       ],
     },
     "dev": {

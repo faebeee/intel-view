@@ -29,7 +29,12 @@ ENV VITE_SDK_URL=${VITE_SDK_URL}
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY . .
-RUN npx turbo run generate
+# NOTE: packages/sdk/client is NOT committed to git — it is generated against a
+# live `api` instance by scripts/build-web.sh (which runs `turbo run generate
+# --filter=@repo/sdk` on the host, since the SDK generator needs to reach a
+# running API over HTTP, which an isolated Docker build layer cannot do) and
+# must already exist in the build context before this Dockerfile runs.
+RUN test -d packages/sdk/client || (echo "ERROR: packages/sdk/client is missing. Run scripts/build-web.sh instead of building this image directly." && exit 1)
 RUN npx turbo run build --filter=web
 
 # ---- Runtime ------------------------------------------------------------------

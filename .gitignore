@@ -27,6 +27,11 @@ out/
 build
 dist
 
+# Generated SDK client (regenerated via `npx turbo run generate --filter=@repo/sdk`
+# or scripts/build-web.sh; never checked in since it must always match the live API)
+packages/sdk/client
+packages/sdk/openapi-ts-error-*.log
+
 
 # Debug
 npm-debug.log*
