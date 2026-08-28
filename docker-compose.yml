@@ -69,14 +69,16 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://intel.local:4010}
+        VITE_API_URL: http://intel.local:4010 
+        VITE_SDK_URL: http://api:4010 
     container_name: intel-view-web
     restart: always
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     environment:
       PORT: 4000
-      VITE_API_URL: ${VITE_API_URL:-http://intel.local:4010}
+      VITE_API_URL: http://intel.local:4010 
     ports:
       - '4000:4000'
 

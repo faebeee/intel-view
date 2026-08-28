@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import type { LucideIcon } from "lucide-react";
 import {
 	Calendar,
 	Clock3,
@@ -11,10 +12,8 @@ import {
 	Tag as TagIcon,
 	Users,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import type * as React from "react";
 import type { JSX } from "react";
-import * as React from "react";
-import { TagChip } from "#/components/ui/tag-chip.tsx";
 import {
 	Card,
 	CardContent,
@@ -23,6 +22,7 @@ import {
 	CardTitle,
 } from "#/components/ui/card.tsx";
 import { LoadingState, NotFoundState } from "#/components/ui/loading-state.tsx";
+import { TagChip } from "#/components/ui/tag-chip.tsx";
 import { useAllNoteLocationsQuery } from "#/features/notes/hooks/useAllNoteLocationsQuery.ts";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 import { ProjectColorBadge } from "#/features/projects/components/ProjectColorBadge.tsx";
@@ -93,7 +93,8 @@ function ProjectDashboardComponent(): JSX.Element {
 	);
 	const recentlyTouchedNotes = notes.filter(
 		(note) =>
-			Date.now() - new Date(note.updatedAt).getTime() <= 7 * 24 * 60 * 60 * 1000,
+			Date.now() - new Date(note.updatedAt).getTime() <=
+			7 * 24 * 60 * 60 * 1000,
 	);
 	const emptyState = notes.length === 0;
 
@@ -113,9 +114,9 @@ function ProjectDashboardComponent(): JSX.Element {
 							<p className="text-sm text-muted-foreground max-w-2xl">
 								{project.description ||
 									"This project does not have a description yet."}
-						</p>
-					</div>
-					<div className="flex flex-wrap gap-2">
+							</p>
+						</div>
+						<div className="flex flex-wrap gap-2">
 							<ProjectColorBadge
 								color={project.color}
 								className="px-3 py-1 text-xs"
@@ -163,7 +164,10 @@ function ProjectDashboardComponent(): JSX.Element {
 					</div>
 
 					<div className="flex flex-wrap gap-2">
-						<DashboardLink to="/projects/$projectId/notes" projectId={projectId}>
+						<DashboardLink
+							to="/projects/$projectId/notes"
+							projectId={projectId}
+						>
 							<StickyNote className="h-4 w-4" />
 							<span>Open Notes</span>
 						</DashboardLink>
@@ -175,7 +179,10 @@ function ProjectDashboardComponent(): JSX.Element {
 							<MapPin className="h-4 w-4" />
 							<span>Open Map</span>
 						</DashboardLink>
-						<DashboardLink to="/projects/$projectId/canvas" projectId={projectId}>
+						<DashboardLink
+							to="/projects/$projectId/canvas"
+							projectId={projectId}
+						>
 							<NotebookPen className="h-4 w-4" />
 							<span>Open Canvas</span>
 						</DashboardLink>
@@ -247,11 +254,20 @@ function ProjectDashboardComponent(): JSX.Element {
 										<div className="flex flex-wrap gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
 											<span>Updated {formatDate(note.updatedAt)}</span>
 											<span>•</span>
-											<span>{note.tags.length} tag{note.tags.length === 1 ? "" : "s"}</span>
+											<span>
+												{note.tags?.length} tag
+												{note.tags?.length === 1 ? "" : "s"}
+											</span>
 											<span>•</span>
-											<span>{note.parentIds.length} parent{note.parentIds.length === 1 ? "" : "s"}</span>
+											<span>
+												{note.parentIds.length} parent
+												{note.parentIds.length === 1 ? "" : "s"}
+											</span>
 											<span>•</span>
-											<span>{note.childIds.length} child{note.childIds.length === 1 ? "" : "ren"}</span>
+											<span>
+												{note.childIds.length} child
+												{note.childIds.length === 1 ? "" : "ren"}
+											</span>
 										</div>
 									</div>
 									<div className="flex flex-wrap items-center gap-2">
@@ -309,7 +325,12 @@ function ProjectDashboardComponent(): JSX.Element {
 						<div className="grid grid-cols-2 gap-3 text-xs">
 							<SmallStat label="Connected" value={connectedNotes.length} />
 							<SmallStat label="Canvas" value={canvasPlacedNotes.length} />
-							<SmallStat label="Tagged" value={notes.filter((note) => note.tags.length > 0).length} />
+							<SmallStat
+								label="Tagged"
+								value={
+									notes.filter((note) => (note.tags?.length ?? 0) > 0).length
+								}
+							/>
 							<SmallStat label="Recent" value={recentlyTouchedNotes.length} />
 						</div>
 					</CardContent>
@@ -346,7 +367,9 @@ function ProjectDashboardComponent(): JSX.Element {
 											Used by {tag.count} note{tag.count === 1 ? "" : "s"}
 										</span>
 									</div>
-									<span className="text-xs font-mono text-sea-ink">{tag.count}</span>
+									<span className="text-xs font-mono text-sea-ink">
+										{tag.count}
+									</span>
 								</div>
 							))
 						)}
@@ -435,7 +458,13 @@ function NoteTypePill({ type }: { type: string }): JSX.Element {
 	);
 }
 
-function SmallStat({ label, value }: { label: string; value: number }): JSX.Element {
+function SmallStat({
+	label,
+	value,
+}: {
+	label: string;
+	value: number;
+}): JSX.Element {
 	return (
 		<div className="rounded-lg border border-line/70 bg-surface/60 px-3 py-2">
 			<p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
@@ -504,7 +533,8 @@ function buildNoteTypeStats(
 
 	return NOTE_TYPE_ORDER.map((type) => {
 		const count = counts[type];
-		const percent = notes.length === 0 ? 0 : Math.round((count / notes.length) * 100);
+		const percent =
+			notes.length === 0 ? 0 : Math.round((count / notes.length) * 100);
 		return {
 			type,
 			label: NOTE_TYPE_LABELS[type],
@@ -519,13 +549,15 @@ function buildTagUsage(
 ): Array<{ name: string; count: number; color: string }> {
 	const counts = new Map<string, number>();
 	for (const note of notes) {
-		for (const tag of note.tags) {
+		for (const tag of note.tags ?? []) {
 			counts.set(tag, (counts.get(tag) ?? 0) + 1);
 		}
 	}
 
 	return [...counts.entries()]
-		.sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+		.sort(
+			(left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
+		)
 		.map(([name, count]) => ({
 			name,
 			count,
