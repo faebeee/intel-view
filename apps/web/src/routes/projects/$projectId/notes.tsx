@@ -65,7 +65,7 @@ function NotesRouteComponent(): JSX.Element {
 		isRefetching,
 		refetch,
 	} = useAllNotesQuery(projectId);
-	const { data: tags = [] } = useAllTagsQuery(projectId);
+	const { data: tags = [] } = useAllTagsQuery();
 
 	const selectedNote = React.useMemo(
 		() => notes.find((n) => n.id === selectedNoteId),

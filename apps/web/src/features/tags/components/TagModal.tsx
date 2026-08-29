@@ -30,7 +30,6 @@ const PRESET_COLORS = [
 const DEFAULT_COLOR = "#00f2ff";
 
 type TagModalProps = {
-	projectId: number;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	/** Tag being edited. `null`/omitted puts the modal in "create" mode. */
@@ -44,7 +43,6 @@ type TagModalProps = {
  * whether a `tag` was passed in, so the two flows can't drift apart.
  */
 export function TagModal({
-	projectId,
 	open,
 	onOpenChange,
 	tag = null,
@@ -73,13 +71,12 @@ export function TagModal({
 			if (isEditing) {
 				if (!tag) throw new Error("No tag selected");
 				const res = await tagControllerUpdate({
-					path: { projectId, id: tag.id },
+					path: { id: tag.id },
 					body: payload,
 				});
 				return res.data;
 			}
 			const res = await tagControllerCreate({
-				path: { projectId },
 				body: payload,
 			});
 			return res.data;
@@ -88,7 +85,7 @@ export function TagModal({
 			toast.success(
 				isEditing ? "Tag updated successfully" : "Tag created successfully",
 			);
-			queryClient.invalidateQueries({ queryKey: ["tags", "all", projectId] });
+			queryClient.invalidateQueries({ queryKey: ["tags", "all"] });
 			onOpenChange(false);
 			if (onSuccess) onSuccess();
 		},

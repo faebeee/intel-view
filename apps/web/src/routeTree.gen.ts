@@ -10,16 +10,21 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TagsRouteImport } from './routes/tags'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projectId'
 import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$projectId/index'
 import { Route as ProjectsProjectIdCanvasRouteImport } from './routes/projects/$projectId/canvas'
 import { Route as ProjectsProjectIdMapRouteImport } from './routes/projects/$projectId/map'
 import { Route as ProjectsProjectIdNotesRouteImport } from './routes/projects/$projectId/notes'
-import { Route as ProjectsProjectIdTagsRouteImport } from './routes/projects/$projectId/tags'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TagsRoute = TagsRouteImport.update({
+  id: '/tags',
+  path: '/tags',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
@@ -47,70 +52,66 @@ const ProjectsProjectIdNotesRoute = ProjectsProjectIdNotesRouteImport.update({
   path: '/notes',
   getParentRoute: () => ProjectsProjectIdRoute,
 } as any)
-const ProjectsProjectIdTagsRoute = ProjectsProjectIdTagsRouteImport.update({
-  id: '/tags',
-  path: '/tags',
-  getParentRoute: () => ProjectsProjectIdRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/tags': typeof TagsRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
   '/projects/$projectId/canvas': typeof ProjectsProjectIdCanvasRoute
   '/projects/$projectId/map': typeof ProjectsProjectIdMapRoute
   '/projects/$projectId/notes': typeof ProjectsProjectIdNotesRoute
-  '/projects/$projectId/tags': typeof ProjectsProjectIdTagsRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/tags': typeof TagsRoute
   '/projects/$projectId/canvas': typeof ProjectsProjectIdCanvasRoute
   '/projects/$projectId/map': typeof ProjectsProjectIdMapRoute
   '/projects/$projectId/notes': typeof ProjectsProjectIdNotesRoute
-  '/projects/$projectId/tags': typeof ProjectsProjectIdTagsRoute
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/tags': typeof TagsRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
   '/projects/$projectId/canvas': typeof ProjectsProjectIdCanvasRoute
   '/projects/$projectId/map': typeof ProjectsProjectIdMapRoute
   '/projects/$projectId/notes': typeof ProjectsProjectIdNotesRoute
-  '/projects/$projectId/tags': typeof ProjectsProjectIdTagsRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/tags'
     | '/projects/$projectId'
     | '/projects/$projectId/canvas'
     | '/projects/$projectId/map'
     | '/projects/$projectId/notes'
-    | '/projects/$projectId/tags'
     | '/projects/$projectId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/tags'
     | '/projects/$projectId/canvas'
     | '/projects/$projectId/map'
     | '/projects/$projectId/notes'
-    | '/projects/$projectId/tags'
     | '/projects/$projectId'
   id:
     | '__root__'
     | '/'
+    | '/tags'
     | '/projects/$projectId'
     | '/projects/$projectId/canvas'
     | '/projects/$projectId/map'
     | '/projects/$projectId/notes'
-    | '/projects/$projectId/tags'
     | '/projects/$projectId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  TagsRoute: typeof TagsRoute
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRouteWithChildren
 }
 
@@ -121,6 +122,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tags': {
+      id: '/tags'
+      path: '/tags'
+      fullPath: '/tags'
+      preLoaderRoute: typeof TagsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects/$projectId': {
@@ -158,13 +166,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdNotesRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
-    '/projects/$projectId/tags': {
-      id: '/projects/$projectId/tags'
-      path: '/tags'
-      fullPath: '/projects/$projectId/tags'
-      preLoaderRoute: typeof ProjectsProjectIdTagsRouteImport
-      parentRoute: typeof ProjectsProjectIdRoute
-    }
   }
 }
 
@@ -172,7 +173,6 @@ interface ProjectsProjectIdRouteChildren {
   ProjectsProjectIdCanvasRoute: typeof ProjectsProjectIdCanvasRoute
   ProjectsProjectIdMapRoute: typeof ProjectsProjectIdMapRoute
   ProjectsProjectIdNotesRoute: typeof ProjectsProjectIdNotesRoute
-  ProjectsProjectIdTagsRoute: typeof ProjectsProjectIdTagsRoute
   ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
 }
 
@@ -180,7 +180,6 @@ const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
   ProjectsProjectIdCanvasRoute: ProjectsProjectIdCanvasRoute,
   ProjectsProjectIdMapRoute: ProjectsProjectIdMapRoute,
   ProjectsProjectIdNotesRoute: ProjectsProjectIdNotesRoute,
-  ProjectsProjectIdTagsRoute: ProjectsProjectIdTagsRoute,
   ProjectsProjectIdIndexRoute: ProjectsProjectIdIndexRoute,
 }
 
@@ -189,6 +188,7 @@ const ProjectsProjectIdRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  TagsRoute: TagsRoute,
   ProjectsProjectIdRoute: ProjectsProjectIdRouteWithChildren,
 }
 export const routeTree = rootRouteImport

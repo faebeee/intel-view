@@ -1,13 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  ArrayUnique,
-  IsArray,
-  IsIn,
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import {
   PROJECT_COLOR_THEMES,
   PROJECT_MAP_THEMES,
@@ -60,16 +52,4 @@ export class CreateProjectDto {
     required: false,
   })
   color?: ProjectColorTheme;
-
-  @IsArray()
-  @IsString({ each: true })
-  @ArrayUnique()
-  @IsOptional()
-  @ApiProperty({
-    description:
-      'Optional project tags to create alongside the project. Existing tags are normalized and stored on the project.',
-    type: [String],
-    required: false,
-  })
-  tags?: string[];
 }

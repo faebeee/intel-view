@@ -3,12 +3,11 @@ import { tagControllerFindAll } from "@repo/sdk";
 import { useQuery } from "@tanstack/react-query";
 import type { PaginatedResponse } from "#/types/note";
 
-export function useAllTagsQuery(projectId: number) {
+export function useAllTagsQuery() {
 	return useQuery({
-		queryKey: ["tags", "all", projectId],
+		queryKey: ["tags", "all"],
 		queryFn: async () => {
 			const response = await tagControllerFindAll({
-				path: { projectId },
 				query: {
 					limit: 100,
 					sortBy: ["id:DESC"],
@@ -18,6 +17,5 @@ export function useAllTagsQuery(projectId: number) {
 			const paginated = response.data as PaginatedResponse<Tag>;
 			return paginated?.data || [];
 		},
-		enabled: !Number.isNaN(projectId),
 	});
 }

@@ -95,7 +95,7 @@ export function AllLocationsMap({
 	onMapThemeChange,
 	className,
 }: AllLocationsMapProps) {
-	const { data: tags = [] } = useAllTagsQuery(parseInt(projectId, 10));
+	const { data: tags = [] } = useAllTagsQuery();
 	const tagColorMap = useTagColorMap(tags);
 
 	const positions = React.useMemo<Array<[number, number]>>(

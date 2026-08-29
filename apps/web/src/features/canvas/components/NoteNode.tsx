@@ -28,7 +28,7 @@ type NoteNodeProps = NodeProps & {
  */
 export function NoteNode({ data, selected }: NoteNodeProps) {
 	const { note } = data;
-	const { data: tags = [] } = useAllTagsQuery(note.projectId);
+	const { data: tags = [] } = useAllTagsQuery();
 	const tagColorMap = useTagColorMap(tags);
 	const label = getNoteLabel(note);
 	const snippet = (note.content || "").trim().replace(/\s+/g, " ");

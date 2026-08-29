@@ -5,9 +5,6 @@ export class TagResponseDto {
   @ApiProperty()
   id: number;
 
-  @ApiProperty()
-  projectId: number;
-
   @ApiProperty({ description: 'Name of the tag' })
   name: string;
 
@@ -24,7 +21,6 @@ export class TagResponseDto {
 export function toTagResponseDto(tag: Tag): TagResponseDto {
   return {
     id: tag.id,
-    projectId: tag.projectId,
     name: tag.name,
     color: tag.color,
     createdAt: tag.createdAt,

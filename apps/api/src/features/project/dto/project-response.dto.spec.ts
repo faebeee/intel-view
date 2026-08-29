@@ -11,50 +11,40 @@ describe('toProjectResponseDto', () => {
       group: null,
       mapTheme: 'street',
       color: 'ocean',
-      tags: [],
       notes: [],
       createdAt: new Date('2024-01-01T00:00:00.000Z'),
       updatedAt: new Date('2024-01-02T00:00:00.000Z'),
       deletedAt: null,
       ...overrides,
-    } as Project;
+    };
   }
 
-  it('excludes soft-deleted tags from the mapped response', () => {
+  it('maps a project entity to its response DTO', () => {
+    const project = buildProject();
+
+    const result = toProjectResponseDto(project);
+
+    expect(result).toEqual({
+      id: 1,
+      name: 'Op Blue Horizon',
+      description: null,
+      groupId: null,
+      group: null,
+      mapTheme: 'street',
+      color: 'ocean',
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+    });
+  });
+
+  it('maps the group relation when present', () => {
     const project = buildProject({
-      tags: [
-        {
-          id: 1,
-          name: 'active-tag',
-          color: '#00f2ff',
-          projectId: 1,
-          deletedAt: null,
-        },
-        {
-          id: 2,
-          name: 'old-tag',
-          color: '#00f2ff',
-          projectId: 1,
-          // Soft-deleted (e.g. replaced by a project update) but still
-          // present on the loaded `tags` relation, which does not filter by
-          // `deletedAt` at the query level.
-          deletedAt: new Date('2024-01-01T00:00:00.000Z'),
-        },
-      ] as Project['tags'],
+      groupId: 5,
+      group: { id: 5, name: 'Ops', color: '#00f2ff' } as Project['group'],
     });
 
     const result = toProjectResponseDto(project);
 
-    expect(result.tags).toEqual([
-      { id: 1, name: 'active-tag', color: '#00f2ff' },
-    ]);
-  });
-
-  it('returns an empty tags array when no tags are present', () => {
-    const project = buildProject({ tags: undefined });
-
-    const result = toProjectResponseDto(project);
-
-    expect(result.tags).toEqual([]);
+    expect(result.group).toEqual({ id: 5, name: 'Ops', color: '#00f2ff' });
   });
 });

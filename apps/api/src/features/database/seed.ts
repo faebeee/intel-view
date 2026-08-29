@@ -129,11 +129,9 @@ async function seed(): Promise<void> {
   console.log('Creating demo project...');
   const project = await projectRepo.save(projectRepo.create(DEMO_PROJECT));
 
-  console.log('Creating tags...');
+  console.log('Creating global tags...');
   const tags = await tagRepo.save(
-    TAG_DEFINITIONS.map((tag) =>
-      tagRepo.create({ ...tag, projectId: project.id }),
-    ),
+    TAG_DEFINITIONS.map((tag) => tagRepo.create(tag)),
   );
   const tagNames = tags.map((tag) => tag.name);
 

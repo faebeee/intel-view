@@ -20,6 +20,10 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "typeorm": "typeorm-ts-node-commonjs",
     "schema:sync": "npm run typeorm -- schema:sync -d src/features/database/datasource.ts",
+    "migration:generate": "npm run typeorm -- migration:generate -d src/features/database/datasource.ts",
+    "migration:show": "npm run typeorm -- migration:show -d src/features/database/datasource.ts",
+    "migration:run": "npm run typeorm -- migration:run -d src/features/database/datasource.ts",
+    "migration:revert": "npm run typeorm -- migration:revert -d src/features/database/datasource.ts",
     "seed": "ts-node -r tsconfig-paths/register src/features/database/seed.ts",
     "nest-notes": "ts-node -r tsconfig-paths/register src/features/database/nest-notes.ts"
   },

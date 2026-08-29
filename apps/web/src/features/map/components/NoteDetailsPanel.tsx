@@ -43,7 +43,7 @@ export function NoteDetailsPanel({
 				.filter((n): n is Note => n !== undefined),
 		[notes, note.parentIds],
 	);
-	const { data: tags = [] } = useAllTagsQuery(projectId);
+	const { data: tags = [] } = useAllTagsQuery();
 	const tagColorMap = useTagColorMap(tags);
 	const { data: historyEntries = [], isLoading: isHistoryLoading } =
 		useNoteHistoryQuery(projectId, note.id);

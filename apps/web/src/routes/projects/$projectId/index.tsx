@@ -56,7 +56,7 @@ function ProjectDashboardComponent(): JSX.Element {
 	const id = parseInt(projectId, 10);
 	const { data: project, isLoading } = useProjectQuery(id);
 	const { data: notes = [], isLoading: isNotesLoading } = useAllNotesQuery(id);
-	const { data: tags = [], isLoading: isTagsLoading } = useAllTagsQuery(id);
+	const { data: tags = [], isLoading: isTagsLoading } = useAllTagsQuery();
 	const { data: locations = [], isLoading: isLocationsLoading } =
 		useAllNoteLocationsQuery(id);
 
@@ -145,13 +145,13 @@ function ProjectDashboardComponent(): JSX.Element {
 							</span>
 							<span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3 py-1 text-xs font-mono text-sea-ink">
 								<TagIcon className="h-3 w-3 text-palm" />
-								{project.tags.length} project tag
-								{project.tags.length === 1 ? "" : "s"}
+								{tags.length} available tag
+								{tags.length === 1 ? "" : "s"}
 							</span>
 						</div>
-						{project.tags.length > 0 && (
+						{tags.length > 0 && (
 							<div className="flex flex-wrap gap-1.5 pt-1">
-								{project.tags.map((tag) => (
+								{tags.map((tag) => (
 									<TagChip
 										key={tag.id}
 										tag={tag.name}
@@ -171,10 +171,6 @@ function ProjectDashboardComponent(): JSX.Element {
 							<StickyNote className="h-4 w-4" />
 							<span>Open Notes</span>
 						</DashboardLink>
-						<DashboardLink to="/projects/$projectId/tags" projectId={projectId}>
-							<TagIcon className="h-4 w-4" />
-							<span>Open Tags</span>
-						</DashboardLink>
 						<DashboardLink to="/projects/$projectId/map" projectId={projectId}>
 							<MapPin className="h-4 w-4" />
 							<span>Open Map</span>
@@ -186,6 +182,13 @@ function ProjectDashboardComponent(): JSX.Element {
 							<NotebookPen className="h-4 w-4" />
 							<span>Open Canvas</span>
 						</DashboardLink>
+						<Link
+							to="/tags"
+							className="inline-flex items-center gap-2 rounded-md border border-line bg-surface-strong/80 px-3 py-2 text-xs font-bold uppercase tracking-wider text-sea-ink no-underline transition-colors hover:border-palm/40 hover:text-palm"
+						>
+							<TagIcon className="h-4 w-4" />
+							<span>Manage Tags</span>
+						</Link>
 					</div>
 				</div>
 
@@ -434,7 +437,6 @@ function DashboardLink({
 	projectId: string;
 	to:
 		| "/projects/$projectId/notes"
-		| "/projects/$projectId/tags"
 		| "/projects/$projectId/map"
 		| "/projects/$projectId/canvas";
 }): JSX.Element {

@@ -29,7 +29,6 @@ import {
 	NativeSelect,
 	NativeSelectOption,
 } from "#/components/ui/native-select.tsx";
-import { TagChip } from "#/components/ui/tag-chip.tsx";
 import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
 import { ManageProjectGroupsModal } from "#/features/project-groups/components/ManageProjectGroupsModal.tsx";
 import { useAllProjectGroupsQuery } from "#/features/project-groups/hooks/useAllProjectGroupsQuery.ts";
@@ -233,18 +232,6 @@ function ProjectsOverview(): JSX.Element {
 											</span>
 										)}
 									</div>
-									{project.tags.length > 0 && (
-										<div className="flex flex-wrap gap-1.5">
-											{project.tags.map((tag) => (
-												<TagChip
-													key={tag.id}
-													tag={tag.name}
-													color={tag.color}
-													size="xs"
-												/>
-											))}
-										</div>
-									)}
 								</CardContent>
 								<CardFooter className="flex items-center justify-between gap-2">
 									<Link

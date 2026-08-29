@@ -19,7 +19,7 @@ function CanvasRouteComponent(): JSX.Element {
 	const { data: project, isLoading: isProjectLoading } =
 		useProjectQuery(projectId);
 	const { data: notes = [] } = useAllNotesQuery(projectId);
-	const { data: tags = [] } = useAllTagsQuery(projectId);
+	const { data: tags = [] } = useAllTagsQuery();
 
 	const [selectedNoteId, setSelectedNoteId] = React.useState<number | null>(
 		null,

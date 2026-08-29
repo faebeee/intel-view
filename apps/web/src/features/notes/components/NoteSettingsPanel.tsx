@@ -43,7 +43,7 @@ type NoteSettingsPanelProps = {
  * Right-column panel exposing metadata/settings for the currently open
  * note: which notes it's linked under/over (parent/child pickers, excluding
  * self and any relation that would create a cycle), its tags (multi-select
- * sourced from the project's tag registry, with free-text entries allowed
+ * sourced from the global tag registry, with free-text entries allowed
  * for tags not yet in the registry), timestamps, and delete.
  */
 export function NoteSettingsPanel({

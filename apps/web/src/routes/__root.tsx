@@ -10,6 +10,7 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import assert from "assert";
 import { ThemeProvider } from "#/components/theme-provider";
 import { TooltipProvider } from "#/components/ui/tooltip";
+import { ApiHealthGate } from "#/features/common/components/ApiHealthGate.tsx";
 import { DEFAULT_COLOR_THEME } from "#/lib/theme";
 import { getThemeCookies } from "#/lib/theme-cookies";
 import { getLocale } from "#/paraglide/runtime";
@@ -85,7 +86,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			<body>
 				<ThemeProvider initialMode={config.mode}>
 					<TooltipProvider>
-						<Layout>{children}</Layout>
+						<ApiHealthGate>
+							<Layout>{children}</Layout>
+						</ApiHealthGate>
 					</TooltipProvider>
 				</ThemeProvider>
 				<TanStackDevtools

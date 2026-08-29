@@ -1,12 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  ArrayUnique,
-  IsArray,
-  IsIn,
-  IsInt,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString } from 'class-validator';
 import {
   PROJECT_COLOR_THEMES,
   PROJECT_MAP_THEMES,
@@ -55,21 +48,9 @@ export class UpdateProjectDto {
   @IsOptional()
   @ApiProperty({
     description:
-      "The accent color palette applied app-wide while this project is open.",
+      'The accent color palette applied app-wide while this project is open.',
     enum: PROJECT_COLOR_THEMES,
     required: false,
   })
   color?: ProjectColorTheme;
-
-  @IsArray()
-  @IsString({ each: true })
-  @ArrayUnique()
-  @IsOptional()
-  @ApiProperty({
-    description:
-      'Project tags to replace the current tag set with. Pass an empty array to clear all tags.',
-    type: [String],
-    required: false,
-  })
-  tags?: string[];
 }

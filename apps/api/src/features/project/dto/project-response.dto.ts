@@ -20,17 +20,6 @@ export class ProjectGroupSummaryDto {
   color: string;
 }
 
-export class ProjectTagSummaryDto {
-  @ApiProperty()
-  id: number;
-
-  @ApiProperty()
-  name: string;
-
-  @ApiProperty()
-  color: string;
-}
-
 export class ProjectResponseDto {
   @ApiProperty()
   id: number;
@@ -51,9 +40,6 @@ export class ProjectResponseDto {
   })
   group: ProjectGroupSummaryDto | null;
 
-  @ApiProperty({ type: [ProjectTagSummaryDto] })
-  tags: ProjectTagSummaryDto[];
-
   @ApiProperty({
     description:
       "The selected base map tile style for this project's map view.",
@@ -63,7 +49,7 @@ export class ProjectResponseDto {
 
   @ApiProperty({
     description:
-      "The accent color palette applied app-wide while this project is open.",
+      'The accent color palette applied app-wide while this project is open.',
     enum: PROJECT_COLOR_THEMES,
   })
   color: ProjectColorTheme;
@@ -88,13 +74,6 @@ export function toProjectResponseDto(project: Project): ProjectResponseDto {
           color: project.group.color,
         }
       : null,
-    tags: (project.tags ?? [])
-      .filter((tag) => tag.deletedAt == null)
-      .map((tag) => ({
-        id: tag.id,
-        name: tag.name,
-        color: tag.color,
-      })),
     mapTheme: project.mapTheme,
     color: project.color,
     createdAt: project.createdAt,

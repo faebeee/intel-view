@@ -13,7 +13,6 @@ import { useTagColorMap } from "#/features/tags/hooks/useTagColorMap.ts";
 import { cn } from "#/lib/utils.ts";
 
 export type NotesMapSidebarProps = {
-	projectId: number;
 	notes: NoteResponseDto[];
 	locations: NoteLocationResponseDto[];
 	/** Currently selected note id, whose locations (if any) are exclusively shown on the map. `null` shows every note's locations. */
@@ -34,7 +33,6 @@ export type NotesMapSidebarProps = {
  * `locations` prop to `AllLocationsMap`).
  */
 export function NotesMapSidebar({
-	projectId,
 	notes,
 	locations,
 	selectedNoteId,
@@ -42,7 +40,7 @@ export function NotesMapSidebar({
 	className,
 }: NotesMapSidebarProps) {
 	const [search, setSearch] = React.useState("");
-	const { data: tags = [] } = useAllTagsQuery(projectId);
+	const { data: tags = [] } = useAllTagsQuery();
 	const tagColorMap = useTagColorMap(tags);
 
 	const locationCountByNoteId = React.useMemo(() => {

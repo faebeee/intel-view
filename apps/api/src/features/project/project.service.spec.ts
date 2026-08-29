@@ -124,67 +124,38 @@ describe('ProjectService', () => {
         id: 1,
         name: 'Op Blue Horizon',
         mapTheme: 'street',
-        tags: [],
       };
       mockProjectRepository.findOne.mockResolvedValue(existingProject);
       mockProjectRepository.save.mockImplementation(
         (project: unknown) => project,
       );
-      const manager = {
-        update: jest.fn(),
-        create: jest.fn((entity: unknown, payload: unknown) => payload),
-        save: jest.fn(),
-      };
-      mockDataSource.transaction.mockImplementation(
-        async (cb: (manager: unknown) => Promise<void>) => cb(manager),
-      );
 
-      await service.update(1, { tags: ['alpha', 'beta', 'alpha'] });
+      const result = await service.update(1, { name: 'Renamed' });
 
-      expect(manager.update).toHaveBeenCalledTimes(1);
-      expect(manager.save).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.arrayContaining([
-          expect.objectContaining({ name: 'alpha', color: '#00f2ff' }),
-          expect.objectContaining({ name: 'beta', color: '#00f2ff' }),
-        ]),
-      );
+      expect(result).toMatchObject({ name: 'Renamed' });
     });
   });
 
   describe('create', () => {
-    it('persists normalized tags with the new project', async () => {
-      const manager = {
-        create: jest.fn((entity: unknown, payload: unknown) => payload),
-        save: jest.fn(async (target: unknown, entity: unknown) => {
-          if (target === Project) {
-            return { id: 1, name: 'New Project' };
-          }
+    it('persists a new project', async () => {
+      const created = { name: 'New Project' };
+      const saved = { id: 1, name: 'New Project' };
+      mockProjectRepository.create.mockReturnValue(created);
+      mockProjectRepository.save.mockResolvedValue(saved);
+      mockProjectRepository.findOne.mockResolvedValueOnce(saved);
 
-          return entity;
-        }),
-      };
-      mockDataSource.transaction.mockImplementation(
-        async (cb: (manager: unknown) => Promise<unknown>) => cb(manager),
-      );
-      mockProjectRepository.findOne.mockResolvedValueOnce({
-        id: 1,
+      const result = await service.create({ name: 'New Project' });
+
+      expect(mockProjectRepository.create).toHaveBeenCalledWith({
         name: 'New Project',
-        tags: [],
       });
-
-      const result = await service.create({
-        name: 'New Project',
-        tags: ['alpha', ' beta ', 'alpha'],
-      });
-
+      expect(mockProjectRepository.save).toHaveBeenCalledWith(created);
       expect(result).toBeDefined();
-      expect(manager.save).toHaveBeenCalled();
     });
   });
 
   describe('remove', () => {
-    it('cascades soft-delete to notes and tags in a transaction', async () => {
+    it('cascades soft-delete to notes in a transaction', async () => {
       mockProjectRepository.findOne.mockResolvedValue({ id: 1 });
       const manager = { update: jest.fn() };
       mockDataSource.transaction.mockImplementation(
@@ -195,7 +166,7 @@ describe('ProjectService', () => {
 
       expect(result).toBe(true);
       expect(mockDataSource.transaction).toHaveBeenCalled();
-      expect(manager.update).toHaveBeenCalledTimes(3);
+      expect(manager.update).toHaveBeenCalledTimes(2);
     });
 
     it('returns false when the project does not exist', async () => {

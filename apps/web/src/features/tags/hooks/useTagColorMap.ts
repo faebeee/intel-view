@@ -3,7 +3,7 @@ import * as React from "react";
 
 /**
  * Builds a lookup of lowercased tag name -> display color from the
- * project's tag registry. Shared by every view that renders tag chips next
+ * global tag registry. Shared by every view that renders tag chips next
  * to a note (list, tree, detail panel, view modal), so a note's `tags`
  * (plain strings) can be resolved to their registered color.
  */

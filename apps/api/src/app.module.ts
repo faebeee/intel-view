@@ -5,6 +5,7 @@ import { TagModule } from './features/tag/tag.module';
 import { ProjectModule } from './features/project/project.module';
 import { ProjectGroupModule } from './features/project-group/project-group.module';
 import { DatabaseModule } from './features/database/database.module';
+import { HealthModule } from './features/health/health.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { DatabaseModule } from './features/database/database.module';
       autoLoadEntities: true,
     }),
     DatabaseModule,
+    HealthModule,
     ProjectGroupModule,
     ProjectModule,
     NoteModule,

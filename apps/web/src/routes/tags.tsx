@@ -20,20 +20,18 @@ import { TagModal } from "#/features/tags/components/TagModal.tsx";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 import { toastApiError } from "#/lib/api-error.ts";
 
-export const Route = createFileRoute("/projects/$projectId/tags")({
+export const Route = createFileRoute("/tags")({
 	component: TagsRouteComponent,
 });
 
 function TagsRouteComponent(): JSX.Element {
-	const { projectId: projectIdParam } = Route.useParams();
-	const projectId = parseInt(projectIdParam, 10);
 	const queryClient = useQueryClient();
 	const {
 		data: tags = [],
 		isLoading,
 		isRefetching,
 		refetch,
-	} = useAllTagsQuery(projectId);
+	} = useAllTagsQuery();
 
 	const [editingTag, setEditingTag] = React.useState<Tag | null>(null);
 	const [isEditOpen, setIsEditOpen] = React.useState(false);
@@ -48,13 +46,13 @@ function TagsRouteComponent(): JSX.Element {
 	const removeTagMutation = useMutation({
 		mutationFn: async (id: number) => {
 			const res = await tagControllerRemove({
-				path: { projectId, id },
+				path: { id },
 			});
 			return res.data;
 		},
 		onSuccess: () => {
 			toast.success("Tag deleted successfully");
-			queryClient.invalidateQueries({ queryKey: ["tags", "all", projectId] });
+			queryClient.invalidateQueries({ queryKey: ["tags", "all"] });
 		},
 		onError: toastApiError("delete tag"),
 	});
@@ -138,7 +136,7 @@ function TagsRouteComponent(): JSX.Element {
 							onClick={() => removeTagMutation.mutate(tag.id)}
 							disabled={removeTagMutation.isPending}
 							title="Delete Tag"
-							description={`Are you sure you want to permanently delete tag "${tag.name}"?`}
+							description={`Are you sure you want to permanently delete tag "${tag.name}"? It will be removed from every project.`}
 							confirmText="Delete"
 						>
 							<Trash2 className="h-3 w-3" />
@@ -165,7 +163,7 @@ function TagsRouteComponent(): JSX.Element {
 						</h1>
 					</div>
 					<p className="text-xs text-muted-foreground">
-						Manage categorical tags to organize notes.
+						Manage the global set of tags shared across every project.
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
@@ -215,19 +213,10 @@ function TagsRouteComponent(): JSX.Element {
 			)}
 
 			{/* Create Tag Modal */}
-			<TagModal
-				projectId={projectId}
-				open={isCreateOpen}
-				onOpenChange={setIsCreateOpen}
-			/>
+			<TagModal open={isCreateOpen} onOpenChange={setIsCreateOpen} />
 
 			{/* Edit Tag Modal */}
-			<TagModal
-				projectId={projectId}
-				tag={editingTag}
-				open={isEditOpen}
-				onOpenChange={setIsEditOpen}
-			/>
+			<TagModal tag={editingTag} open={isEditOpen} onOpenChange={setIsEditOpen} />
 		</div>
 	);
 }

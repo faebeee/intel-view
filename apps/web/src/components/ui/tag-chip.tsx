@@ -9,7 +9,7 @@ type TagChipProps = {
 
 /**
  * Small colored chip rendering a tag name using its resolved display color.
- * Colors come from the project's tag registry (`useTagColorMap`) and are
+ * Colors come from the global tag registry (`useTagColorMap`) and are
  * applied dynamically via inline `style`, so this intentionally does not
  * build on the variant-based shadcn `Badge` (which only supports a fixed
  * set of static color variants).

@@ -2,7 +2,6 @@ import { BaseEntity } from '../../database/entities/base.entity';
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Note } from '../../note/entities/note.entity';
-import { Tag } from '../../tag/entities/tag.entity';
 import { ProjectGroup } from '../../project-group/entities/project-group.entity';
 
 /**
@@ -29,12 +28,7 @@ export const DEFAULT_PROJECT_MAP_THEME: ProjectMapTheme = 'street';
  * each project can have its own visual identity.
  */
 export type ProjectColorTheme =
-  | 'ocean'
-  | 'emerald'
-  | 'violet'
-  | 'monochrome'
-  | 'crimson'
-  | 'amber';
+  'ocean' | 'emerald' | 'violet' | 'monochrome' | 'crimson' | 'amber';
 export const PROJECT_COLOR_THEMES: ProjectColorTheme[] = [
   'ocean',
   'emerald',
@@ -93,7 +87,7 @@ export class Project extends BaseEntity {
   })
   @ApiProperty({
     description:
-      "The accent color palette applied app-wide while this project is open.",
+      'The accent color palette applied app-wide while this project is open.',
     enum: PROJECT_COLOR_THEMES,
     default: DEFAULT_PROJECT_COLOR_THEME,
   })
@@ -101,7 +95,4 @@ export class Project extends BaseEntity {
 
   @OneToMany(() => Note, (note) => note.project)
   notes: Note[];
-
-  @OneToMany(() => Tag, (tag) => tag.project)
-  tags: Tag[];
 }

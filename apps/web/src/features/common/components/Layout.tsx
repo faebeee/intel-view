@@ -43,13 +43,21 @@ export function Layout({ children }: LayoutProps): JSX.Element {
 			{/* Small Header */}
 			<header className="sticky top-0 z-40 w-full h-16 border-b border-line bg-header-bg backdrop-blur-md shrink-0">
 				<div className="page-wrap h-full grid grid-cols-[auto_1fr_auto] items-center gap-4">
-					<div className="min-w-0">
+					<div className="min-w-0 flex items-center gap-6">
 						<Link
 							to="/"
 							className="nav-link text-sm font-bold flex items-center gap-1.5"
 						>
 							<FolderKanban className="w-4 h-4" />
 							<span>{project?.name || "Projects"}</span>
+						</Link>
+						<Link
+							to="/tags"
+							className="nav-link text-sm font-bold flex items-center gap-1.5"
+							activeProps={{ className: "is-active" }}
+						>
+							<TagIcon className="w-4 h-4" />
+							<span>Tags</span>
 						</Link>
 					</div>
 
@@ -81,15 +89,6 @@ export function Layout({ children }: LayoutProps): JSX.Element {
 							>
 								<Waypoints className="w-4 h-4" />
 								<span>Canvas</span>
-							</Link>
-							<Link
-								to="/projects/$projectId/tags"
-								params={{ projectId: projectIdParam }}
-								className="nav-link text-sm font-bold flex items-center gap-1.5"
-								activeProps={{ className: "is-active" }}
-							>
-								<TagIcon className="w-4 h-4" />
-								<span>Tags</span>
 							</Link>
 						</nav>
 					) : (
