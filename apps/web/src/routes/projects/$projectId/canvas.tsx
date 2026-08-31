@@ -2,11 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { JSX } from "react";
 import * as React from "react";
 import { LoadingState, NotFoundState } from "#/components/ui/loading-state.tsx";
-import { CanvasNoteSidebar } from "#/features/canvas/components/CanvasNoteSidebar.tsx";
 import { CanvasView } from "#/features/canvas/components/CanvasView.tsx";
+import { NoteDetailsPanel } from "#/features/notes/components/NoteDetailsPanel.tsx";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 import { useProjectQuery } from "#/features/projects/hooks/useProjectQuery.ts";
-import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 
 export const Route = createFileRoute("/projects/$projectId/canvas")({
 	component: CanvasRouteComponent,
@@ -19,7 +18,6 @@ function CanvasRouteComponent(): JSX.Element {
 	const { data: project, isLoading: isProjectLoading } =
 		useProjectQuery(projectId);
 	const { data: notes = [] } = useAllNotesQuery(projectId);
-	const { data: tags = [] } = useAllTagsQuery();
 
 	const [selectedNoteId, setSelectedNoteId] = React.useState<number | null>(
 		null,
@@ -55,14 +53,14 @@ function CanvasRouteComponent(): JSX.Element {
 			</div>
 
 			{selectedNote && (
-				<CanvasNoteSidebar
+				<NoteDetailsPanel
 					projectId={projectId}
+					projectIdParam={projectIdParam}
 					note={selectedNote}
 					notes={notes}
-					tags={tags}
 					onClose={() => setSelectedNoteId(null)}
 					onDeleted={() => setSelectedNoteId(null)}
-					className="w-96 shrink-0 border-l border-line"
+					className="w-80 shrink-0 border-l border-line"
 				/>
 			)}
 		</div>

@@ -298,6 +298,7 @@ describe('NoteController', () => {
           noteId: 1,
           noteLabel: 'My Trip',
           tags: ['travel'],
+          color: null,
           lat: 1.5,
           lng: 2.5,
           label: 'Home',
@@ -308,6 +309,7 @@ describe('NoteController', () => {
           noteId: 1,
           noteLabel: 'My Trip',
           tags: ['travel'],
+          color: null,
           lat: -3,
           lng: 4,
           label: null,
@@ -324,6 +326,7 @@ describe('NoteController', () => {
       expect(result[0].label).toBe('Home');
       expect(result[0].noteLabel).toBe('My Trip');
       expect(result[0].tags).toEqual(['travel']);
+      expect(result[0].color).toBeNull();
       expect(result[1].label).toBeNull();
     });
 
@@ -431,6 +434,7 @@ describe('NoteController', () => {
           noteId: 1,
           noteLabel: 'Home',
           tags: ['family'],
+          color: '#ff0000',
           lat: 1.5,
           lng: 2.5,
           label: null,
@@ -441,6 +445,7 @@ describe('NoteController', () => {
           noteId: 2,
           noteLabel: 'Office',
           tags: [],
+          color: null,
           lat: -3,
           lng: 4,
           label: 'Work',
@@ -456,6 +461,7 @@ describe('NoteController', () => {
       expect(result).toHaveLength(2);
       expect(result[0].noteLabel).toBe('Home');
       expect(result[0].tags).toEqual(['family']);
+      expect(result[0].color).toBe('#ff0000');
       expect(result[1].noteLabel).toBe('Office');
       expect(result[1].label).toBe('Work');
     });

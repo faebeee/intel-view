@@ -44,7 +44,7 @@ export const notePaginateConfig: PaginateConfig<Note> = {
  * dedicated `'link_added'`/`'link_removed'` history entries (see
  * `addRelation`/`removeRelation`), since they're no longer a plain column.
  */
-const HISTORY_TRACKED_FIELDS = ['title', 'content', 'tags'] as const;
+const HISTORY_TRACKED_FIELDS = ['title', 'content', 'tags', 'color'] as const;
 
 /**
  * Structurally compares two field values for equality, using JSON
@@ -83,6 +83,7 @@ export type NoteLocationWithLabel = {
   createdAt: Date;
   noteLabel: string;
   tags: string[];
+  color: string | null;
 };
 
 /**
@@ -722,7 +723,7 @@ export class NoteService {
    */
   private buildAddressPin(
     note: AddressPinSource,
-  ): Omit<NoteLocationWithLabel, 'noteLabel' | 'tags'> | null {
+  ): Omit<NoteLocationWithLabel, 'noteLabel' | 'tags' | 'color'> | null {
     if (note.type !== 'address') {
       return null;
     }
@@ -762,15 +763,17 @@ export class NoteService {
     });
     const noteLabel = getNoteLabel(note);
     const tags = note.tags ?? [];
+    const color = note.color ?? null;
     const result: NoteLocationWithLabel[] = locations.map((location) => ({
       ...location,
       noteLabel,
       tags,
+      color,
     }));
 
     const addressPin = this.buildAddressPin(note);
     if (addressPin) {
-      result.push({ ...addressPin, noteLabel, tags });
+      result.push({ ...addressPin, noteLabel, tags, color });
     }
 
     return result;
@@ -793,6 +796,7 @@ export class NoteService {
         title: true,
         content: true,
         tags: true,
+        color: true,
         type: true,
         latitude: true,
         longitude: true,
@@ -817,11 +821,15 @@ export class NoteService {
     const tagsByNoteId = new Map(
       notes.map((note) => [note.id, note.tags ?? []]),
     );
+    const colorByNoteId = new Map(
+      notes.map((note) => [note.id, note.color ?? null]),
+    );
 
     const tokenPins = locations.map((location) => ({
       ...location,
       noteLabel: labelByNoteId.get(location.noteId) ?? 'Untitled note',
       tags: tagsByNoteId.get(location.noteId) ?? [],
+      color: colorByNoteId.get(location.noteId) ?? null,
     }));
 
     const addressPins = notes
@@ -834,6 +842,7 @@ export class NoteService {
           ...pin,
           noteLabel: labelByNoteId.get(note.id) ?? 'Untitled note',
           tags: tagsByNoteId.get(note.id) ?? [],
+          color: colorByNoteId.get(note.id) ?? null,
         };
       })
       .filter((pin): pin is NoteLocationWithLabel => pin !== null);

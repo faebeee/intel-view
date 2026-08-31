@@ -102,6 +102,7 @@ export class NoteController {
       toNoteLocationResponseDto(location, {
         noteLabel: location.noteLabel,
         tags: location.tags,
+        color: location.color,
       }),
     );
   }
@@ -425,6 +426,7 @@ export class NoteController {
       toNoteLocationResponseDto(location, {
         noteLabel: location.noteLabel,
         tags: location.tags,
+        color: location.color,
       }),
     );
   }

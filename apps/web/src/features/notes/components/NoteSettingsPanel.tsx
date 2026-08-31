@@ -14,6 +14,7 @@ import {
 	useComboboxAnchor,
 } from "#/components/ui/combobox.tsx";
 import { FormField } from "#/components/ui/form-field.tsx";
+import { ColorPickerField } from "#/features/common/components/ColorPickerField.tsx";
 import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
 import { NoteHistorySection } from "#/features/notes/components/NoteHistorySection.tsx";
 import { useNoteHistoryQuery } from "#/features/notes/hooks/useNoteHistoryQuery.ts";
@@ -34,6 +35,7 @@ type NoteSettingsPanelProps = {
 	onAddChild: (childId: number) => void;
 	onRemoveChild: (childId: number) => void;
 	onTagsChange: (tags: string[]) => void;
+	onColorChange: (color: string | null) => void;
 	onDelete: () => void;
 	isMutating?: boolean;
 	className?: string;
@@ -56,6 +58,7 @@ export function NoteSettingsPanel({
 	onAddChild,
 	onRemoveChild,
 	onTagsChange,
+	onColorChange,
 	onDelete,
 	isMutating = false,
 	className,
@@ -140,6 +143,11 @@ export function NoteSettingsPanel({
 	const { data: historyEntries = [], isLoading: isHistoryLoading } =
 		useNoteHistoryQuery(projectId, note.id);
 
+	const firstTag = noteTags[0];
+	const firstTagColor = firstTag
+		? tagColorMap.get(firstTag.toLowerCase())
+		: undefined;
+
 	return (
 		<div className={className}>
 			<div className="flex flex-col gap-5 p-3">
@@ -182,9 +190,7 @@ export function NoteSettingsPanel({
 										))}
 										<ComboboxChipsInput
 											id="note-parents"
-											placeholder={
-												value.length ? "" : "No parents (root note)"
-											}
+											placeholder={value.length ? "" : "No parents (root note)"}
 											disabled={isMutating}
 										/>
 									</>
@@ -321,6 +327,25 @@ export function NoteSettingsPanel({
 							</ComboboxList>
 						</ComboboxContent>
 					</Combobox>
+				</FormField>
+
+				<FormField label="Note Color" htmlFor="note-color" className="px-1">
+					<ColorPickerField
+						id="note-color"
+						value={note.color ?? null}
+						onChange={(color) => onColorChange(color)}
+						onClear={note.color ? () => onColorChange(null) : undefined}
+						previewFallbackColor={firstTagColor}
+						placeholder={firstTagColor ?? "#00f2ff"}
+						disabled={isMutating}
+					/>
+					<span className="text-[10px] text-muted-foreground pt-1">
+						{note.color
+							? "Custom color set."
+							: firstTagColor
+								? `Using color from tag "${firstTag}".`
+								: "No custom color set."}
+					</span>
 				</FormField>
 
 				<div className="flex flex-col gap-1 px-1 pt-2 border-t border-line/50">

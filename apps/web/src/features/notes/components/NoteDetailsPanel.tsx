@@ -1,11 +1,13 @@
 import type { NoteResponseDto as Note } from "@repo/sdk";
 import { Link } from "@tanstack/react-router";
-import { ExternalLink, StickyNote } from "lucide-react";
+import { ExternalLink, StickyNote, Trash2, X } from "lucide-react";
 import * as React from "react";
 import { Button } from "#/components/ui/button.tsx";
 import { Markdown } from "#/components/ui/markdown.tsx";
 import { TagChipList } from "#/components/ui/tag-chip.tsx";
+import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
 import { NoteHistorySection } from "#/features/notes/components/NoteHistorySection.tsx";
+import { useDeleteNote } from "#/features/notes/hooks/useDeleteNote.ts";
 import { useNoteHistoryQuery } from "#/features/notes/hooks/useNoteHistoryQuery.ts";
 import { useNoteLogEntriesQuery } from "#/features/notes/hooks/useNoteLogEntriesQuery.ts";
 import { getNoteLabel } from "#/features/notes/hooks/useNoteTree.ts";
@@ -19,21 +21,27 @@ export type NoteDetailsPanelProps = {
 	projectIdParam: string;
 	note: Note;
 	notes: Note[];
+	/** When provided, renders a close (X) button in the header — used by views (e.g. canvas) with no other way to deselect the note. */
+	onClose?: () => void;
+	/** Called after the note is successfully deleted, so the caller can clear its selection. */
+	onDeleted?: () => void;
 	className?: string;
 };
 
 /**
- * Right-hand, read-only panel shown on the map view whenever a note is
- * focused (selected in `NotesMapSidebar`). Mirrors the fields of
+ * Read-only note details panel, shown whenever a note is focused/selected
+ * (e.g. in the map or canvas views). Mirrors the fields of
  * `NoteSettingsPanel` (parent, tags, rendered content, timestamps, history)
- * but purely for display — editing happens on the note's own detail/editor
- * page, linked to via the "Open note" button.
+ * for display, plus a delete action — editing otherwise happens on the
+ * note's own detail/editor page, linked to via the "Open note" button.
  */
 export function NoteDetailsPanel({
 	projectId,
 	projectIdParam,
 	note,
 	notes,
+	onClose,
+	onDeleted,
 	className,
 }: NoteDetailsPanelProps) {
 	const parents = React.useMemo(
@@ -52,15 +60,32 @@ export function NoteDetailsPanel({
 		note.type === "log" ? note.id : undefined,
 	);
 	const latestLogEntry = logEntries[0] ?? null;
+	const deleteNoteMutation = useDeleteNote(projectId);
+
+	const handleDelete = React.useCallback(() => {
+		deleteNoteMutation.mutate(note.id, { onSuccess: onDeleted });
+	}, [deleteNoteMutation, note.id, onDeleted]);
 
 	return (
 		<div className={cn("flex flex-col min-h-0", className)}>
 			<div className="flex-1 min-h-0 overflow-y-auto">
 				<div className="flex flex-col gap-5 p-3">
 					<div className="flex flex-col gap-1 px-1">
-						<span className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft">
-							Note Details
-						</span>
+						<div className="flex items-center justify-between gap-2">
+							<span className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft">
+								Note Details
+							</span>
+							{onClose && (
+								<Button
+									variant="ghost"
+									size="icon-xs"
+									onClick={onClose}
+									title="Close"
+								>
+									<X className="h-3.5 w-3.5" />
+								</Button>
+							)}
+						</div>
 						<div className="flex items-center gap-1.5">
 							<StickyNote className="h-4 w-4 text-palm shrink-0" />
 							<h2 className="text-sm font-bold text-sea-ink truncate">
@@ -143,17 +168,30 @@ export function NoteDetailsPanel({
 				</div>
 			</div>
 
-			<div className="p-3 border-t border-line shrink-0">
-				<Button asChild size="sm" className="w-full">
+			<div className="flex items-center gap-2 p-3 border-t border-line shrink-0">
+				<Button asChild size="sm" className="flex-1">
 					<Link
 						to="/projects/$projectId/notes"
 						params={{ projectId: projectIdParam }}
 						search={{ noteId: note.id }}
+						className="text-primary-foreground!"
 					>
 						<ExternalLink className="h-3.5 w-3.5" />
 						<span>Open note</span>
 					</Link>
 				</Button>
+				<ConfirmationButton
+					variant="outline"
+					size="sm"
+					className="text-red-400 hover:text-red-300 hover:bg-red-500/10 border-red-500/30"
+					title="Delete Note"
+					description="Are you sure you want to permanently delete this note? Any notes linked to it as children will remain (losing this parent connection)."
+					confirmText="Delete"
+					disabled={deleteNoteMutation.isPending}
+					onClick={handleDelete}
+				>
+					<Trash2 className="h-3.5 w-3.5" />
+				</ConfirmationButton>
 			</div>
 		</div>
 	);

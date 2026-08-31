@@ -61,6 +61,16 @@ export class Note extends BaseEntity {
   })
   tags: string[];
 
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  @ApiProperty({
+    description:
+      "Optional custom hex color (e.g. '#00f2ff') for this note, used to colorize it on the canvas, its map pin(s), and its row in the notes tree. When unset, falls back to the color of its first tag, if any.",
+    required: false,
+    nullable: true,
+    type: 'string',
+  })
+  color: string | null;
+
   /**
    * IDs of this note's parent notes, if any. Not a database column — notes
    * form a directed acyclic graph via `NoteRelation` join rows, and this

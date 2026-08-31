@@ -48,6 +48,17 @@ export class CreateNoteDto {
   })
   tags?: string[];
 
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      "Optional custom hex color (e.g. '#00f2ff') for this note. When unset, falls back to the color of its first tag, if any.",
+    required: false,
+    nullable: true,
+    type: 'string',
+  })
+  color?: string | null;
+
   @IsInt({ each: true })
   @IsArray()
   @IsOptional()

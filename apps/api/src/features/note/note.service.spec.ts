@@ -287,6 +287,49 @@ describe('NoteService', () => {
       expect(mockNoteHistoryRepository.save).not.toHaveBeenCalled();
     });
 
+    it("updates a note's custom color and records it in history", async () => {
+      const projectId = 1;
+      const existingNote = {
+        id: 1,
+        projectId,
+        color: null,
+      } as unknown as Note;
+      const updateNoteDto = { color: '#00f2ff' };
+
+      mockNoteRepository.findOne.mockResolvedValue(existingNote);
+      mockNoteRepository.save.mockImplementation((note: Note) =>
+        Promise.resolve(note),
+      );
+
+      const result = await service.update(projectId, 1, updateNoteDto);
+
+      expect(result?.color).toBe('#00f2ff');
+      expect(mockNoteHistoryRepository.create).toHaveBeenCalledWith({
+        noteId: 1,
+        changeType: 'updated',
+        changes: [{ field: 'color', previousValue: null, newValue: '#00f2ff' }],
+      });
+    });
+
+    it("clears a note's custom color by setting it to null", async () => {
+      const projectId = 1;
+      const existingNote = {
+        id: 1,
+        projectId,
+        color: '#00f2ff',
+      } as unknown as Note;
+      const updateNoteDto = { color: null };
+
+      mockNoteRepository.findOne.mockResolvedValue(existingNote);
+      mockNoteRepository.save.mockImplementation((note: Note) =>
+        Promise.resolve(note),
+      );
+
+      const result = await service.update(projectId, 1, updateNoteDto);
+
+      expect(result?.color).toBeNull();
+    });
+
     it('does not wipe unspecified fields to null on a partial update', async () => {
       // Regression test: `UpdateNoteDto` instances produced by the
       // ValidationPipe have every declared field present as an own
@@ -611,8 +654,18 @@ describe('NoteService', () => {
         order: { id: 'ASC' },
       });
       expect(result).toEqual([
-        { ...locations[0], noteLabel: 'My Trip', tags: ['travel', 'summer'] },
-        { ...locations[1], noteLabel: 'My Trip', tags: ['travel', 'summer'] },
+        {
+          ...locations[0],
+          noteLabel: 'My Trip',
+          tags: ['travel', 'summer'],
+          color: null,
+        },
+        {
+          ...locations[1],
+          noteLabel: 'My Trip',
+          tags: ['travel', 'summer'],
+          color: null,
+        },
       ]);
     });
 
@@ -676,6 +729,7 @@ describe('NoteService', () => {
           createdAt: note.createdAt,
           noteLabel: 'HQ',
           tags: ['work'],
+          color: null,
         },
       ]);
     });
@@ -734,6 +788,7 @@ describe('NoteService', () => {
           title: true,
           content: true,
           tags: true,
+          color: true,
           type: true,
           latitude: true,
           longitude: true,
@@ -747,11 +802,12 @@ describe('NoteService', () => {
         order: { id: 'ASC' },
       });
       expect(result).toEqual([
-        { ...locations[0], noteLabel: 'Home', tags: ['family'] },
+        { ...locations[0], noteLabel: 'Home', tags: ['family'], color: null },
         {
           ...locations[1],
           noteLabel: 'Some long note content here',
           tags: [],
+          color: null,
         },
       ]);
     });
@@ -795,7 +851,7 @@ describe('NoteService', () => {
       const result = await service.findAllLocations(projectId);
 
       expect(result).toEqual([
-        { ...locations[0], noteLabel: 'Home', tags: ['family'] },
+        { ...locations[0], noteLabel: 'Home', tags: ['family'], color: null },
         {
           id: -5,
           noteId: 5,
@@ -805,6 +861,7 @@ describe('NoteService', () => {
           createdAt: notes[1].createdAt,
           noteLabel: 'HQ',
           tags: ['work'],
+          color: null,
         },
       ]);
     });
@@ -926,7 +983,7 @@ describe('NoteService', () => {
       buffer: Buffer.from('pdf bytes'),
     };
 
-    it("stores an uploaded file and records it on the note", async () => {
+    it('stores an uploaded file and records it on the note', async () => {
       const projectId = 1;
       const note = {
         id: 3,
@@ -983,7 +1040,7 @@ describe('NoteService', () => {
         id: 3,
         projectId: 1,
         type: 'standard',
-      } as Note);
+      });
 
       await expect(service.uploadFile(1, 3, uploadedFile)).rejects.toThrow(
         BadRequestException,
@@ -1009,7 +1066,7 @@ describe('NoteService', () => {
         fileName: 'report.pdf',
         fileMimeType: 'application/pdf',
         fileSize: 1234,
-      } as unknown as Note);
+      });
       mockStorageService.get.mockResolvedValue(stream);
 
       const result = await service.downloadFile(1, 3);
@@ -1029,7 +1086,7 @@ describe('NoteService', () => {
         projectId: 1,
         type: 'file',
         fileKey: null,
-      } as unknown as Note);
+      });
 
       await expect(service.downloadFile(1, 3)).rejects.toThrow(
         NotFoundException,

@@ -103,10 +103,14 @@ export function AllLocationsMap({
 		[locations],
 	);
 
-	/** Each location's resolved tag color(s), keyed by location id, so both markers and note-connection lines can reuse them. */
+	/** Each location's resolved tag color(s), keyed by location id, so both markers and note-connection lines can reuse them. A note's own custom `color` (if set) wins outright as a single solid color; otherwise falls back to every tag's color (rendered as a gradient when there's more than one). */
 	const colorsByLocationId = React.useMemo(() => {
 		const map = new Map<number, string[]>();
 		for (const location of locations) {
+			if (location.color) {
+				map.set(location.id, [location.color]);
+				continue;
+			}
 			const colors =
 				location.tags.length > 0
 					? Array.from(

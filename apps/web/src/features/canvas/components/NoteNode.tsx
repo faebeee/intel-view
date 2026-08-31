@@ -8,7 +8,10 @@ import {
 	ContextMenuTrigger,
 } from "#/components/ui/context-menu.tsx";
 import { TagChipList } from "#/components/ui/tag-chip.tsx";
-import { getNoteLabel } from "#/features/notes/hooks/useNoteTree.ts";
+import {
+	getNoteLabel,
+	resolveNoteColor,
+} from "#/features/notes/hooks/useNoteTree.ts";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 import { useTagColorMap } from "#/features/tags/hooks/useTagColorMap.ts";
 import { cn } from "#/lib/utils.ts";
@@ -32,6 +35,7 @@ export function NoteNode({ data, selected }: NoteNodeProps) {
 	const tagColorMap = useTagColorMap(tags);
 	const label = getNoteLabel(note);
 	const snippet = (note.content || "").trim().replace(/\s+/g, " ");
+	const resolvedColor = resolveNoteColor(note, tagColorMap);
 
 	return (
 		<ContextMenu>
@@ -43,6 +47,11 @@ export function NoteNode({ data, selected }: NoteNodeProps) {
 							? "border-primary shadow-[0_0_12px_color-mix(in_oklab,var(--primary)_25%,transparent)]"
 							: "border-line/60 hover:border-primary/50",
 					)}
+					style={
+						resolvedColor
+							? { borderLeftColor: resolvedColor, borderLeftWidth: 3 }
+							: undefined
+					}
 				>
 					<Handle
 						type="target"

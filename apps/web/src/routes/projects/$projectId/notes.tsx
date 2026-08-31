@@ -1,9 +1,5 @@
 import type { NoteResponseDto as Note } from "@repo/sdk";
-import {
-	noteControllerCreate,
-	noteControllerRemove,
-	noteControllerUpdate,
-} from "@repo/sdk";
+import { noteControllerRemove, noteControllerUpdate } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Plus, RefreshCw, StickyNote } from "lucide-react";
@@ -13,14 +9,15 @@ import { toast } from "sonner";
 import { Button } from "#/components/ui/button.tsx";
 import { LoadingState, NotFoundState } from "#/components/ui/loading-state.tsx";
 import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal.tsx";
+import { NoteAddressEditorPane } from "#/features/notes/components/NoteAddressEditorPane.tsx";
 import type { NoteSaveStatus } from "#/features/notes/components/NoteEditorPane.tsx";
 import { NoteEditorPane } from "#/features/notes/components/NoteEditorPane.tsx";
-import { NoteAddressEditorPane } from "#/features/notes/components/NoteAddressEditorPane.tsx";
 import { NoteFileEditorPane } from "#/features/notes/components/NoteFileEditorPane.tsx";
 import { NoteLogEditorPane } from "#/features/notes/components/NoteLogEditorPane.tsx";
 import { NoteSettingsPanel } from "#/features/notes/components/NoteSettingsPanel.tsx";
 import { NoteTree } from "#/features/notes/components/NoteTree.tsx";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
+import { useCreateNote } from "#/features/notes/hooks/useCreateNote.ts";
 import {
 	useAddNoteChild,
 	useAddNoteParent,
@@ -106,35 +103,25 @@ function NotesRouteComponent(): JSX.Element {
 
 	// --- Mutations ---------------------------------------------------------
 
-	const createNoteMutation = useMutation({
-		mutationFn: async (args: { parentId: number | null; type: NoteType }) => {
-			const res = await noteControllerCreate({
-				path: { projectId },
-				body: {
-					title: "",
-					content: "",
-					parentIds: args.parentId !== null ? [args.parentId] : undefined,
-					type: args.type,
-				},
-			});
-			return res.data as Note;
-		},
-		onSuccess: (note) => {
-			invalidateNotes();
-			selectNote(note.id);
-			setIsCreateDialogOpen(false);
-		},
-		onError: toastApiError("create note"),
-	});
+	const createNoteMutation = useCreateNote(projectId);
 
 	const handleCreateNote = (type: NoteType) => {
-		createNoteMutation.mutate({ parentId: createDialogParentId, type });
+		createNoteMutation.mutate(
+			{ parentId: createDialogParentId, type },
+			{
+				onSuccess: (note) => {
+					invalidateNotes();
+					selectNote(note.id);
+					setIsCreateDialogOpen(false);
+				},
+			},
+		);
 	};
 
 	const updateNoteMutation = useMutation({
 		mutationFn: async (args: {
 			id: number;
-			patch: Partial<Pick<Note, "title" | "content" | "tags">>;
+			patch: Partial<Pick<Note, "title" | "content" | "tags" | "color">>;
 		}) => {
 			const res = await noteControllerUpdate({
 				path: { projectId, id: args.id },
@@ -285,6 +272,14 @@ function NotesRouteComponent(): JSX.Element {
 		);
 	};
 
+	const handleColorChange = (color: string | null) => {
+		if (!selectedNote) return;
+		updateNoteMutation.mutate(
+			{ id: selectedNote.id, patch: { color } },
+			{ onError: toastApiError("update note's color") },
+		);
+	};
+
 	if (isProjectLoading) {
 		return <LoadingState label="Loading project..." />;
 	}
@@ -341,6 +336,7 @@ function NotesRouteComponent(): JSX.Element {
 					<div className="w-64 shrink-0 border-r border-line">
 						<NoteTree
 							notes={notes}
+							tags={tags}
 							selectedNoteId={selectedNote?.id}
 							onSelect={selectNote}
 							onCreateChild={(parentId) => openCreateDialog(parentId)}
@@ -413,11 +409,12 @@ function NotesRouteComponent(): JSX.Element {
 								note={selectedNote}
 								notes={notes}
 								tags={tags}
-							onAddParent={handleAddParent}
-							onRemoveParent={handleRemoveParent}
-							onAddChild={handleAddChild}
-							onRemoveChild={handleRemoveChild}
-							onTagsChange={handleTagsChange}
+								onAddParent={handleAddParent}
+								onRemoveParent={handleRemoveParent}
+								onAddChild={handleAddChild}
+								onRemoveChild={handleRemoveChild}
+								onTagsChange={handleTagsChange}
+								onColorChange={handleColorChange}
 								onDelete={() => deleteNoteMutation.mutate(selectedNote.id)}
 								isMutating={
 									updateNoteMutation.isPending || deleteNoteMutation.isPending

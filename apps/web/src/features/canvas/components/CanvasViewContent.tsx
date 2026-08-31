@@ -14,16 +14,16 @@ import * as React from "react";
 import { useTheme } from "#/components/theme-provider.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal.tsx";
-import { extractNoteReferenceIds } from "#/lib/note-references.ts";
-import type { NoteType } from "#/types/note.ts";
-import { useCanvasNotesQuery } from "../hooks/useCanvasNotesQuery";
-import { useCreateInlineNote } from "../hooks/useCreateInlineNote";
-import { useDeleteNote } from "../hooks/useDeleteNote";
-import { useUpdateNote } from "../hooks/useUpdateNote";
+import { useDeleteNote } from "#/features/notes/hooks/useDeleteNote.ts";
 import {
 	useAddNoteParent,
 	useRemoveNoteParent,
 } from "#/features/notes/hooks/useNoteRelationMutations.ts";
+import { extractNoteReferenceIds } from "#/lib/note-references.ts";
+import type { NoteType } from "#/types/note.ts";
+import { useCanvasNotesQuery } from "../hooks/useCanvasNotesQuery";
+import { useCreateInlineNote } from "../hooks/useCreateInlineNote";
+import { useUpdateNote } from "../hooks/useUpdateNote";
 import {
 	CANVAS_GRID_CELL_HEIGHT,
 	CANVAS_GRID_CELL_WIDTH,

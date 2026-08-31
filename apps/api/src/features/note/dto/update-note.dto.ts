@@ -28,6 +28,17 @@ export class UpdateNoteDto {
   })
   tags?: string[];
 
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      "Optional custom hex color (e.g. '#00f2ff') for this note. When unset, falls back to the color of its first tag, if any. Pass `null` to clear a previously set color.",
+    required: false,
+    nullable: true,
+    type: 'string',
+  })
+  color?: string | null;
+
   @IsNumber()
   @IsOptional()
   @ApiProperty({

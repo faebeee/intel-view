@@ -162,3 +162,19 @@ export function getNoteLabel(
 	}
 	return "Untitled note";
 }
+
+/**
+ * Resolves the color a note should be displayed with: its own custom
+ * `color` if set, otherwise the registered color of its first tag (if it
+ * has any tags and that tag is registered), otherwise `undefined` (callers
+ * fall back to their own default). Shared by every view that colorizes
+ * notes (canvas cards, map pins, the notes tree).
+ */
+export function resolveNoteColor(
+	note: Pick<Note, "color" | "tags">,
+	tagColorMap: Map<string, string>,
+): string | undefined {
+	if (note.color) return note.color;
+	const firstTag = note.tags?.[0];
+	return firstTag ? tagColorMap.get(firstTag.toLowerCase()) : undefined;
+}

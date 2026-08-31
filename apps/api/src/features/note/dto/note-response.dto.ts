@@ -34,6 +34,15 @@ export class NoteResponseDto {
   tags: string[];
 
   @ApiProperty({
+    description:
+      'Optional custom hex color for this note, overriding the color derived from its first tag. Null if unset.',
+    required: false,
+    nullable: true,
+    type: 'string',
+  })
+  color: string | null;
+
+  @ApiProperty({
     description: 'IDs of the parent notes this note is nested under, if any.',
     type: [Number],
   })
@@ -146,6 +155,7 @@ export function toNoteResponseDto(note: Note): NoteResponseDto {
     title: note.title,
     content: note.content,
     tags: note.tags,
+    color: note.color,
     parentIds: note.parentIds ?? [],
     childIds: note.childIds ?? [],
     canvasX: note.canvasX,

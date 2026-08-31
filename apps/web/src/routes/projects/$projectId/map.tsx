@@ -5,13 +5,18 @@ import * as React from "react";
 import { Button } from "#/components/ui/button.tsx";
 import { LoadingState, NotFoundState } from "#/components/ui/loading-state.tsx";
 import { AllLocationsMap } from "#/features/map/components/AllLocationsMap.tsx";
-import { NoteDetailsPanel } from "#/features/map/components/NoteDetailsPanel.tsx";
-import { NotesMapSidebar } from "#/features/map/components/NotesMapSidebar.tsx";
+import type { MapThemeId } from "#/features/map/lib/map-themes.ts";
+import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal.tsx";
+import { NoteDetailsPanel } from "#/features/notes/components/NoteDetailsPanel.tsx";
+import { NoteTree } from "#/features/notes/components/NoteTree.tsx";
 import { useAllNoteLocationsQuery } from "#/features/notes/hooks/useAllNoteLocationsQuery.ts";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
+import { useCreateNote } from "#/features/notes/hooks/useCreateNote.ts";
+import { useDeleteNote } from "#/features/notes/hooks/useDeleteNote.ts";
 import { useProjectQuery } from "#/features/projects/hooks/useProjectQuery.ts";
 import { useUpdateProject } from "#/features/projects/hooks/useUpdateProject.ts";
-import type { MapThemeId } from "#/features/map/lib/map-themes.ts";
+import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
+import type { NoteType } from "#/types/note.ts";
 
 export const Route = createFileRoute("/projects/$projectId/map")({
 	component: MapRouteComponent,
@@ -31,6 +36,7 @@ function MapRouteComponent(): JSX.Element {
 	} = useAllNoteLocationsQuery(projectId);
 	const { data: notes = [], refetch: refetchNotes } =
 		useAllNotesQuery(projectId);
+	const { data: tags = [] } = useAllTagsQuery();
 
 	const updateProjectMutation = useUpdateProject(projectId);
 	const handleMapThemeChange = React.useCallback(
@@ -51,6 +57,43 @@ function MapRouteComponent(): JSX.Element {
 	const selectedNote = React.useMemo(
 		() => notes.find((note) => note.id === selectedNoteId) ?? null,
 		[notes, selectedNoteId],
+	);
+
+	// --- New note dialog -----------------------------------------------------
+
+	const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
+	const [createDialogParentId, setCreateDialogParentId] = React.useState<
+		number | null
+	>(null);
+
+	const openCreateDialog = React.useCallback((parentId: number | null) => {
+		setCreateDialogParentId(parentId);
+		setIsCreateDialogOpen(true);
+	}, []);
+
+	const createNoteMutation = useCreateNote(projectId);
+	const handleCreateNote = (type: NoteType) => {
+		createNoteMutation.mutate(
+			{ parentId: createDialogParentId, type },
+			{
+				onSuccess: (note) => {
+					setSelectedNoteId(note.id);
+					setIsCreateDialogOpen(false);
+				},
+			},
+		);
+	};
+
+	const deleteNoteMutation = useDeleteNote(projectId);
+	const handleDeleteNote = React.useCallback(
+		(id: number) => {
+			deleteNoteMutation.mutate(id, {
+				onSuccess: () => {
+					setSelectedNoteId((current) => (current === id ? null : current));
+				},
+			});
+		},
+		[deleteNoteMutation],
 	);
 
 	/**
@@ -117,12 +160,17 @@ function MapRouteComponent(): JSX.Element {
 			</div>
 
 			<div className="flex-1 min-h-0 flex">
-				<NotesMapSidebar
+				<NoteTree
 					notes={notes}
-					locations={locations}
-					selectedNoteId={selectedNoteId}
-					onSelectNote={handleSelectNote}
-					className="w-80 shrink-0 border-r border-line"
+					tags={tags}
+					selectedNoteId={selectedNote?.id}
+					onSelect={handleSelectNote}
+					onCreateChild={openCreateDialog}
+					onDelete={handleDeleteNote}
+					isMutating={
+						createNoteMutation.isPending || deleteNoteMutation.isPending
+					}
+					className="w-80 shrink-0 border-r border-line p-3"
 				/>
 
 				<div className="flex-1 min-w-0 relative">
@@ -165,10 +213,18 @@ function MapRouteComponent(): JSX.Element {
 						projectIdParam={projectIdParam}
 						note={selectedNote}
 						notes={notes}
+						onDeleted={() => setSelectedNoteId(null)}
 						className="w-80 shrink-0 border-l border-line"
 					/>
 				)}
 			</div>
+
+			<CreateNoteModal
+				open={isCreateDialogOpen}
+				onOpenChange={setIsCreateDialogOpen}
+				onCreate={handleCreateNote}
+				isCreating={createNoteMutation.isPending}
+			/>
 		</div>
 	);
 }

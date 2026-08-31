@@ -34,6 +34,15 @@ export class NoteLocationResponseDto {
   })
   tags: string[];
 
+  @ApiProperty({
+    description:
+      'Optional custom hex color of the note this location belongs to, overriding the color derived from its first tag. Null if unset.',
+    required: false,
+    nullable: true,
+    type: 'string',
+  })
+  color: string | null;
+
   @ApiProperty({ description: 'Latitude of the pinned location' })
   lat: number;
 
@@ -54,13 +63,14 @@ export class NoteLocationResponseDto {
 
 export function toNoteLocationResponseDto(
   location: NoteLocationLike,
-  extra: { noteLabel: string; tags: string[] },
+  extra: { noteLabel: string; tags: string[]; color: string | null },
 ): NoteLocationResponseDto {
   return {
     id: location.id,
     noteId: location.noteId,
     noteLabel: extra.noteLabel,
     tags: extra.tags,
+    color: extra.color,
     lat: location.lat,
     lng: location.lng,
     label: location.label,
