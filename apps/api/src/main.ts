@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import { AppModule } from './app.module';
+import { AppModule, mcp } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
@@ -33,6 +33,13 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
+
+  // Mounts the MCP Streamable HTTP transport (defaults to `/mcp`) onto the
+  // same HTTP server/port as the REST API. Must be connected and started
+  // before `app.listen()` so its routes are registered in time.
+  mcp.setHttpAdapter(app.getHttpAdapter());
+  app.connectMicroservice({ strategy: mcp });
+  await app.startAllMicroservices();
 
   await app.listen(process.env.PORT ?? 4010);
 }
