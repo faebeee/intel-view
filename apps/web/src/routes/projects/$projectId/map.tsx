@@ -16,6 +16,7 @@ import { useDeleteNote } from "#/features/notes/hooks/useDeleteNote.ts";
 import { useProjectQuery } from "#/features/projects/hooks/useProjectQuery.ts";
 import { useUpdateProject } from "#/features/projects/hooks/useUpdateProject.ts";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
+import { extractNoteReferenceIds } from "#/lib/note-references.ts";
 import type { NoteType } from "#/types/note.ts";
 
 export const Route = createFileRoute("/projects/$projectId/map")({
@@ -97,19 +98,62 @@ function MapRouteComponent(): JSX.Element {
 	);
 
 	/**
+	 * Adjacency list of every note's directly connected notes — parents,
+	 * children, notes it references via `[[NOTE_ID]]`, and notes that
+	 * reference it back — used to walk the *entire* connected component of
+	 * the selected note (not just its direct neighbors), e.g. a
+	 * grandparent, a child's child, or a note reached transitively through
+	 * a chain of `[[NOTE_ID]]` references.
+	 */
+	const connectionsByNoteId = React.useMemo(() => {
+		const adjacency = new Map<number, Set<number>>();
+		const link = (a: number, b: number) => {
+			if (a === b) return;
+			if (!adjacency.has(a)) adjacency.set(a, new Set());
+			if (!adjacency.has(b)) adjacency.set(b, new Set());
+			adjacency.get(a)?.add(b);
+			adjacency.get(b)?.add(a);
+		};
+		for (const note of notes) {
+			for (const parentId of note.parentIds ?? []) {
+				link(note.id, parentId);
+			}
+			for (const childId of note.childIds ?? []) {
+				link(note.id, childId);
+			}
+			for (const referencedId of extractNoteReferenceIds(note.content)) {
+				link(note.id, referencedId);
+			}
+		}
+		return adjacency;
+	}, [notes]);
+
+	/**
 	 * Locations shown on the map: everything when nothing's selected, or
-	 * just the selected note's own pins plus its parent notes' pins (if any)
-	 * when one is focused — so a note and the parent(s) it's linked under
-	 * (and the connecting lines drawn between them) are all visible together.
+	 * just the selected note's own pins plus every note *recursively*
+	 * connected to it (its whole connected component, following parent,
+	 * child, and `[[NOTE_ID]]` reference links in any direction and any
+	 * number of hops) when one is focused — so a note and everything
+	 * linked to it, however deeply nested, are all visible together, while
+	 * separate/unconnected notes' pins are hidden.
 	 */
 	const visibleLocations = React.useMemo(() => {
 		if (selectedNoteId === null) return locations;
+
 		const relevantNoteIds = new Set<number>([selectedNoteId]);
-		for (const parentId of selectedNote?.parentIds ?? []) {
-			relevantNoteIds.add(parentId);
+		const queue: number[] = [selectedNoteId];
+		while (queue.length > 0) {
+			const currentId = queue.pop();
+			if (currentId === undefined) continue;
+			for (const neighborId of connectionsByNoteId.get(currentId) ?? []) {
+				if (relevantNoteIds.has(neighborId)) continue;
+				relevantNoteIds.add(neighborId);
+				queue.push(neighborId);
+			}
 		}
+
 		return locations.filter((location) => relevantNoteIds.has(location.noteId));
-	}, [locations, selectedNoteId, selectedNote]);
+	}, [locations, selectedNoteId, connectionsByNoteId]);
 
 	/** Whether the *selected* note itself (ignoring any parent pins tagged along) has no locations, driving the "no locations" overlay message. */
 	const selectedNoteHasNoLocations =

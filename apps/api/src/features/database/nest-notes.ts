@@ -2,6 +2,7 @@ import { AppDataSource } from './datasource';
 import { Note } from '../note/entities/note.entity';
 import { NoteRelation } from '../note/entities/note-relation.entity';
 import { In } from 'typeorm';
+import { buildNoteRelations } from './note-relations.util';
 
 /**
  * Alters a subset of an existing project's notes to introduce multiple
@@ -14,22 +15,6 @@ import { In } from 'typeorm';
  */
 
 const PROJECT_ID = Number(process.argv[2] ?? 6);
-const MAX_DEPTH = 4; // depths 0 (root) .. 3 (deepest nested level)
-const NEST_PROBABILITY = 0.45; // chance a note gets at least one parent rather than being root
-const EXTRA_PARENT_PROBABILITY = 0.2; // chance a nested note gets a second parent
-
-function randomInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function shuffle<T>(arr: T[]): T[] {
-  const copy = [...arr];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = randomInt(0, i);
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
 
 async function nestNotes(): Promise<void> {
   await AppDataSource.initialize();
@@ -58,54 +43,7 @@ async function nestNotes(): Promise<void> {
   const noteIds = notes.map((n) => n.id);
   await noteRelationRepo.delete({ childId: In(noteIds) });
 
-  const shuffled = shuffle(noteIds);
-
-  // Pool of candidate parents, each entry tracks its assigned depth so we can
-  // cap the maximum nesting depth.
-  const depthById = new Map<number, number>();
-  const pool: number[] = [];
-  const relations: { parentId: number; childId: number }[] = [];
-
-  for (const id of shuffled) {
-    const parentIds: number[] = [];
-    let depth = 0;
-
-    if (pool.length > 0 && Math.random() < NEST_PROBABILITY) {
-      // Try a few times to find an eligible parent below the max depth.
-      for (let attempt = 0; attempt < 5; attempt++) {
-        const candidate = pool[randomInt(0, pool.length - 1)];
-        const candidateDepth = depthById.get(candidate) ?? 0;
-        if (candidateDepth < MAX_DEPTH - 1 && !parentIds.includes(candidate)) {
-          parentIds.push(candidate);
-          depth = Math.max(depth, candidateDepth + 1);
-          break;
-        }
-      }
-
-      // Occasionally give the note a second parent, to exercise the
-      // multi-parent DAG shape rather than a strict tree.
-      if (parentIds.length > 0 && Math.random() < EXTRA_PARENT_PROBABILITY) {
-        for (let attempt = 0; attempt < 5; attempt++) {
-          const candidate = pool[randomInt(0, pool.length - 1)];
-          const candidateDepth = depthById.get(candidate) ?? 0;
-          if (
-            candidateDepth < MAX_DEPTH - 1 &&
-            !parentIds.includes(candidate)
-          ) {
-            parentIds.push(candidate);
-            depth = Math.max(depth, candidateDepth + 1);
-            break;
-          }
-        }
-      }
-    }
-
-    depthById.set(id, depth);
-    pool.push(id);
-    for (const parentId of parentIds) {
-      relations.push({ parentId, childId: id });
-    }
-  }
+  const { relations, depthById } = buildNoteRelations(noteIds);
 
   console.log(
     `Assigning ${relations.length} parent/child relations across ${notes.length} notes...`,
@@ -118,7 +56,7 @@ async function nestNotes(): Promise<void> {
   }
 
   const depthCounts = new Map<number, number>();
-  for (const id of shuffled) {
+  for (const id of noteIds) {
     const d = depthById.get(id) ?? 0;
     depthCounts.set(d, (depthCounts.get(d) ?? 0) + 1);
   }
