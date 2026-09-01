@@ -16,9 +16,10 @@ This is the primary REST API for Intel View, built with [NestJS](https://github.
 ## Domain Model
 
 | Entity             | Description                                                                                                                                                                                                    |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Project`          | Top-level container for notes and tags (`name`, `description`).                                                                                                                                                |
-| `Note`             | The core content unit. Has a `type` (`standard`/`log`, immutable after creation), free-text `tags: string[]`, optional canvas position (`canvasX`/`canvasY`), and can be nested under a `parentId`.            |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ProjectGroup`     | Optional color-coded folder for organizing projects (`name`, `description`, `color`). A `Project` belongs to at most one group via nullable `groupId`.                                                        |
+| `Project`          | Top-level container for notes and tags (`name`, `description`, optional `groupId`, `mapTheme`, `color`).                                                                                                       |
+| `Note`             | The core content unit. Has a `type` (`standard`/`log`/`address`/`file`, immutable after creation), free-text `tags: string[]`, optional canvas position (`canvasX`/`canvasY`), and can be linked to one or more parent/child notes (`NoteRelation` join table, forming a DAG). |
 | `NoteLocation`     | A geo-pin attached to a `Note`. Fully derived (deleted + recreated) by parsing `[[geo:LAT,LNG,LABEL]]` tokens out of the note's markdown `content` — never written to directly.                                |
 | `NoteLogEntry`     | A single append-only, user-authored entry on a `log`-type note. Never edited or replaced once created.                                                                                                         |
 | `NoteHistoryEntry` | Immutable audit-trail record of changes to a `Note` (`created` or `updated`, the latter with field-level diffs). Created automatically by `NoteService`.                                                       |
@@ -44,6 +45,21 @@ Base path: `projects/:projectId/notes`
 | GET    | `/:id/locations`   | This note's own `NoteLocation[]`, enriched with its label/tags.                                                                                                                                                                              |
 | POST   | `/:id/log-entries` | Append a `NoteLogEntry`. 400 if the note's `type` is not `log`.                                                                                                                                                                              |
 | GET    | `/:id/log-entries` | This note's `NoteLogEntry[]`, most recent first.                                                                                                                                                                                             |
+
+---
+
+## MCP / AI Agent Tools
+
+Alongside the REST API, this service exposes a [Model Context Protocol](https://modelcontextprotocol.io/) server via [`@rekog/mcp-nest`](https://www.npmjs.com/package/@rekog/mcp-nest) (`src/features/mcp/`), using the **Streamable HTTP** transport, mounted at `/mcp` on the same port as the REST API (e.g. `http://localhost:4010/mcp`).
+
+It exposes 27 tools across four controllers, mirroring the REST surface (file upload/download excluded, since binary transfer doesn't map to a tool call):
+
+- `NoteMcpController` — CRUD for notes, parent/child relation management, history, log entries, and location lookups.
+- `ProjectMcpController` — CRUD for projects.
+- `ProjectGroupMcpController` — CRUD for project groups.
+- `TagMcpController` — CRUD for tags.
+
+See the [root README's MCP section](../../README.md#ai-agent-integration-mcp) for the full tool list and client connection instructions. There is currently no MCP-specific authentication — the endpoint inherits the same (currently open) access as the rest of the API.
 
 ---
 

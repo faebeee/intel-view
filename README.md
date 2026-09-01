@@ -1,21 +1,28 @@
 # Intel View
 
-Intel View is a self-hostable **project intelligence board**: organize freeform notes into projects, place them on an interactive map, connect them on a visual canvas, tag them, and track their full edit history over time.
+Intel View is a self-hostable **project intelligence board**: a place to dump freeform notes about anything you're investigating or tracking, then organize, geolocate, visually connect, and query them — by hand, or through an AI agent.
+
+The idea: instead of scattering research, evidence, logs, and files across a dozen tools, you keep everything as **notes** inside a **project**. Notes can be nested under one another, tagged, linked by reference, pinned to a location on a map, and dragged around a visual canvas to sketch out how they relate. Every change is recorded automatically, so you always have a full history of how your understanding evolved. And because the whole thing is also exposed as an **MCP server**, you (or an AI assistant like Claude) can read and write that same data directly from a chat — asking it to create notes, summarize a project, log an update, or look up what's connected to what.
 
 It's built as a Turborepo monorepo with a decoupled [TanStack Start](https://tanstack.com/start) frontend and a [NestJS](https://nestjs.com/) + [TypeORM](https://typeorm.io/) REST API backed by PostgreSQL.
 
 > **Status:** Early-stage / actively developed. APIs and data models may change without notice.
 
-![Map Dark](./docs/map-dark.png)
-![Map Bright](./docs/map-light.png)
-
 ---
 
 ## Table of Contents
 
-- [Features](#features)
+- [Core Concepts](#core-concepts)
+- [User Handbook](#user-handbook)
+  - [Dashboard: Projects & Project Groups](#dashboard-projects--project-groups)
+  - [Working with Notes](#working-with-notes)
+  - [Map View](#map-view)
+  - [Canvas View](#canvas-view)
+  - [Tags](#tags)
+  - [Note History](#note-history)
+- [AI Agent Integration (MCP)](#ai-agent-integration-mcp)
 - [Architecture](#architecture)
-- [Getting Started](#getting-started)
+- [Getting Started (Self-Hosting / Development)](#getting-started-self-hosting--development)
 - [Workspace Layout](#workspace-layout)
 - [Development Commands](#development-commands)
 - [Environment Variables](#environment-variables)
@@ -28,37 +35,139 @@ It's built as a Turborepo monorepo with a decoupled [TanStack Start](https://tan
 
 ---
 
-## Features
+## Core Concepts
 
-- **Projects** — top-level containers for grouping related notes and tags.
-- **Notes** — the core content unit, supporting several note types:
-  - `standard` — freely-editable rich text edited with a [Tiptap](https://tiptap.dev/)-based markdown editor.
-  - `log` — an append-only note: instead of editing shared content, users append timestamped `NoteLogEntry` records that are never edited or removed.
-  - `file` — a note holding a single uploaded file. Bytes live in MinIO (S3-compatible object storage); the note itself only keeps the object key plus the original filename, MIME type and size. Uploads and downloads are proxied by the API (`POST`/`GET`/`DELETE /projects/:projectId/notes/:id/file`), so the bucket stays private and images can be previewed inline in the note editor.
-  - Notes can be nested under a parent note (with cycle/self-parent protection and cascading soft-delete of descendants) and positioned on the canvas (`canvasX`/`canvasY`).
-  - Geo-pins aren't a separate field — they're derived automatically by parsing `[[geo:LAT,LNG,LABEL]]` tokens out of a note's markdown content (inserted via a toolbar button in the editor), and re-synced whenever the content changes.
-- **Note history** — every note automatically records `created`/`updated` audit entries with field-level diffs. `log` notes additionally have their own append-only `NoteLogEntry` sequence, separate from this audit trail.
-- **Map view** — plot every geo-pin from a project's notes on an interactive [Leaflet](https://leafletjs.com/) map, with a choice of base map themes (street / satellite / light / dark / futuristic, independent from the app's own light/dark UI mode), and draw connecting lines between a note's own pins and between parent/child notes.
-- **Canvas view** — a node-based visual workspace (via [`@xyflow/react`](https://reactflow.dev/)) for spatially arranging and linking notes.
-- **Tags** — two complementary mechanisms: a per-project color-coded `Tag` registry (name + color) for defining a project's palette, and a free-text `tags: string[]` field stored directly on each note (which can reuse registry names for consistent coloring, or be arbitrary strings).
-- **Internationalization** — UI strings are localized with [Paraglide JS](https://inlang.com/m/gerre34r/library-inlang-paraglideJs) (English and German out of the box).
-- **Typed API client** — the frontend consumes a fully-typed SDK generated from the API's OpenAPI schema, so frontend and backend types never drift apart.
+A quick glossary before diving into the handbook:
+
+- **Project** — the top-level container for everything else: a set of notes and a project-scoped tag palette. Everything you do in Intel View happens inside a project.
+- **Project Group** — an optional, color-coded folder on the dashboard for organizing related projects (e.g. by client, case, or theme). A project belongs to at most one group, or none.
+- **Note** — the core content unit. Every note has one of four types:
+  - `standard` — freely-editable rich text, edited with a [Tiptap](https://tiptap.dev/)-based markdown editor.
+  - `log` — an append-only note: instead of editing shared content, you append timestamped entries that are never edited or removed (good for running status updates / incident logs).
+  - `address` — a note built around a physical address/location.
+  - `file` — a note holding a single uploaded file (image, PDF, etc.), previewed inline where possible.
+- **Nesting (parent/child)** — any note can be linked under one or more parent notes and can have one or more children, forming a graph (not just a strict tree) of related notes.
+- **`[[NOTE_ID]]` references** — typing `[[123]]` inside a note's content links it to note `#123` without making it a parent/child — a lightweight, inline cross-reference, shown as a dashed connection on the Map and Canvas views.
+- **`[[geo:LAT,LNG,LABEL]]` pins** — typing this inside a note's content automatically drops a pin for that note on the Map view; you don't manage a separate "location" field by hand.
+- **Tags** — a per-project color-coded palette (name + color) plus a free-text `tags` field on each note, which can reuse a palette name for consistent coloring or be any arbitrary word.
+- **Note History** — every note automatically records `created`/`updated` entries with field-level diffs, so you can see exactly what changed and when.
+
+## User Handbook
+
+This section walks through how to actually use the app day-to-day.
+
+### Dashboard: Projects & Project Groups
+
+![Dashboard](./docs/dashboard.png)
+
+The dashboard (home page) is where you land after opening Intel View. From here you can:
+
+- **Create a project** — give it a name, description, a map theme, and a color. This is your workspace for one investigation/topic.
+- **Create a project group** — an optional color-coded folder to visually cluster related projects together on the dashboard. Manage groups from the "Manage Project Groups" dialog on the home page; assign a project to a group (or unassign it) when creating/editing the project.
+- Click into a project to open its own dashboard, showing quick stats (note counts by type, tag counts, location counts) and links into its Notes, Map, and Canvas views.
+
+### Working with Notes
+
+![Notes](./docs/notes.png)
+
+The **Notes** tab is where content lives. On the left is a tree of every note in the project (respecting parent/child nesting); on the right is the editor for whichever note is selected.
+
+- **Create a note** — pick a type (`standard`, `log`, `address`, or `file`) from the "New Note" dialog. Optionally create it as a child of the currently-selected note.
+- **Edit content** — `standard` notes use a rich markdown editor with a toolbar (headings, lists, links, an inline geo-pin button that inserts a `[[geo:LAT,LNG,LABEL]]` token, and note-reference autocomplete for `[[NOTE_ID]]` links). Changes autosave a moment after you stop typing.
+- **Log entries** — on a `log` note, instead of editing shared content you append new timestamped entries; older entries stay immutable.
+- **Files** — on a `file` note, upload a single file (stored privately in MinIO and proxied by the API); images preview inline.
+- **Nest notes** — drag a note onto another in the tree (or set its parent when creating it) to nest it; a note can have multiple parents. Cycles and self-parenting are rejected automatically.
+- **Tag a note** — add tag names in the note's tag field; reuse palette names for consistent coloring across the project.
+- **Delete a note** — soft-deletes it (and cascades to its descendants); nothing is destroyed at the database level, so recovery/audit is always possible in principle.
+
+### Map View
+
+![Map](./docs/map.png)
+
+The **Map** tab plots every geo-pin (`[[geo:...]]` token) found across all notes in the project on an interactive [Leaflet](https://leafletjs.com/) map.
+
+- Switch **base map themes** (street / satellite / light / dark / futuristic) independently of the app's own light/dark UI mode, from the layers control on the map.
+- **Select a note** (from the sidebar tree or by clicking one of its pins) to filter the map down to just that note plus **every note connected to it** — parents, children, and `[[NOTE_ID]]` references — followed **transitively in any direction** through the whole connected chain. Unrelated notes' pins are hidden until you clear the selection, so you can focus on one cluster of related intel at a time.
+- Solid lines connect a note to its parent/child notes; dashed lines connect notes linked purely by `[[NOTE_ID]]` reference.
+- Click a pin's popup link to jump straight to that note in the Notes editor.
+
+### Canvas View
+
+![Canvas](./docs/canvas.png)
+
+The **Canvas** tab is a free-form, node-based workspace (via [`@xyflow/react`](https://reactflow.dev/)) for visually arranging and linking notes, independent of geography.
+
+- Every note is a draggable node; its position is saved per-note (`canvasX`/`canvasY`), so your layout persists.
+- **Drag from one node's handle to another** to create a parent/child connection between them.
+- Delete a connection by selecting its edge and pressing delete (only hierarchy connections are deletable this way — `[[NOTE_ID]]` reference edges are read-only here, shown dashed).
+- Click a node to select it and open its details panel; click empty canvas space to deselect.
+
+### Tags
+
+The **Tags** page (and the tag fields on notes) let you build a consistent, color-coded vocabulary across a project: define a palette of named, colored tags, then apply them to notes. Notes can also carry ad-hoc free-text tags that aren't in the palette — useful for one-off labels you don't want to formalize.
+
+### Note History
+
+Every note keeps its own automatic audit trail — open a note's history panel to see a chronological list of `created`/`updated` entries with the exact fields that changed. `log`-type notes additionally expose their append-only entry sequence, which is separate from this audit trail (the log entries are the *content*; the history is the *metadata* about edits).
+
+## AI Agent Integration (MCP)
+
+Intel View ships with a built-in [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server, so an AI assistant (Claude Desktop, Claude Code, or any other MCP-compatible client) can read and write your projects, notes, project groups, and tags directly — no copy/pasting context back and forth.
+
+This is useful for things like: *"Summarize everything logged on the Acme incident this week,"* *"Create a new note under project #4 with today's findings,"* *"What notes are tagged `suspicious` across all projects?"*, or *"Append a log entry to the deployment tracker."*
+
+### How it works
+
+- Built with [`@rekog/mcp-nest`](https://www.npmjs.com/package/@rekog/mcp-nest) on top of the official MCP SDK, using the **Streamable HTTP** transport.
+- The MCP server rides on the **same host/port as the REST API** — no separate service or port to run.
+- Endpoint: `http://<api-host>:4010/mcp` (e.g. `http://localhost:4010/mcp` in local dev).
+
+### Connecting a client
+
+Point your MCP client at the Streamable HTTP endpoint above. The exact configuration keys vary by client/version, but for an HTTP-based remote MCP server (e.g. Claude Desktop/Code), it typically looks like:
+
+```json
+{
+  "mcpServers": {
+    "intel-view": {
+      "url": "http://localhost:4010/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
+> **Security note:** There is currently **no authentication** on the MCP endpoint — anything that can reach the API host can call these tools. Don't expose port `4010` (or the MCP path specifically) to an untrusted network without putting it behind your own auth layer (e.g. a reverse proxy requiring a token or client-cert), especially since the tools below include full create/update/delete access.
+
+### Available tools
+
+27 tools are exposed across four domains, mirroring the REST API:
+
+| Domain            | Tools                                                                                                                                                                                                                                        |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Notes**          | `create_note`, `list_notes`, `get_note`, `update_note`, `delete_note`, `add_note_parent`, `remove_note_parent`, `add_note_child`, `remove_note_child`, `get_note_history`, `create_note_log_entry`, `list_note_log_entries`, `get_note_locations`, `list_all_project_note_locations` |
+| **Projects**       | `create_project`, `list_projects`, `get_project`, `update_project`, `delete_project`                                                                                                                                                        |
+| **Project Groups** | `create_project_group`, `list_project_groups`, `get_project_group`, `update_project_group`, `delete_project_group`                                                                                                                          |
+| **Tags**           | `create_tag`, `list_tags`, `get_tag`, `update_tag`, `delete_tag`                                                                                                                                                                             |
+
+File upload/download isn't exposed via MCP (binary transfer doesn't map cleanly to a tool call), so `file`-type notes must still be managed from the web UI. Everything else — creating/reading/updating/deleting projects, notes, relations, log entries, and tags — is fully available to an agent.
 
 ## Architecture
 
 ```
 apps/web  (TanStack Start, Vite, React 19)  ───▶  apps/api  (NestJS, TypeORM)  ───▶  PostgreSQL
      │                                                  │
+     │                                                  └── exposes ──▶ MCP server (/mcp, Streamable HTTP)
      └── consumes ────────────────────────▶ packages/sdk (generated OpenAPI client)
 ```
 
 - **`apps/web`** — the user-facing single-page application. Server-rendered via TanStack Start/Vite/Nitro, styled with Tailwind CSS v4 and shadcn-style primitives.
-- **`apps/api`** — the REST API. Exposes `/projects`, `/projects/:projectId/notes` (plus nested `/history`, `/log-entries`, and `/locations` sub-resources), and `/projects/:projectId/tags`, documented via Swagger.
+- **`apps/api`** — the REST API. Exposes `/projects`, `/project-groups`, `/projects/:projectId/notes` (plus nested `/history`, `/log-entries`, and `/locations` sub-resources), and `/projects/:projectId/tags`, documented via Swagger — plus the `/mcp` endpoint described above.
 - **`packages/sdk`** — a typed API client (`@repo/sdk`) generated from the API's OpenAPI schema using [`@hey-api/openapi-ts`](https://heyapi.dev/). The web app never hand-writes fetch calls; it imports generated functions and types from this package.
 - **`packages/ui`** — shared, framework-level React primitives (`@repo/ui`) available to any app in the workspace.
 - **`packages/eslint-config`** / **`packages/typescript-config`** — shared lint and TypeScript configuration used across all workspaces.
 
-## Getting Started
+## Getting Started (Self-Hosting / Development)
 
 ### Prerequisites
 
@@ -97,6 +206,7 @@ This runs both `apps/web` and `apps/api` in parallel via Turborepo:
 - Web app: <http://localhost:4000>
 - API: <http://localhost:4010>
 - Swagger docs: <http://localhost:4010/docs>
+- MCP endpoint: <http://localhost:4010/mcp>
 
 > The API uses `synchronize: true` for its TypeORM connection in development, so the schema is created automatically from entities on first boot — no manual migration step is required to get started.
 
@@ -113,7 +223,7 @@ This is an npm-based Turborepo monorepo:
 | Path                         | Description                                                           |
 | ---------------------------- | --------------------------------------------------------------------- |
 | `apps/web`                   | TanStack Start (Vite + React 19) frontend, served on port `4000`.     |
-| `apps/api`                   | NestJS REST API with TypeORM + PostgreSQL, served on port `4010`.     |
+| `apps/api`                   | NestJS REST API (+ MCP server) with TypeORM + PostgreSQL, served on port `4010`. |
 | `packages/sdk`               | Generated, typed OpenAPI client (`@repo/sdk`) consumed by `apps/web`. |
 | `packages/ui`                | Shared React primitives (`@repo/ui`).                                 |
 | `packages/eslint-config`     | Shared ESLint configurations (`@repo/eslint-config`).                 |
@@ -164,7 +274,7 @@ This fetches the live OpenAPI schema from `${VITE_API_URL}/docs-json` (configure
 ## Environment Variables
 
 | File                | Variable        | Description                                                                                      | Example                                                    |
-| ------------------- | --------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| ------------------- | --------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
 | `apps/api/.env`     | `DATABASE_URL`  | Postgres connection string used by the **TypeORM CLI** (`schema:sync`, migrations, seed script). | `postgresql://postgres:postgres@localhost:5432/intel_view` |
 | `apps/api/.env`     | `DB_HOST`       | Postgres host used by the **running NestJS app** (`app.module.ts`). Defaults to `localhost`.     | `localhost`                                                |
 | `apps/api/.env`     | `DB_PORT`       | Postgres port used by the running app. Defaults to `5432`.                                       | `5432`                                                     |
@@ -172,7 +282,7 @@ This fetches the live OpenAPI schema from `${VITE_API_URL}/docs-json` (configure
 | `apps/api/.env`     | `DB_PASSWORD`   | Postgres password used by the running app. Defaults to `postgres`.                               | `postgres`                                                 |
 | `apps/api/.env`     | `DB_DATABASE`   | Postgres database name used by the running app. Defaults to `intel_view`.                        | `intel_view`                                               |
 | `apps/api/.env`     | `APP_URL`       | Origin allowed by CORS for the web app, in addition to two hardcoded origins in `main.ts` (`http://192.168.50.15:4000` and `http://intel.local:4000`). Defaults to `http://localhost:4000`. | `http://localhost:4000` |
-| `apps/api/.env`     | `PORT`          | Port the NestJS server listens on. Defaults to `4010`.                                           | `4010`                                                     |
+| `apps/api/.env`     | `PORT`          | Port the NestJS server (and the `/mcp` endpoint) listens on. Defaults to `4010`.                 | `4010`                                                     |
 | `apps/api/.env`     | `MINIO_ENDPOINT` | Host of the MinIO server backing `file` notes. Defaults to `localhost`.                         | `localhost`                                                |
 | `apps/api/.env`     | `MINIO_PORT`    | MinIO API port. Defaults to `9000`.                                                              | `9000`                                                     |
 | `apps/api/.env`     | `MINIO_USE_SSL` | Whether to talk to MinIO over HTTPS. Defaults to `false`.                                        | `false`                                                    |
@@ -214,7 +324,7 @@ VITE_API_URL=https://api.example.com docker compose up -d --build
 ```
 
 - `db` — PostgreSQL 15, same as local dev.
-- `api` — built from `apps/api/Dockerfile`, listens on port `4010`. CORS accepts the API's `APP_URL` env var plus the hardcoded `http://intel.local:4000` and `http://192.168.50.15:4000` origins (see `apps/api/src/main.ts`) — adjust these if your deployment uses a different hostname.
+- `api` — built from `apps/api/Dockerfile`, listens on port `4010` (also serving `/mcp`). CORS accepts the API's `APP_URL` env var plus the hardcoded `http://intel.local:4000` and `http://192.168.50.15:4000` origins (see `apps/api/src/main.ts`) — adjust these if your deployment uses a different hostname.
 - `web` — built from `apps/web/Dockerfile`; `VITE_API_URL` is passed both as a build arg (baked into the client bundle and the Nitro server bundle via `apps/web/src/routes/__root.tsx`) and a runtime env var, and defaults to `http://intel.local:4010` if unset in `docker-compose.yml`. The build also runs `npx turbo run generate` first, so the API must be reachable at `VITE_API_URL` (or already running) at build time to regenerate `@repo/sdk` from its live OpenAPI schema.
 
 For a from-source build of a single image, build with the repo root as context, e.g.:

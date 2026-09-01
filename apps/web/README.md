@@ -64,6 +64,7 @@ src/
 │   ├── canvas/         # Node-based canvas view (@xyflow/react)
 │   ├── map/             # Leaflet map view, markers, connection lines
 │   ├── notes/           # Note CRUD, editor, history UI
+│   ├── project-groups/  # Project group CRUD (managed from the home dashboard)
 │   ├── projects/        # Project CRUD and overview
 │   └── tags/             # Tag management
 ├── integrations/        # Third-party integration wiring (TanStack Query providers/devtools)
