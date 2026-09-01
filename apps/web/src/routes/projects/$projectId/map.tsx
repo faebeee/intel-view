@@ -51,6 +51,10 @@ function MapRouteComponent(): JSX.Element {
 		null,
 	);
 
+	/** The set of note ids matching the sidebar's search box, or `null` while the search is empty (no filter active). Narrows the map's visible pins alongside the selected-note connectivity filter below. */
+	const [searchMatchedNoteIds, setSearchMatchedNoteIds] =
+		React.useState<Set<number> | null>(null);
+
 	const handleSelectNote = React.useCallback((noteId: number) => {
 		setSelectedNoteId((current) => (current === noteId ? null : noteId));
 	}, []);
@@ -129,34 +133,51 @@ function MapRouteComponent(): JSX.Element {
 	}, [notes]);
 
 	/**
-	 * Locations shown on the map: everything when nothing's selected, or
-	 * just the selected note's own pins plus every note *recursively*
-	 * connected to it (its whole connected component, following parent,
-	 * child, and `[[NOTE_ID]]` reference links in any direction and any
-	 * number of hops) when one is focused — so a note and everything
-	 * linked to it, however deeply nested, are all visible together, while
-	 * separate/unconnected notes' pins are hidden.
+	 * Locations shown on the map: everything when nothing's selected and no
+	 * search is active, or narrowed by whichever of those two filters are
+	 * active. When a note is selected, only pins belonging to it and every
+	 * note *recursively* connected to it (its whole connected component,
+	 * following parent, child, and `[[NOTE_ID]]` reference links in any
+	 * direction and any number of hops) are eligible. When the sidebar
+	 * search box has a query, only pins for matching notes are eligible.
+	 * Both filters apply together when both are active (i.e. intersected).
 	 */
 	const visibleLocations = React.useMemo(() => {
-		if (selectedNoteId === null) return locations;
+		let result = locations;
 
-		const relevantNoteIds = new Set<number>([selectedNoteId]);
-		const queue: number[] = [selectedNoteId];
-		while (queue.length > 0) {
-			const currentId = queue.pop();
-			if (currentId === undefined) continue;
-			for (const neighborId of connectionsByNoteId.get(currentId) ?? []) {
-				if (relevantNoteIds.has(neighborId)) continue;
-				relevantNoteIds.add(neighborId);
-				queue.push(neighborId);
+		if (selectedNoteId !== null) {
+			const relevantNoteIds = new Set<number>([selectedNoteId]);
+			const queue: number[] = [selectedNoteId];
+			while (queue.length > 0) {
+				const currentId = queue.pop();
+				if (currentId === undefined) continue;
+				for (const neighborId of connectionsByNoteId.get(currentId) ?? []) {
+					if (relevantNoteIds.has(neighborId)) continue;
+					relevantNoteIds.add(neighborId);
+					queue.push(neighborId);
+				}
 			}
+			result = result.filter((location) =>
+				relevantNoteIds.has(location.noteId),
+			);
 		}
 
-		return locations.filter((location) => relevantNoteIds.has(location.noteId));
-	}, [locations, selectedNoteId, connectionsByNoteId]);
+		if (searchMatchedNoteIds !== null) {
+			result = result.filter((location) =>
+				searchMatchedNoteIds.has(location.noteId),
+			);
+		}
 
-	/** Whether the *selected* note itself (ignoring any parent pins tagged along) has no locations, driving the "no locations" overlay message. */
+		return result;
+	}, [locations, selectedNoteId, connectionsByNoteId, searchMatchedNoteIds]);
+
+	/** Whether an active search yielded no map pins at all, driving the "no results" overlay message (distinct from the selected-note-has-no-locations message below). */
+	const searchHasNoResults =
+		searchMatchedNoteIds !== null && visibleLocations.length === 0;
+
+	/** Whether the *selected* note itself (ignoring any parent pins tagged along) has no locations, driving the "no locations" overlay message. Suppressed while the search-empty message is already showing to avoid double overlays. */
 	const selectedNoteHasNoLocations =
+		!searchHasNoResults &&
 		selectedNoteId !== null &&
 		!locations.some((location) => location.noteId === selectedNoteId);
 
@@ -207,10 +228,12 @@ function MapRouteComponent(): JSX.Element {
 				<NoteTree
 					notes={notes}
 					tags={tags}
+					locations={locations}
 					selectedNoteId={selectedNote?.id}
 					onSelect={handleSelectNote}
 					onCreateChild={openCreateDialog}
 					onDelete={handleDeleteNote}
+					onVisibleNoteIdsChange={setSearchMatchedNoteIds}
 					isMutating={
 						createNoteMutation.isPending || deleteNoteMutation.isPending
 					}
@@ -244,6 +267,13 @@ function MapRouteComponent(): JSX.Element {
 								<div className="absolute inset-x-0 top-4 flex justify-center px-4 pointer-events-none">
 									<div className="pointer-events-auto rounded-md border border-line bg-surface-strong/95 px-3 py-1.5 text-xs text-muted-foreground shadow-lg">
 										This note doesn't have any locations on the map.
+									</div>
+								</div>
+							)}
+							{searchHasNoResults && (
+								<div className="absolute inset-x-0 top-4 flex justify-center px-4 pointer-events-none">
+									<div className="pointer-events-auto rounded-md border border-line bg-surface-strong/95 px-3 py-1.5 text-xs text-muted-foreground shadow-lg">
+										No pins match your search.
 									</div>
 								</div>
 							)}
