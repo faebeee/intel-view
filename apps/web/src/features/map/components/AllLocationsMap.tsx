@@ -70,6 +70,8 @@ export type AllLocationsMapProps = {
 	selectedNoteId?: number | null;
 	/** Called with a note's id when one of its markers is clicked, so the caller can focus that note (e.g. re-filtering/re-framing the map to just its locations) the same way clicking it in the sidebar does. */
 	onNoteSelect?: (noteId: number) => void;
+	/** Called with a note's id when one of its markers is double-clicked, so the caller can open an in-place editor (e.g. a modal) for that note. */
+	onNoteDoubleClick?: (noteId: number) => void;
 	/** The project's persisted base map theme, used as the layers control's initially-checked theme. Defaults to `DEFAULT_MAP_THEME` ('street') if omitted. */
 	mapTheme?: MapThemeId;
 	/** Called with the newly selected theme's id whenever the user switches base layers, so the caller can persist the choice (e.g. onto the `Project` entity). */
@@ -91,6 +93,7 @@ export function AllLocationsMap({
 	notes,
 	selectedNoteId,
 	onNoteSelect,
+	onNoteDoubleClick,
 	mapTheme,
 	onMapThemeChange,
 	className,
@@ -285,11 +288,14 @@ export function AllLocationsMap({
 							key={location.id}
 							position={[location.lat, location.lng]}
 							icon={getTagMarkerIcon(colors)}
-							eventHandlers={
-								onNoteSelect
+							eventHandlers={{
+								...(onNoteSelect
 									? { click: () => onNoteSelect(location.noteId) }
-									: undefined
-							}
+									: {}),
+								...(onNoteDoubleClick
+									? { dblclick: () => onNoteDoubleClick(location.noteId) }
+									: {}),
+							}}
 						>
 							<Popup>
 								<div className="flex flex-col gap-2 min-w-40">

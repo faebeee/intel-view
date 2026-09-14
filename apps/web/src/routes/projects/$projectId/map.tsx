@@ -8,6 +8,7 @@ import { AllLocationsMap } from "#/features/map/components/AllLocationsMap.tsx";
 import type { MapThemeId } from "#/features/map/lib/map-themes.ts";
 import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal.tsx";
 import { NoteDetailsPanel } from "#/features/notes/components/NoteDetailsPanel.tsx";
+import { NoteEditModal } from "#/features/notes/components/NoteEditModal.tsx";
 import { NoteTree } from "#/features/notes/components/NoteTree.tsx";
 import { useAllNoteLocationsQuery } from "#/features/notes/hooks/useAllNoteLocationsQuery.ts";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
@@ -50,6 +51,8 @@ function MapRouteComponent(): JSX.Element {
 	const [selectedNoteId, setSelectedNoteId] = React.useState<number | null>(
 		null,
 	);
+
+	const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
 
 	/** The set of note ids matching the sidebar's search box, or `null` while the search is empty (no filter active). Narrows the map's visible pins alongside the selected-note connectivity filter below. */
 	const [searchMatchedNoteIds, setSearchMatchedNoteIds] =
@@ -243,26 +246,31 @@ function MapRouteComponent(): JSX.Element {
 				<div className="flex-1 min-w-0 relative">
 					{isLocationsLoading ? (
 						<LoadingState label="Loading locations..." compact />
-					) : locations.length === 0 ? (
-						<div className="h-full flex flex-col items-center justify-center gap-3 text-center px-6">
-							<MapPin className="h-8 w-8 text-muted-foreground/40" />
-							<p className="text-sm text-muted-foreground">
-								No locations yet — insert one from a note's editor using the map
-								pin toolbar button.
-							</p>
-						</div>
 					) : (
 						<>
-							<AllLocationsMap
-								projectId={projectIdParam}
-								locations={visibleLocations}
-								notes={notes}
-								selectedNoteId={selectedNoteId}
-								onNoteSelect={handleSelectNote}
-								mapTheme={project.mapTheme}
-								onMapThemeChange={handleMapThemeChange}
-								className="h-full w-full"
-							/>
+						<AllLocationsMap
+							projectId={projectIdParam}
+							locations={visibleLocations}
+							notes={notes}
+							selectedNoteId={selectedNoteId}
+							onNoteSelect={handleSelectNote}
+							onNoteDoubleClick={(noteId) => {
+								setSelectedNoteId(noteId);
+								setIsEditModalOpen(true);
+							}}
+							mapTheme={project.mapTheme}
+							onMapThemeChange={handleMapThemeChange}
+							className="h-full w-full"
+						/>
+							{locations.length === 0 && (
+								<div className="absolute inset-x-0 top-4 flex justify-center px-4 pointer-events-none">
+									<div className="pointer-events-auto flex items-center gap-2 rounded-md border border-line bg-surface-strong/95 px-3 py-1.5 text-xs text-muted-foreground shadow-lg">
+										<MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+										No locations yet — insert one from a note's editor using the
+										map pin toolbar button.
+									</div>
+								</div>
+							)}
 							{selectedNoteHasNoLocations && (
 								<div className="absolute inset-x-0 top-4 flex justify-center px-4 pointer-events-none">
 									<div className="pointer-events-auto rounded-md border border-line bg-surface-strong/95 px-3 py-1.5 text-xs text-muted-foreground shadow-lg">
@@ -281,16 +289,17 @@ function MapRouteComponent(): JSX.Element {
 					)}
 				</div>
 
-				{selectedNote && (
-					<NoteDetailsPanel
-						projectId={projectId}
-						projectIdParam={projectIdParam}
-						note={selectedNote}
-						notes={notes}
-						onDeleted={() => setSelectedNoteId(null)}
-						className="w-80 shrink-0 border-l border-line"
-					/>
-				)}
+			{selectedNote && (
+				<NoteDetailsPanel
+					projectId={projectId}
+					projectIdParam={projectIdParam}
+					note={selectedNote}
+					notes={notes}
+					onEdit={() => setIsEditModalOpen(true)}
+					onDeleted={() => setSelectedNoteId(null)}
+					className="w-80 shrink-0 border-l border-line"
+				/>
+			)}
 			</div>
 
 			<CreateNoteModal
@@ -298,6 +307,19 @@ function MapRouteComponent(): JSX.Element {
 				onOpenChange={setIsCreateDialogOpen}
 				onCreate={handleCreateNote}
 				isCreating={createNoteMutation.isPending}
+			/>
+
+			<NoteEditModal
+				projectId={projectId}
+				note={selectedNote}
+				notes={notes}
+				tags={tags}
+				open={isEditModalOpen && !!selectedNote}
+				onOpenChange={setIsEditModalOpen}
+				onDeleted={() => {
+					setIsEditModalOpen(false);
+					setSelectedNoteId(null);
+				}}
 			/>
 		</div>
 	);

@@ -1,5 +1,4 @@
-import type { NoteResponseDto as Note } from "@repo/sdk";
-import { noteControllerRemove, noteControllerUpdate } from "@repo/sdk";
+import { noteControllerRemove } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Plus, RefreshCw, StickyNote } from "lucide-react";
@@ -10,7 +9,6 @@ import { Button } from "#/components/ui/button.tsx";
 import { LoadingState, NotFoundState } from "#/components/ui/loading-state.tsx";
 import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal.tsx";
 import { NoteAddressEditorPane } from "#/features/notes/components/NoteAddressEditorPane.tsx";
-import type { NoteSaveStatus } from "#/features/notes/components/NoteEditorPane.tsx";
 import { NoteEditorPane } from "#/features/notes/components/NoteEditorPane.tsx";
 import { NoteFileEditorPane } from "#/features/notes/components/NoteFileEditorPane.tsx";
 import { NoteLogEditorPane } from "#/features/notes/components/NoteLogEditorPane.tsx";
@@ -18,6 +16,7 @@ import { NoteSettingsPanel } from "#/features/notes/components/NoteSettingsPanel
 import { NoteTree } from "#/features/notes/components/NoteTree.tsx";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 import { useCreateNote } from "#/features/notes/hooks/useCreateNote.ts";
+import { useNoteDraftAutosave } from "#/features/notes/hooks/useNoteDraftAutosave.ts";
 import {
 	useAddNoteChild,
 	useAddNoteParent,
@@ -28,8 +27,6 @@ import { useProjectQuery } from "#/features/projects/hooks/useProjectQuery.ts";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 import { toastApiError } from "#/lib/api-error.ts";
 import type { NoteType } from "#/types/note.ts";
-
-const AUTOSAVE_DEBOUNCE_MS = 800;
 
 type NotesSearch = {
 	noteId?: number;
@@ -80,15 +77,6 @@ function NotesRouteComponent(): JSX.Element {
 		queryClient.invalidateQueries({ queryKey: ["notes", "all", projectId] });
 	}, [queryClient, projectId]);
 
-	const invalidateNoteHistory = React.useCallback(
-		(id: number) => {
-			queryClient.invalidateQueries({
-				queryKey: ["notes", "history", projectId, id],
-			});
-		},
-		[queryClient, projectId],
-	);
-
 	// --- New note dialog -----------------------------------------------------
 
 	const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
@@ -118,23 +106,6 @@ function NotesRouteComponent(): JSX.Element {
 		);
 	};
 
-	const updateNoteMutation = useMutation({
-		mutationFn: async (args: {
-			id: number;
-			patch: Partial<Pick<Note, "title" | "content" | "tags" | "color">>;
-		}) => {
-			const res = await noteControllerUpdate({
-				path: { projectId, id: args.id },
-				body: args.patch,
-			});
-			return res.data as Note;
-		},
-		onSuccess: (_data, variables) => {
-			invalidateNotes();
-			invalidateNoteHistory(variables.id);
-		},
-	});
-
 	const addNoteParentMutation = useAddNoteParent(projectId);
 	const removeNoteParentMutation = useRemoveNoteParent(projectId);
 	const addNoteChildMutation = useAddNoteChild(projectId);
@@ -157,90 +128,15 @@ function NotesRouteComponent(): JSX.Element {
 
 	// --- Autosaved title/content draft --------------------------------------
 
-	const [draftTitle, setDraftTitle] = React.useState("");
-	const [draftContent, setDraftContent] = React.useState("");
-	const [saveStatus, setSaveStatus] = React.useState<NoteSaveStatus>("idle");
-	const savedRef = React.useRef<{ title: string; content: string }>({
-		title: "",
-		content: "",
-	});
-	// Tracks which note id the draft state was last initialized from. Used
-	// to distinguish "note not loaded yet" (wait, don't clobber the draft
-	// with an empty value) from "already-initialized note refetched in the
-	// background" (also don't clobber - preserves in-flight local edits)
-	// from "user selected a different note, or this note just finished
-	// loading for the first time" (do (re)initialize).
-	const [initializedNoteId, setInitializedNoteId] = React.useState<
-		number | undefined
-	>(undefined);
-
-	React.useEffect(() => {
-		if (selectedNoteId === undefined) {
-			setInitializedNoteId(undefined);
-			setDraftTitle("");
-			setDraftContent("");
-			savedRef.current = { title: "", content: "" };
-			setSaveStatus("idle");
-			return;
-		}
-
-		// Already initialized the draft for this exact note id - a background
-		// refetch returning the same note shouldn't clobber in-flight edits.
-		if (initializedNoteId === selectedNoteId) return;
-
-		// The note hasn't loaded yet (e.g. right after selecting it, or on a
-		// fresh page load with a deep-linked `noteId`). Wait for the real data
-		// instead of resetting the draft to empty, which would otherwise show
-		// (and could autosave) blank content over the note's real content.
-		if (!selectedNote) return;
-
-		setDraftTitle(selectedNote.title ?? "");
-		setDraftContent(selectedNote.content ?? "");
-		savedRef.current = {
-			title: selectedNote.title ?? "",
-			content: selectedNote.content ?? "",
-		};
-		setSaveStatus("idle");
-		setInitializedNoteId(selectedNoteId);
-	}, [selectedNoteId, selectedNote, initializedNoteId]);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally depends on selectedNote.id (not the whole object) and omits the stable updateNoteMutation.mutate function
-	React.useEffect(() => {
-		if (!selectedNote) return;
-		// Guards against autosaving before the draft has actually been
-		// initialized from this note's real data (see the effect above) - a
-		// belt-and-suspenders check against ever persisting a spuriously
-		// empty draft over real content.
-		if (initializedNoteId !== selectedNote.id) return;
-		if (
-			draftTitle === savedRef.current.title &&
-			draftContent === savedRef.current.content
-		) {
-			return;
-		}
-
-		setSaveStatus("saving");
-		const timeout = setTimeout(() => {
-			updateNoteMutation.mutate(
-				{
-					id: selectedNote.id,
-					patch: { title: draftTitle, content: draftContent },
-				},
-				{
-					onSuccess: () => {
-						savedRef.current = { title: draftTitle, content: draftContent };
-						setSaveStatus("saved");
-					},
-					onError: (error) => {
-						toastApiError("save note")(error);
-						setSaveStatus("error");
-					},
-				},
-			);
-		}, AUTOSAVE_DEBOUNCE_MS);
-
-		return () => clearTimeout(timeout);
-	}, [draftTitle, draftContent, selectedNote?.id, initializedNoteId]);
+	const {
+		draftTitle,
+		draftContent,
+		setDraftTitle,
+		setDraftContent,
+		saveStatus,
+		initializedNoteId,
+		updateNoteMutation,
+	} = useNoteDraftAutosave(projectId, selectedNote);
 
 	// --- Handlers ------------------------------------------------------------
 

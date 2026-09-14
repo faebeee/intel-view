@@ -1,6 +1,6 @@
 import type { NoteResponseDto as Note } from "@repo/sdk";
 import { Link } from "@tanstack/react-router";
-import { ExternalLink, StickyNote, Trash2, X } from "lucide-react";
+import { ExternalLink, Pencil, StickyNote, Trash2, X } from "lucide-react";
 import * as React from "react";
 import { Button } from "#/components/ui/button.tsx";
 import { Markdown } from "#/components/ui/markdown.tsx";
@@ -23,6 +23,8 @@ export type NoteDetailsPanelProps = {
 	notes: Note[];
 	/** When provided, renders a close (X) button in the header — used by views (e.g. canvas) with no other way to deselect the note. */
 	onClose?: () => void;
+	/** When provided, renders an "Edit" button that opens the note in an in-place editor modal (e.g. on the map/canvas views) instead of navigating away. */
+	onEdit?: () => void;
 	/** Called after the note is successfully deleted, so the caller can clear its selection. */
 	onDeleted?: () => void;
 	className?: string;
@@ -32,8 +34,9 @@ export type NoteDetailsPanelProps = {
  * Read-only note details panel, shown whenever a note is focused/selected
  * (e.g. in the map or canvas views). Mirrors the fields of
  * `NoteSettingsPanel` (parent, tags, rendered content, timestamps, history)
- * for display, plus a delete action — editing otherwise happens on the
- * note's own detail/editor page, linked to via the "Open note" button.
+ * for display, plus a delete action. Editing can happen in-place via the
+ * "Edit" button (opens a modal, see `NoteEditModal`) without leaving the
+ * current view, or on the note's own detail/editor page via "Open note".
  */
 export function NoteDetailsPanel({
 	projectId,
@@ -41,6 +44,7 @@ export function NoteDetailsPanel({
 	note,
 	notes,
 	onClose,
+	onEdit,
 	onDeleted,
 	className,
 }: NoteDetailsPanelProps) {
@@ -169,12 +173,28 @@ export function NoteDetailsPanel({
 			</div>
 
 			<div className="flex items-center gap-2 p-3 border-t border-line shrink-0">
-				<Button asChild size="sm" className="flex-1">
+				{onEdit && (
+					<Button
+						variant="default"
+						size="sm"
+						className="flex-1"
+						onClick={onEdit}
+					>
+						<Pencil className="h-3.5 w-3.5" />
+						<span>Edit</span>
+					</Button>
+				)}
+				<Button
+					asChild
+					variant={onEdit ? "outline" : "default"}
+					size="sm"
+					className={onEdit ? undefined : "flex-1"}
+				>
 					<Link
 						to="/projects/$projectId/notes"
 						params={{ projectId: projectIdParam }}
 						search={{ noteId: note.id }}
-						className="text-primary-foreground!"
+						className={onEdit ? undefined : "text-primary-foreground!"}
 					>
 						<ExternalLink className="h-3.5 w-3.5" />
 						<span>Open note</span>

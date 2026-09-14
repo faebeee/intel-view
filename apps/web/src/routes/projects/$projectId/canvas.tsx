@@ -4,8 +4,10 @@ import * as React from "react";
 import { LoadingState, NotFoundState } from "#/components/ui/loading-state.tsx";
 import { CanvasView } from "#/features/canvas/components/CanvasView.tsx";
 import { NoteDetailsPanel } from "#/features/notes/components/NoteDetailsPanel.tsx";
+import { NoteEditModal } from "#/features/notes/components/NoteEditModal.tsx";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 import { useProjectQuery } from "#/features/projects/hooks/useProjectQuery.ts";
+import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 
 export const Route = createFileRoute("/projects/$projectId/canvas")({
 	component: CanvasRouteComponent,
@@ -18,10 +20,12 @@ function CanvasRouteComponent(): JSX.Element {
 	const { data: project, isLoading: isProjectLoading } =
 		useProjectQuery(projectId);
 	const { data: notes = [] } = useAllNotesQuery(projectId);
+	const { data: tags = [] } = useAllTagsQuery();
 
 	const [selectedNoteId, setSelectedNoteId] = React.useState<number | null>(
 		null,
 	);
+	const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
 
 	const selectedNote = React.useMemo(
 		() => notes.find((note) => note.id === selectedNoteId) ?? null,
@@ -49,6 +53,10 @@ function CanvasRouteComponent(): JSX.Element {
 					projectId={projectId}
 					selectedNoteId={selectedNoteId}
 					onSelectNote={setSelectedNoteId}
+					onNoteDoubleClick={(noteId) => {
+						setSelectedNoteId(noteId);
+						setIsEditModalOpen(true);
+					}}
 				/>
 			</div>
 
@@ -59,10 +67,24 @@ function CanvasRouteComponent(): JSX.Element {
 					note={selectedNote}
 					notes={notes}
 					onClose={() => setSelectedNoteId(null)}
+					onEdit={() => setIsEditModalOpen(true)}
 					onDeleted={() => setSelectedNoteId(null)}
 					className="w-80 shrink-0 border-l border-line"
 				/>
 			)}
+
+			<NoteEditModal
+				projectId={projectId}
+				note={selectedNote}
+				notes={notes}
+				tags={tags}
+				open={isEditModalOpen && !!selectedNote}
+				onOpenChange={setIsEditModalOpen}
+				onDeleted={() => {
+					setIsEditModalOpen(false);
+					setSelectedNoteId(null);
+				}}
+			/>
 		</div>
 	);
 }
