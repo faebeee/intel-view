@@ -1,6 +1,6 @@
 import { AppDataSource } from './datasource';
 import { Project } from '../project/entities/project.entity';
-import { ProjectGroup } from '../project-group/entities/project-group.entity';
+import { ProjectFolder } from '../project-folder/entities/project-folder.entity';
 import { Tag } from '../tag/entities/tag.entity';
 import { Note } from '../note/entities/note.entity';
 import { NoteLocation } from '../note/entities/note-location.entity';
@@ -10,7 +10,7 @@ import { buildNoteRelations } from './note-relations.util';
 
 /**
  * Seeds a "Switzerland Field Ops" demo project (assigned to a demo project
- * group, with a non-default map/color theme) with tags and ~200 notes,
+ * folder, with a non-default map/color theme) with tags and ~200 notes,
  * geographically concentrated within Switzerland (with a small fraction of
  * notes spilling into neighbouring countries to simulate cross-border
  * activity). Exercises every note type except `'file'` (which requires a
@@ -29,7 +29,7 @@ const TOTAL_STANDARD_NOTES = 170;
 const TOTAL_LOG_NOTES = 15;
 const TOTAL_ADDRESS_NOTES = 15;
 
-const DEMO_PROJECT_GROUP = {
+const DEMO_PROJECT_FOLDER = {
   name: 'Field Operations',
   description: 'Active field intelligence operations across Europe.',
   color: '#0ea5e9',
@@ -212,7 +212,7 @@ function maybeCustomColor(): string | null {
 async function seed(): Promise<void> {
   await AppDataSource.initialize();
 
-  const projectGroupRepo = AppDataSource.getRepository(ProjectGroup);
+  const projectFolderRepo = AppDataSource.getRepository(ProjectFolder);
   const projectRepo = AppDataSource.getRepository(Project);
   const tagRepo = AppDataSource.getRepository(Tag);
   const noteRepo = AppDataSource.getRepository(Note);
@@ -220,14 +220,14 @@ async function seed(): Promise<void> {
   const noteLogEntryRepo = AppDataSource.getRepository(NoteLogEntry);
   const noteRelationRepo = AppDataSource.getRepository(NoteRelation);
 
-  console.log('Creating demo project group...');
-  const projectGroup = await projectGroupRepo.save(
-    projectGroupRepo.create(DEMO_PROJECT_GROUP),
+  console.log('Creating demo project folder...');
+  const projectFolder = await projectFolderRepo.save(
+    projectFolderRepo.create(DEMO_PROJECT_FOLDER),
   );
 
   console.log('Creating demo project...');
   const project = await projectRepo.save(
-    projectRepo.create({ ...DEMO_PROJECT, groupId: projectGroup.id }),
+    projectRepo.create({ ...DEMO_PROJECT, folderId: projectFolder.id }),
   );
 
   console.log('Creating global tags...');
@@ -387,7 +387,7 @@ async function seed(): Promise<void> {
   console.log(
     [
       `Done. Created project "${project.name}" (id=${project.id})`,
-      `in group "${projectGroup.name}" (theme=${project.color}/${project.mapTheme})`,
+      `in folder "${projectFolder.name}" (theme=${project.color}/${project.mapTheme})`,
       `with ${tags.length} tags,`,
       `${savedStandardNotes.length} standard notes (with map pins),`,
       `${savedLogNotes.length} log notes (${logEntriesToInsert.length} log entries),`,

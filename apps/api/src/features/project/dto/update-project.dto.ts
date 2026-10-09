@@ -27,12 +27,12 @@ export class UpdateProjectDto {
   @IsOptional()
   @ApiProperty({
     description:
-      'ID of the group this project belongs to. Pass null to unassign.',
+      'ID of the folder this project belongs to. Pass null to unassign.',
     type: 'number',
     required: false,
     nullable: true,
   })
-  groupId?: number | null;
+  folderId?: number | null;
 
   @IsIn(PROJECT_MAP_THEMES)
   @IsOptional()

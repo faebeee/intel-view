@@ -7,8 +7,8 @@ describe('toProjectResponseDto', () => {
       id: 1,
       name: 'Op Blue Horizon',
       description: null,
-      groupId: null,
-      group: null,
+      folderId: null,
+      folder: null,
       mapTheme: 'street',
       color: 'ocean',
       notes: [],
@@ -28,8 +28,8 @@ describe('toProjectResponseDto', () => {
       id: 1,
       name: 'Op Blue Horizon',
       description: null,
-      groupId: null,
-      group: null,
+      folderId: null,
+      folder: null,
       mapTheme: 'street',
       color: 'ocean',
       createdAt: project.createdAt,
@@ -37,14 +37,14 @@ describe('toProjectResponseDto', () => {
     });
   });
 
-  it('maps the group relation when present', () => {
+  it('maps the folder relation when present', () => {
     const project = buildProject({
-      groupId: 5,
-      group: { id: 5, name: 'Ops', color: '#00f2ff' } as Project['group'],
+      folderId: 5,
+      folder: { id: 5, name: 'Ops', color: '#00f2ff' } as Project['folder'],
     });
 
     const result = toProjectResponseDto(project);
 
-    expect(result.group).toEqual({ id: 5, name: 'Ops', color: '#00f2ff' });
+    expect(result.folder).toEqual({ id: 5, name: 'Ops', color: '#00f2ff' });
   });
 });

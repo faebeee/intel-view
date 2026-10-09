@@ -121,18 +121,18 @@ function ProjectDashboardComponent(): JSX.Element {
 								color={project.color}
 								className="px-3 py-1 text-xs"
 							/>
-							{project.group ? (
+							{project.folder ? (
 								<span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3 py-1 text-xs font-mono text-sea-ink">
 									<span
 										className="size-2 rounded-full"
-										style={{ backgroundColor: project.group.color }}
+										style={{ backgroundColor: project.folder.color }}
 									/>
-									{project.group.name}
+									{project.folder.name}
 								</span>
 							) : (
 								<span className="inline-flex items-center gap-2 rounded-full border border-dashed border-line/70 bg-surface/40 px-3 py-1 text-xs font-mono text-muted-foreground">
 									<Users className="h-3 w-3" />
-									No group assigned
+									No folder assigned
 								</span>
 							)}
 							<span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3 py-1 text-xs font-mono text-sea-ink">

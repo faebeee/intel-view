@@ -3,7 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ProjectService } from './project.service';
 import { Project } from './entities/project.entity';
-import { ProjectGroupService } from '../project-group/project-group.service';
+import { ProjectFolderService } from '../project-folder/project-folder.service';
 
 describe('ProjectService', () => {
   let service: ProjectService;
@@ -17,7 +17,7 @@ describe('ProjectService', () => {
   const mockDataSource = {
     transaction: jest.fn(),
   };
-  const mockProjectGroupService = {
+  const mockProjectFolderService = {
     assertExists: jest.fn(),
   };
 
@@ -36,8 +36,8 @@ describe('ProjectService', () => {
           useValue: mockDataSource,
         },
         {
-          provide: ProjectGroupService,
-          useValue: mockProjectGroupService,
+          provide: ProjectFolderService,
+          useValue: mockProjectFolderService,
         },
       ],
     }).compile();
@@ -69,16 +69,16 @@ describe('ProjectService', () => {
       );
     });
 
-    it('validates the group exists when assigning a groupId', async () => {
-      const existingProject = { id: 1, name: 'Op Blue Horizon', groupId: null };
+    it('validates the folder exists when assigning a folderId', async () => {
+      const existingProject = { id: 1, name: 'Op Blue Horizon', folderId: null };
       mockProjectRepository.findOne.mockResolvedValue(existingProject);
       mockProjectRepository.save.mockImplementation(
         (project: unknown) => project,
       );
 
-      await service.update(1, { groupId: 5 });
+      await service.update(1, { folderId: 5 });
 
-      expect(mockProjectGroupService.assertExists).toHaveBeenCalledWith(5);
+      expect(mockProjectFolderService.assertExists).toHaveBeenCalledWith(5);
     });
 
     it('persists the selected mapTheme on the project', async () => {

@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TagsRouteImport } from './routes/tags'
+import { Route as FoldersFolderIdRouteImport } from './routes/folders/$folderId'
+import { Route as FoldersUngroupedRouteImport } from './routes/folders/ungrouped'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projectId'
 import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$projectId/index'
 import { Route as ProjectsProjectIdCanvasRouteImport } from './routes/projects/$projectId/canvas'
@@ -25,6 +27,16 @@ const IndexRoute = IndexRouteImport.update({
 const TagsRoute = TagsRouteImport.update({
   id: '/tags',
   path: '/tags',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FoldersFolderIdRoute = FoldersFolderIdRouteImport.update({
+  id: '/folders/$folderId',
+  path: '/folders/$folderId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FoldersUngroupedRoute = FoldersUngroupedRouteImport.update({
+  id: '/folders/ungrouped',
+  path: '/folders/ungrouped',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
@@ -56,6 +68,8 @@ const ProjectsProjectIdNotesRoute = ProjectsProjectIdNotesRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/tags': typeof TagsRoute
+  '/folders/$folderId': typeof FoldersFolderIdRoute
+  '/folders/ungrouped': typeof FoldersUngroupedRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
   '/projects/$projectId/canvas': typeof ProjectsProjectIdCanvasRoute
   '/projects/$projectId/map': typeof ProjectsProjectIdMapRoute
@@ -65,6 +79,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/tags': typeof TagsRoute
+  '/folders/$folderId': typeof FoldersFolderIdRoute
+  '/folders/ungrouped': typeof FoldersUngroupedRoute
   '/projects/$projectId/canvas': typeof ProjectsProjectIdCanvasRoute
   '/projects/$projectId/map': typeof ProjectsProjectIdMapRoute
   '/projects/$projectId/notes': typeof ProjectsProjectIdNotesRoute
@@ -74,6 +90,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/tags': typeof TagsRoute
+  '/folders/$folderId': typeof FoldersFolderIdRoute
+  '/folders/ungrouped': typeof FoldersUngroupedRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
   '/projects/$projectId/canvas': typeof ProjectsProjectIdCanvasRoute
   '/projects/$projectId/map': typeof ProjectsProjectIdMapRoute
@@ -85,6 +103,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/tags'
+    | '/folders/$folderId'
+    | '/folders/ungrouped'
     | '/projects/$projectId'
     | '/projects/$projectId/canvas'
     | '/projects/$projectId/map'
@@ -94,6 +114,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/tags'
+    | '/folders/$folderId'
+    | '/folders/ungrouped'
     | '/projects/$projectId/canvas'
     | '/projects/$projectId/map'
     | '/projects/$projectId/notes'
@@ -102,6 +124,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/tags'
+    | '/folders/$folderId'
+    | '/folders/ungrouped'
     | '/projects/$projectId'
     | '/projects/$projectId/canvas'
     | '/projects/$projectId/map'
@@ -112,6 +136,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   TagsRoute: typeof TagsRoute
+  FoldersFolderIdRoute: typeof FoldersFolderIdRoute
+  FoldersUngroupedRoute: typeof FoldersUngroupedRoute
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRouteWithChildren
 }
 
@@ -129,6 +155,20 @@ declare module '@tanstack/react-router' {
       path: '/tags'
       fullPath: '/tags'
       preLoaderRoute: typeof TagsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/folders/$folderId': {
+      id: '/folders/$folderId'
+      path: '/folders/$folderId'
+      fullPath: '/folders/$folderId'
+      preLoaderRoute: typeof FoldersFolderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/folders/ungrouped': {
+      id: '/folders/ungrouped'
+      path: '/folders/ungrouped'
+      fullPath: '/folders/ungrouped'
+      preLoaderRoute: typeof FoldersUngroupedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects/$projectId': {
@@ -189,6 +229,8 @@ const ProjectsProjectIdRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   TagsRoute: TagsRoute,
+  FoldersFolderIdRoute: FoldersFolderIdRoute,
+  FoldersUngroupedRoute: FoldersUngroupedRoute,
   ProjectsProjectIdRoute: ProjectsProjectIdRouteWithChildren,
 }
 export const routeTree = rootRouteImport

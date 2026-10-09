@@ -2,7 +2,7 @@ import { BaseEntity } from '../../database/entities/base.entity';
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Note } from '../../note/entities/note.entity';
-import { ProjectGroup } from '../../project-group/entities/project-group.entity';
+import { ProjectFolder } from '../../project-folder/entities/project-folder.entity';
 
 /**
  * The base map tile layer style selected for a project's map view. Mirrors
@@ -55,17 +55,17 @@ export class Project extends BaseEntity {
 
   @Column({ type: 'int', nullable: true })
   @ApiProperty({
-    description: 'ID of the group this project belongs to',
+    description: 'ID of the folder this project belongs to',
     required: false,
     nullable: true,
   })
-  groupId: number | null;
+  folderId: number | null;
 
-  @ManyToOne(() => ProjectGroup, (group) => group.projects, {
+  @ManyToOne(() => ProjectFolder, (folder) => folder.projects, {
     nullable: true,
   })
-  @JoinColumn({ name: 'groupId' })
-  group: ProjectGroup | null;
+  @JoinColumn({ name: 'folderId' })
+  folder: ProjectFolder | null;
 
   @Column({
     type: 'varchar',

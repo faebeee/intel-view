@@ -1,7 +1,7 @@
-import type { ProjectGroupResponseDto } from "@repo/sdk";
+import type { ProjectFolderResponseDto } from "@repo/sdk";
 import {
-	projectGroupControllerCreate,
-	projectGroupControllerUpdate,
+	projectFolderControllerCreate,
+	projectFolderControllerUpdate,
 } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
@@ -33,26 +33,26 @@ const PRESET_COLORS = [
 
 const DEFAULT_COLOR = "#00f2ff";
 
-type ProjectGroupModalProps = {
+type ProjectFolderModalProps = {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	/** Group being edited. `null`/omitted puts the modal in "create" mode. */
-	group?: ProjectGroupResponseDto | null;
+	/** Folder being edited. `null`/omitted puts the modal in "create" mode. */
+	folder?: ProjectFolderResponseDto | null;
 	onSuccess?: () => void;
 };
 
 /**
- * Single modal handling both project group creation and editing, mirroring
+ * Single modal handling both project folder creation and editing, mirroring
  * the ProjectModal/TagModal pattern: whether we're editing is derived purely
- * from whether a `group` was passed in.
+ * from whether a `folder` was passed in.
  */
-export function ProjectGroupModal({
+export function ProjectFolderModal({
 	open,
 	onOpenChange,
-	group = null,
+	folder = null,
 	onSuccess,
-}: ProjectGroupModalProps) {
-	const isEditing = group !== null;
+}: ProjectFolderModalProps) {
+	const isEditing = folder !== null;
 	const [name, setName] = React.useState("");
 	const [description, setDescription] = React.useState("");
 	const [color, setColor] = React.useState(DEFAULT_COLOR);
@@ -60,44 +60,46 @@ export function ProjectGroupModal({
 
 	React.useEffect(() => {
 		if (!open) return;
-		if (group) {
-			setName(group.name || "");
-			setDescription(group.description || "");
-			setColor(group.color || DEFAULT_COLOR);
+		if (folder) {
+			setName(folder.name || "");
+			setDescription(folder.description || "");
+			setColor(folder.color || DEFAULT_COLOR);
 		} else {
 			setName("");
 			setDescription("");
 			setColor(DEFAULT_COLOR);
 		}
-	}, [open, group]);
+	}, [open, folder]);
 
-	const saveGroupMutation = useMutation({
+	const saveFolderMutation = useMutation({
 		mutationFn: async (payload: {
 			name: string;
 			description?: string;
 			color: string;
 		}) => {
 			if (isEditing) {
-				if (!group) throw new Error("No group selected");
-				const res = await projectGroupControllerUpdate({
-					path: { id: group.id },
+				if (!folder) throw new Error("No folder selected");
+				const res = await projectFolderControllerUpdate({
+					path: { id: folder.id },
 					body: payload,
 				});
 				return res.data;
 			}
-			const res = await projectGroupControllerCreate({ body: payload });
+			const res = await projectFolderControllerCreate({ body: payload });
 			return res.data;
 		},
 		onSuccess: () => {
 			toast.success(
-				isEditing ? "Group updated successfully" : "Group created successfully",
+				isEditing
+					? "Folder updated successfully"
+					: "Folder created successfully",
 			);
-			queryClient.invalidateQueries({ queryKey: ["project-groups", "all"] });
+			queryClient.invalidateQueries({ queryKey: ["project-folders"] });
 			queryClient.invalidateQueries({ queryKey: ["projects", "all"] });
 			onOpenChange(false);
 			if (onSuccess) onSuccess();
 		},
-		onError: toastApiError(isEditing ? "update group" : "create group"),
+		onError: toastApiError(isEditing ? "update folder" : "create folder"),
 	});
 
 	const handleSubmit = (e: React.FormEvent) => {
@@ -105,19 +107,19 @@ export function ProjectGroupModal({
 
 		if (!name.trim()) {
 			toast.warning("Empty name", {
-				description: "Group name cannot be empty.",
+				description: "Folder name cannot be empty.",
 			});
 			return;
 		}
 
 		if (!color.trim()) {
 			toast.warning("Empty color", {
-				description: "Group color cannot be empty.",
+				description: "Folder color cannot be empty.",
 			});
 			return;
 		}
 
-		saveGroupMutation.mutate({
+		saveFolderMutation.mutate({
 			name: name.trim(),
 			description: description.trim() || undefined,
 			color: color.trim(),
@@ -129,24 +131,24 @@ export function ProjectGroupModal({
 			<DialogContent className="border-line bg-surface-strong/95 backdrop-blur-md text-sea-ink max-w-sm shadow-2xl shadow-black/80">
 				<DialogHeader className="space-y-1">
 					<DialogTitle className="text-lg font-bold text-sea-ink uppercase tracking-wider font-mono">
-						{isEditing ? `Edit Group #${group?.id}` : "Create Group"}
+						{isEditing ? `Edit Folder #${folder?.id}` : "Create Folder"}
 					</DialogTitle>
 					<DialogDescription className="text-xs text-muted-foreground leading-relaxed">
 						{isEditing
-							? "Update the group name, description and color."
-							: "Groups let you organize related projects together."}
+							? "Update the folder name, description and color."
+							: "Folders let you organize related projects together."}
 					</DialogDescription>
 				</DialogHeader>
 
 				<form onSubmit={handleSubmit} className="space-y-4 my-2">
-					<FormField label="Group Name" htmlFor="group-name">
+					<FormField label="Folder Name" htmlFor="folder-name">
 						<Input
-							id="group-name"
+							id="folder-name"
 							placeholder="e.g. Active Operations"
 							className={HUD_INPUT_CLASS}
 							value={name}
 							onChange={(e) => setName(e.target.value)}
-							disabled={saveGroupMutation.isPending}
+							disabled={saveFolderMutation.isPending}
 							maxLength={150}
 							required
 						/>
@@ -154,28 +156,32 @@ export function ProjectGroupModal({
 
 					<FormField
 						label="Description (optional)"
-						htmlFor="group-description"
+						htmlFor="folder-description"
 					>
 						<Textarea
-							id="group-description"
-							placeholder="Briefly describe this group..."
+							id="folder-description"
+							placeholder="Briefly describe this folder..."
 							className={`${HUD_INPUT_CLASS} min-h-16`}
 							value={description}
 							onChange={(e) => setDescription(e.target.value)}
-							disabled={saveGroupMutation.isPending}
+							disabled={saveFolderMutation.isPending}
 						/>
 					</FormField>
 
-					<FormField label="Group Color" htmlFor="group-color" className="gap-2">
+					<FormField
+						label="Folder Color"
+						htmlFor="folder-color"
+						className="gap-2"
+					>
 						<div className="flex items-center gap-2">
 							<Input
-								id="group-color"
+								id="folder-color"
 								type="text"
 								placeholder="#00f2ff"
 								className={`${HUD_INPUT_CLASS} font-mono flex-1`}
 								value={color}
 								onChange={(e) => setColor(e.target.value)}
-								disabled={saveGroupMutation.isPending}
+								disabled={saveFolderMutation.isPending}
 								required
 							/>
 							<div
@@ -209,7 +215,7 @@ export function ProjectGroupModal({
 							variant="outline"
 							size="sm"
 							onClick={() => onOpenChange(false)}
-							disabled={saveGroupMutation.isPending}
+							disabled={saveFolderMutation.isPending}
 						>
 							Cancel
 						</Button>
@@ -217,9 +223,9 @@ export function ProjectGroupModal({
 							type="submit"
 							variant="default"
 							size="sm"
-							disabled={saveGroupMutation.isPending}
+							disabled={saveFolderMutation.isPending}
 						>
-							{saveGroupMutation.isPending ? (
+							{saveFolderMutation.isPending ? (
 								<>
 									<RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" />
 									{isEditing ? "Saving..." : "Creating..."}
@@ -227,7 +233,7 @@ export function ProjectGroupModal({
 							) : isEditing ? (
 								"Save Changes"
 							) : (
-								"Create Group"
+								"Create Folder"
 							)}
 						</Button>
 					</DialogFooter>

@@ -5,10 +5,10 @@ import { ProjectService } from './project.service';
 import { ProjectAccessService } from './project-access.service';
 import { Project } from './entities/project.entity';
 import { Note } from '../note/entities/note.entity';
-import { ProjectGroupModule } from '../project-group/project-group.module';
+import { ProjectFolderModule } from '../project-folder/project-folder.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Project, Note]), ProjectGroupModule],
+  imports: [TypeOrmModule.forFeature([Project, Note]), ProjectFolderModule],
   controllers: [ProjectController],
   providers: [ProjectService, ProjectAccessService],
   exports: [ProjectService, ProjectAccessService],

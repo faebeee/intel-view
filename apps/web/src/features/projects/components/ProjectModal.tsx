@@ -20,7 +20,7 @@ import {
 	NativeSelectOption,
 } from "#/components/ui/native-select.tsx";
 import { Textarea } from "#/components/ui/textarea";
-import { useAllProjectGroupsQuery } from "#/features/project-groups/hooks/useAllProjectGroupsQuery.ts";
+import { useAllProjectFoldersQuery } from "#/features/project-folders/hooks/useAllProjectFoldersQuery.ts";
 import { toastApiError } from "#/lib/api-error.ts";
 import {
 	COLOR_THEME_LABELS,
@@ -35,6 +35,12 @@ type ProjectModalProps = {
 	onOpenChange: (open: boolean) => void;
 	/** Project being edited. `null`/omitted puts the modal in "create" mode. */
 	project?: ProjectResponseDto | null;
+	/**
+	 * Folder to preselect when creating a new project from within a folder's
+	 * detail page (e.g. clicking "New Project" while viewing a folder). Has no
+	 * effect in edit mode, where the project's current folder is used instead.
+	 */
+	defaultFolderId?: number | null;
 	onSuccess?: () => void;
 };
 
@@ -47,15 +53,16 @@ export function ProjectModal({
 	open,
 	onOpenChange,
 	project = null,
+	defaultFolderId = null,
 	onSuccess,
 }: ProjectModalProps) {
 	const isEditing = project !== null;
 	const [name, setName] = React.useState("");
 	const [description, setDescription] = React.useState("");
-	const [groupId, setGroupId] = React.useState<string>("");
+	const [folderId, setFolderId] = React.useState<string>("");
 	const [color, setColor] = React.useState<ColorTheme>(DEFAULT_COLOR_THEME);
 	const queryClient = useQueryClient();
-	const { data: groups = [] } = useAllProjectGroupsQuery();
+	const { data: folders = [] } = useAllProjectFoldersQuery();
 
 	// Reset (create mode) or prefill (edit mode) the form whenever the modal
 	// opens, or the project being edited changes.
@@ -64,21 +71,21 @@ export function ProjectModal({
 		if (project) {
 			setName(project.name || "");
 			setDescription(project.description || "");
-			setGroupId(project.groupId != null ? String(project.groupId) : "");
+			setFolderId(project.folderId != null ? String(project.folderId) : "");
 			setColor((project.color as ColorTheme) || DEFAULT_COLOR_THEME);
 		} else {
 			setName("");
 			setDescription("");
-			setGroupId("");
+			setFolderId(defaultFolderId != null ? String(defaultFolderId) : "");
 			setColor(DEFAULT_COLOR_THEME);
 		}
-	}, [open, project]);
+	}, [open, project, defaultFolderId]);
 
 	const saveProjectMutation = useMutation({
 		mutationFn: async (payload: {
 			name: string;
 			description?: string;
-			groupId: number | null;
+			folderId: number | null;
 			color: ColorTheme;
 		}) => {
 			if (isEditing) {
@@ -98,10 +105,8 @@ export function ProjectModal({
 					? "Project updated successfully"
 					: "Project created successfully",
 			);
-			queryClient.invalidateQueries({ queryKey: ["projects", "all"] });
-			if (isEditing && project) {
-				queryClient.invalidateQueries({ queryKey: ["projects", project.id] });
-			}
+			queryClient.invalidateQueries({ queryKey: ["projects"] });
+			queryClient.invalidateQueries({ queryKey: ["project-folders"] });
 			onOpenChange(false);
 			if (onSuccess) onSuccess();
 		},
@@ -121,7 +126,7 @@ export function ProjectModal({
 		saveProjectMutation.mutate({
 			name: name.trim(),
 			description: description.trim() || undefined,
-			groupId: groupId ? Number(groupId) : null,
+			folderId: folderId ? Number(folderId) : null,
 			color,
 		});
 	};
@@ -136,7 +141,7 @@ export function ProjectModal({
 					<DialogDescription className="text-xs text-muted-foreground leading-relaxed">
 						{isEditing
 							? "Update the project name, description and accent color."
-							: "Projects group related notes together. Pick an accent color to make this project recognizable when open."}
+							: "Projects organize related notes together. Pick an accent color to make this project recognizable when open."}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -168,18 +173,20 @@ export function ProjectModal({
 						/>
 					</FormField>
 
-					<FormField label="Group (optional)" htmlFor="project-group">
+					<FormField label="Folder (optional)" htmlFor="project-folder">
 						<NativeSelect
-							id="project-group"
+							id="project-folder"
 							className={`${HUD_INPUT_CLASS} w-full`}
-							value={groupId}
-							onChange={(e) => setGroupId(e.target.value)}
+							value={folderId}
+							onChange={(e) => setFolderId(e.target.value)}
 							disabled={saveProjectMutation.isPending}
 						>
-							<NativeSelectOption value="">No group</NativeSelectOption>
-							{groups.map((group) => (
-								<NativeSelectOption key={group.id} value={String(group.id)}>
-									{group.name}
+							<NativeSelectOption value="">
+								No folder (ungrouped)
+							</NativeSelectOption>
+							{folders.map((folder) => (
+								<NativeSelectOption key={folder.id} value={String(folder.id)}>
+									{folder.name}
 								</NativeSelectOption>
 							))}
 						</NativeSelect>

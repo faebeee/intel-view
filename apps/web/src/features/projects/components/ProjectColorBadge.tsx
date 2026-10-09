@@ -14,7 +14,7 @@ type ProjectColorBadgeProps = {
 
 /**
  * Small pill showing a project's chosen accent color palette (dot + label),
- * mirroring how the project group color is displayed.
+ * mirroring how the project folder color is displayed.
  */
 export function ProjectColorBadge({
 	color,

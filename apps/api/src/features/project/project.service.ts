@@ -11,7 +11,7 @@ import { Project } from './entities/project.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { Note } from '../note/entities/note.entity';
-import { ProjectGroupService } from '../project-group/project-group.service';
+import { ProjectFolderService } from '../project-folder/project-folder.service';
 
 export const projectPaginateConfig: PaginateConfig<Project> = {
   sortableColumns: ['id', 'name', 'createdAt', 'updatedAt'],
@@ -20,9 +20,9 @@ export const projectPaginateConfig: PaginateConfig<Project> = {
   searchableColumns: ['name', 'description'],
   filterableColumns: {
     name: true,
-    groupId: true,
+    folderId: true,
   },
-  relations: ['group'],
+  relations: ['folder'],
 };
 
 @Injectable()
@@ -31,12 +31,12 @@ export class ProjectService {
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
     private readonly dataSource: DataSource,
-    private readonly projectGroupService: ProjectGroupService,
+    private readonly projectFolderService: ProjectFolderService,
   ) {}
 
   async create(createProjectDto: CreateProjectDto): Promise<Project> {
-    if (createProjectDto.groupId != null) {
-      await this.projectGroupService.assertExists(createProjectDto.groupId);
+    if (createProjectDto.folderId != null) {
+      await this.projectFolderService.assertExists(createProjectDto.folderId);
     }
 
     const project = this.projectRepository.create(createProjectDto);
@@ -56,7 +56,7 @@ export class ProjectService {
   async findOne(id: number): Promise<Project | null> {
     return this.projectRepository.findOne({
       where: { id, deletedAt: IsNull() },
-      relations: { group: true },
+      relations: { folder: true },
     });
   }
 
@@ -70,8 +70,8 @@ export class ProjectService {
       return null;
     }
 
-    if (updateProjectDto.groupId != null) {
-      await this.projectGroupService.assertExists(updateProjectDto.groupId);
+    if (updateProjectDto.folderId != null) {
+      await this.projectFolderService.assertExists(updateProjectDto.folderId);
     }
 
     Object.assign(project, updateProjectDto);

@@ -9,7 +9,7 @@ import type {
   ProjectMapTheme,
 } from '../entities/project.entity';
 
-export class ProjectGroupSummaryDto {
+export class ProjectFolderSummaryDto {
   @ApiProperty()
   id: number;
 
@@ -31,14 +31,14 @@ export class ProjectResponseDto {
   description: string | null;
 
   @ApiProperty({ type: 'number', nullable: true, required: false })
-  groupId: number | null;
+  folderId: number | null;
 
   @ApiProperty({
-    type: ProjectGroupSummaryDto,
+    type: ProjectFolderSummaryDto,
     nullable: true,
     required: false,
   })
-  group: ProjectGroupSummaryDto | null;
+  folder: ProjectFolderSummaryDto | null;
 
   @ApiProperty({
     description:
@@ -66,12 +66,12 @@ export function toProjectResponseDto(project: Project): ProjectResponseDto {
     id: project.id,
     name: project.name,
     description: project.description,
-    groupId: project.groupId,
-    group: project.group
+    folderId: project.folderId,
+    folder: project.folder
       ? {
-          id: project.group.id,
-          name: project.group.name,
-          color: project.group.color,
+          id: project.folder.id,
+          name: project.folder.name,
+          color: project.folder.color,
         }
       : null,
     mapTheme: project.mapTheme,

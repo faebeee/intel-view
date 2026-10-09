@@ -26,12 +26,12 @@ export class CreateProjectDto {
   @IsInt()
   @IsOptional()
   @ApiProperty({
-    description: 'ID of the group this project belongs to',
+    description: 'ID of the folder this project belongs to',
     type: 'number',
     required: false,
     nullable: true,
   })
-  groupId?: number | null;
+  folderId?: number | null;
 
   @IsIn(PROJECT_MAP_THEMES)
   @IsOptional()

@@ -8,7 +8,7 @@ import {
 import { NoteModule } from './features/note/note.module';
 import { TagModule } from './features/tag/tag.module';
 import { ProjectModule } from './features/project/project.module';
-import { ProjectGroupModule } from './features/project-group/project-group.module';
+import { ProjectFolderModule } from './features/project-folder/project-folder.module';
 import { DatabaseModule } from './features/database/database.module';
 import { HealthModule } from './features/health/health.module';
 import { McpFeatureModule } from './features/mcp/mcp.module';
@@ -41,7 +41,7 @@ export const mcp = new McpStrategy({
     }),
     DatabaseModule,
     HealthModule,
-    ProjectGroupModule,
+    ProjectFolderModule,
     ProjectModule,
     NoteModule,
     TagModule,

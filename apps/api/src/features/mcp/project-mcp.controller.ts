@@ -32,11 +32,11 @@ const colorThemeEnum = z
 const createProjectParams = z.object({
   name: z.string().min(1).describe('The name of the project'),
   description: z.string().optional().describe('A description of the project'),
-  groupId: z
+  folderId: z
     .number()
     .int()
     .nullish()
-    .describe('ID of the group this project belongs to'),
+    .describe('ID of the folder this project belongs to'),
   mapTheme: mapThemeEnum,
   color: colorThemeEnum,
 });
@@ -45,12 +45,12 @@ const updateProjectParams = z.object({
   id: z.number().int().describe('ID of the project to update'),
   name: z.string().optional().describe('The name of the project'),
   description: z.string().optional().describe('A description of the project'),
-  groupId: z
+  folderId: z
     .number()
     .int()
     .nullish()
     .describe(
-      'ID of the group this project belongs to. Pass null to unassign.',
+      'ID of the folder this project belongs to. Pass null to unassign.',
     ),
   mapTheme: mapThemeEnum,
   color: colorThemeEnum,
