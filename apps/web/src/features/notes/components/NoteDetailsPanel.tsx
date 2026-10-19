@@ -3,7 +3,9 @@ import { Link } from "@tanstack/react-router";
 import {
 	ExternalLink,
 	Link as Link2,
+	Loader2,
 	Pencil,
+	Puzzle,
 	StickyNote,
 	Trash2,
 	X,
@@ -15,8 +17,10 @@ import { TagChipList } from "#/components/ui/tag-chip.tsx";
 import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
 import { NoteHistorySection } from "#/features/notes/components/NoteHistorySection.tsx";
 import { useDeleteNote } from "#/features/notes/hooks/useDeleteNote.ts";
+import { useExecuteNotePlugin } from "#/features/notes/hooks/useExecuteNotePlugin.ts";
 import { useNoteHistoryQuery } from "#/features/notes/hooks/useNoteHistoryQuery.ts";
 import { useNoteLogEntriesQuery } from "#/features/notes/hooks/useNoteLogEntriesQuery.ts";
+import { useNotePluginsQuery } from "#/features/notes/hooks/useNotePluginsQuery.ts";
 import { getNoteLabel } from "#/features/notes/hooks/useNoteTree.ts";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 import { useTagColorMap } from "#/features/tags/hooks/useTagColorMap.ts";
@@ -72,6 +76,27 @@ export function NoteDetailsPanel({
 	);
 	const latestLogEntry = logEntries[0] ?? null;
 	const deleteNoteMutation = useDeleteNote(projectId);
+	const { data: plugins = [] } = useNotePluginsQuery(projectId, note.id);
+	const executePluginMutation = useExecuteNotePlugin(projectId);
+	const [activePluginId, setActivePluginId] = React.useState<string | null>(
+		null,
+	);
+	const [pluginResult, setPluginResult] = React.useState<string | null>(null);
+
+	const handleRunPlugin = React.useCallback(
+		(pluginId: string) => {
+			setActivePluginId(pluginId);
+			setPluginResult(null);
+			executePluginMutation.mutate(
+				{ noteId: note.id, pluginId },
+				{
+					onSuccess: (result) => setPluginResult(result),
+					onSettled: () => setActivePluginId(null),
+				},
+			);
+		},
+		[executePluginMutation, note.id],
+	);
 
 	const handleDelete = React.useCallback(() => {
 		deleteNoteMutation.mutate(note.id, { onSuccess: onDeleted });
@@ -169,6 +194,38 @@ export function NoteDetailsPanel({
 							<span className="text-xs text-muted-foreground">No content</span>
 						)}
 					</div>
+
+					{plugins.length > 0 && (
+						<div className="flex flex-col gap-1.5 px-1">
+							<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
+								Plugins
+							</span>
+							<div className="flex flex-wrap gap-1.5">
+								{plugins.map((plugin) => (
+									<Button
+										key={plugin.id}
+										variant="outline"
+										size="sm"
+										disabled={executePluginMutation.isPending}
+										onClick={() => handleRunPlugin(plugin.id)}
+									>
+										{executePluginMutation.isPending &&
+										activePluginId === plugin.id ? (
+											<Loader2 className="h-3.5 w-3.5 animate-spin" />
+										) : (
+											<Puzzle className="h-3.5 w-3.5" />
+										)}
+										<span>{plugin.label}</span>
+									</Button>
+								))}
+							</div>
+							{pluginResult !== null && (
+								<pre className="mt-1 whitespace-pre-wrap break-all rounded-md border border-line/50 bg-sea-ink/5 p-2 text-[11px] font-mono text-sea-ink-soft">
+									{pluginResult}
+								</pre>
+							)}
+						</div>
+					)}
 
 					<div className="flex flex-col gap-1 px-1 pt-2 border-t border-line/50">
 						<span className="text-[9px] text-muted-foreground uppercase tracking-wider">

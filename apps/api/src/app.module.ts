@@ -12,6 +12,7 @@ import { ProjectFolderModule } from './features/project-folder/project-folder.mo
 import { DatabaseModule } from './features/database/database.module';
 import { HealthModule } from './features/health/health.module';
 import { McpFeatureModule } from './features/mcp/mcp.module';
+import { PluginModule } from './features/plugin/plugin.module';
 
 /**
  * MCP transport strategy exposing the tools defined in `McpFeatureModule`
@@ -46,6 +47,7 @@ export const mcp = new McpStrategy({
     NoteModule,
     TagModule,
     McpFeatureModule,
+    PluginModule,
   ],
   providers: [{ provide: MCP_STRATEGY, useValue: mcp }],
 })
