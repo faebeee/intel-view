@@ -629,6 +629,167 @@ describe('NoteService', () => {
     });
   });
 
+  describe('url validation', () => {
+    it("creates a 'url' note with a well-formed URL", async () => {
+      const projectId = 1;
+      const createNoteDto = {
+        type: 'url' as const,
+        content: 'https://example.com/page',
+      };
+      const createdNote = {
+        id: 7,
+        projectId,
+        ...createNoteDto,
+      } as unknown as Note;
+
+      mockNoteRepository.create.mockReturnValue(createdNote);
+      mockNoteRepository.save.mockResolvedValue(createdNote);
+
+      const result = await service.create(projectId, createNoteDto);
+
+      expect(result).toEqual(createdNote);
+    });
+
+    it("allows creating a 'url' note with empty content", async () => {
+      const projectId = 1;
+      const createNoteDto = { type: 'url' as const, content: '' };
+      const createdNote = {
+        id: 7,
+        projectId,
+        ...createNoteDto,
+      } as unknown as Note;
+
+      mockNoteRepository.create.mockReturnValue(createdNote);
+      mockNoteRepository.save.mockResolvedValue(createdNote);
+
+      const result = await service.create(projectId, createNoteDto);
+
+      expect(result).toEqual(createdNote);
+    });
+
+    it("allows creating a 'url' note with null content", async () => {
+      const projectId = 1;
+      const createNoteDto = { type: 'url' as const, content: null as unknown as string };
+      const createdNote = {
+        id: 7,
+        projectId,
+        ...createNoteDto,
+      } as unknown as Note;
+
+      mockNoteRepository.create.mockReturnValue(createdNote);
+      mockNoteRepository.save.mockResolvedValue(createdNote);
+
+      const result = await service.create(projectId, createNoteDto);
+
+      expect(result).toEqual(createdNote);
+    });
+
+    it("rejects creating a 'url' note with a malformed URL", async () => {
+      const projectId = 1;
+      const createNoteDto = {
+        type: 'url' as const,
+        content: 'not a url',
+      };
+
+      await expect(service.create(projectId, createNoteDto)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockNoteRepository.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects creating a 'url' note whose content uses a non-http(s) protocol", async () => {
+      const projectId = 1;
+      const createNoteDto = {
+        type: 'url' as const,
+        content: 'ftp://example.com/file',
+      };
+
+      await expect(service.create(projectId, createNoteDto)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockNoteRepository.create).not.toHaveBeenCalled();
+    });
+
+    it("does not validate content as a URL for non-'url' note types", async () => {
+      const projectId = 1;
+      const createNoteDto = { content: 'not a url' };
+      const createdNote = {
+        id: 1,
+        projectId,
+        type: 'standard',
+        content: 'not a url',
+      } as unknown as Note;
+
+      mockNoteRepository.create.mockReturnValue(createdNote);
+      mockNoteRepository.save.mockResolvedValue(createdNote);
+
+      await expect(
+        service.create(projectId, createNoteDto),
+      ).resolves.toEqual(createdNote);
+    });
+
+    it("re-validates a 'url' note's content when it is updated", async () => {
+      const projectId = 1;
+      const existingNote = {
+        id: 1,
+        projectId,
+        type: 'url',
+        content: 'https://old.example.com',
+      } as unknown as Note;
+      const updateNoteDto = { content: 'not a url' };
+
+      mockNoteRepository.findOne.mockResolvedValue(existingNote);
+
+      await expect(
+        service.update(projectId, 1, updateNoteDto),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockNoteRepository.save).not.toHaveBeenCalled();
+    });
+
+    it("does not re-validate a 'url' note's content when it is unchanged", async () => {
+      const projectId = 1;
+      const existingNote = {
+        id: 1,
+        projectId,
+        type: 'url',
+        content: 'https://same.example.com',
+        title: 'old title',
+      } as unknown as Note;
+      const updateNoteDto = {
+        title: 'new title',
+        content: 'https://same.example.com',
+      };
+
+      mockNoteRepository.findOne.mockResolvedValue(existingNote);
+      mockNoteRepository.save.mockImplementation((note: Note) =>
+        Promise.resolve(note),
+      );
+
+      await expect(
+        service.update(projectId, 1, updateNoteDto),
+      ).resolves.toBeDefined();
+    });
+    it("allows clearing a 'url' note's content to empty on update", async () => {
+      const projectId = 1;
+      const existingNote = {
+        id: 1,
+        projectId,
+        type: 'url',
+        content: 'https://old.example.com',
+      } as unknown as Note;
+      const updateNoteDto = { content: '' };
+
+      mockNoteRepository.findOne.mockResolvedValue(existingNote);
+      mockNoteRepository.save.mockImplementation((note: Note) =>
+        Promise.resolve(note),
+      );
+
+      await expect(
+        service.update(projectId, 1, updateNoteDto),
+      ).resolves.toBeDefined();
+    });
+  });
+
   describe('findLocations', () => {
     it("returns a note's derived locations enriched with the note's label and tags", async () => {
       const projectId = 1;

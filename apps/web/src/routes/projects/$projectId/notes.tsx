@@ -14,6 +14,7 @@ import { NoteFileEditorPane } from "#/features/notes/components/NoteFileEditorPa
 import { NoteLogEditorPane } from "#/features/notes/components/NoteLogEditorPane.tsx";
 import { NoteSettingsPanel } from "#/features/notes/components/NoteSettingsPanel.tsx";
 import { NoteTree } from "#/features/notes/components/NoteTree.tsx";
+import { NoteUrlEditorPane } from "#/features/notes/components/NoteUrlEditorPane.tsx";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 import { useCreateNote } from "#/features/notes/hooks/useCreateNote.ts";
 import { useNoteDraftAutosave } from "#/features/notes/hooks/useNoteDraftAutosave.ts";
@@ -267,6 +268,15 @@ function NotesRouteComponent(): JSX.Element {
 								/>
 							) : selectedNote.type === "file" ? (
 								<NoteFileEditorPane
+									projectId={projectId}
+									note={selectedNote}
+									title={draftTitle}
+									onTitleChange={setDraftTitle}
+									saveStatus={saveStatus}
+									className="h-full"
+								/>
+							) : selectedNote.type === "url" ? (
+								<NoteUrlEditorPane
 									projectId={projectId}
 									note={selectedNote}
 									title={draftTitle}

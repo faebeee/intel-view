@@ -429,8 +429,42 @@ export class NoteService {
     }
   }
 
+  /**
+   * Validates that `content` is a well-formed `http(s)://` URL, throwing a
+   * `BadRequestException` if not. Only applicable to `'url'`-type notes,
+   * for which `content` holds the URL itself rather than freeform text.
+   * Empty/null content is allowed (a url note can be created without a
+   * URL set yet) and is simply skipped.
+   */
+  private assertValidUrlContent(content: string | null | undefined): void {
+    const trimmed = content?.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(trimmed);
+    } catch {
+      throw new BadRequestException(
+        `'${trimmed}' is not a valid URL`,
+      );
+    }
+
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new BadRequestException(
+        `'${trimmed}' must use the http or https protocol`,
+      );
+    }
+  }
+
   async create(projectId: number, createNoteDto: CreateNoteDto): Promise<Note> {
     await this.assertProjectExists(projectId);
+
+    if (createNoteDto.type === 'url') {
+      this.assertValidUrlContent(createNoteDto.content);
+    }
+
     const parentIds = createNoteDto.parentIds ?? [];
     for (const parentId of parentIds) {
       const parent = await this.noteRepository.findOne({
@@ -861,6 +895,14 @@ export class NoteService {
 
     if (!note) {
       return null;
+    }
+
+    if (
+      note.type === 'url' &&
+      updateNoteDto.content !== undefined &&
+      !valuesAreEqual(note.content, updateNoteDto.content)
+    ) {
+      this.assertValidUrlContent(updateNoteDto.content);
     }
 
     // Compute field-level diffs for tracked fields before applying the

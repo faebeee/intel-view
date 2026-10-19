@@ -1,6 +1,13 @@
 import type { NoteResponseDto as Note } from "@repo/sdk";
 import { Link } from "@tanstack/react-router";
-import { ExternalLink, Pencil, StickyNote, Trash2, X } from "lucide-react";
+import {
+	ExternalLink,
+	Link as Link2,
+	Pencil,
+	StickyNote,
+	Trash2,
+	X,
+} from "lucide-react";
 import * as React from "react";
 import { Button } from "#/components/ui/button.tsx";
 import { Markdown } from "#/components/ui/markdown.tsx";
@@ -138,6 +145,22 @@ export function NoteDetailsPanel({
 							) : (
 								<span className="text-xs text-muted-foreground">
 									No log entries yet
+								</span>
+							)
+						) : note.type === "url" ? (
+							note.content?.trim() ? (
+								<a
+									href={note.content}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="flex items-center gap-1.5 text-xs text-palm hover:underline break-all"
+								>
+									<Link2 className="h-3 w-3 shrink-0" />
+									<span>{note.content}</span>
+								</a>
+							) : (
+								<span className="text-xs text-muted-foreground">
+									No URL set
 								</span>
 							)
 						) : note.content?.trim() ? (

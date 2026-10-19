@@ -1,4 +1,4 @@
-import { FileText, MapPin, Paperclip, ScrollText } from "lucide-react";
+import { FileText, Link, MapPin, Paperclip, ScrollText } from "lucide-react";
 import * as React from "react";
 import { Button } from "#/components/ui/button.tsx";
 import {
@@ -55,6 +55,12 @@ const NOTE_TYPE_OPTIONS: NoteTypeOption[] = [
 		description:
 			"A note holding a single uploaded file, stored in object storage and served through the API.",
 		icon: Paperclip,
+	},
+	{
+		value: "url",
+		label: "Link",
+		description: "A note holding a single URL.",
+		icon: Link,
 	},
 ];
 

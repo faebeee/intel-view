@@ -1,6 +1,13 @@
 import type { NodeProps } from "@xyflow/react";
 import { Handle, Position } from "@xyflow/react";
-import { Paperclip, ScrollText, StickyNote, Trash2 } from "lucide-react";
+import {
+	Link,
+	MapPin,
+	Paperclip,
+	ScrollText,
+	StickyNote,
+	Trash2,
+} from "lucide-react";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -72,6 +79,10 @@ export function NoteNode({ data, selected }: NoteNodeProps) {
 							<ScrollText className="h-3.5 w-3.5 text-primary shrink-0" />
 						) : note.type === "file" ? (
 							<Paperclip className="h-3.5 w-3.5 text-primary shrink-0" />
+						) : note.type === "address" ? (
+							<MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+						) : note.type === "url" ? (
+							<Link className="h-3.5 w-3.5 text-primary shrink-0" />
 						) : (
 							<StickyNote className="h-3.5 w-3.5 text-primary shrink-0" />
 						)}

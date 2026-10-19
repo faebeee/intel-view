@@ -13,7 +13,8 @@ export class UpdateNoteDto {
   @IsString()
   @IsOptional()
   @ApiProperty({
-    description: 'The markdown content of the note',
+    description:
+      "The markdown content of the note. For 'url'-type notes, must be a single well-formed http(s):// URL.",
     required: false,
   })
   content?: string;

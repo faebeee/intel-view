@@ -2,17 +2,14 @@ import type { NoteResponseDto as Note, TagResponseDto as Tag } from "@repo/sdk";
 import { StickyNote } from "lucide-react";
 import type { JSX } from "react";
 import * as React from "react";
-import {
-	Dialog,
-	DialogContent,
-	DialogTitle,
-} from "#/components/ui/dialog.tsx";
+import { Dialog, DialogContent, DialogTitle } from "#/components/ui/dialog.tsx";
 import { LoadingState } from "#/components/ui/loading-state.tsx";
 import { NoteAddressEditorPane } from "#/features/notes/components/NoteAddressEditorPane.tsx";
 import { NoteEditorPane } from "#/features/notes/components/NoteEditorPane.tsx";
 import { NoteFileEditorPane } from "#/features/notes/components/NoteFileEditorPane.tsx";
 import { NoteLogEditorPane } from "#/features/notes/components/NoteLogEditorPane.tsx";
 import { NoteSettingsPanel } from "#/features/notes/components/NoteSettingsPanel.tsx";
+import { NoteUrlEditorPane } from "#/features/notes/components/NoteUrlEditorPane.tsx";
 import { useDeleteNote } from "#/features/notes/hooks/useDeleteNote.ts";
 import { useNoteDraftAutosave } from "#/features/notes/hooks/useNoteDraftAutosave.ts";
 import {
@@ -166,6 +163,15 @@ export function NoteEditModal({
 								/>
 							) : note.type === "file" ? (
 								<NoteFileEditorPane
+									projectId={projectId}
+									note={note}
+									title={draftTitle}
+									onTitleChange={setDraftTitle}
+									saveStatus={saveStatus}
+									className="h-full"
+								/>
+							) : note.type === "url" ? (
+								<NoteUrlEditorPane
 									projectId={projectId}
 									note={note}
 									title={draftTitle}
