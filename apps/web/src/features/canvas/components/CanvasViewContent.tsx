@@ -56,6 +56,8 @@ export type CanvasViewContentProps = {
 	onSelectNote: (noteId: number | null) => void;
 	/** Called with a note's id when its card is double-clicked, so the caller can open an in-place editor (e.g. a modal) for that note. */
 	onNoteDoubleClick?: (noteId: number) => void;
+	/** Called with a newly created note's id right after it's created on the canvas, so the caller can immediately open an in-place editor (e.g. a modal) for it. */
+	onNoteCreated?: (noteId: number) => void;
 };
 
 function CanvasInnerView({
@@ -63,6 +65,7 @@ function CanvasInnerView({
 	selectedNoteId,
 	onSelectNote,
 	onNoteDoubleClick,
+	onNoteCreated,
 }: CanvasViewContentProps) {
 	const { resolvedMode } = useTheme();
 	const { data, isLoading, refetch } = useCanvasNotesQuery(projectId);
@@ -287,11 +290,12 @@ function CanvasInnerView({
 					onSuccess: (note) => {
 						setDraft(null);
 						onSelectNote(note.id);
+						onNoteCreated?.(note.id);
 					},
 				},
 			);
 		},
-		[draft, createInlineNoteMutation, onSelectNote],
+		[draft, createInlineNoteMutation, onSelectNote, onNoteCreated],
 	);
 
 	return (
@@ -342,7 +346,7 @@ function CanvasInnerView({
 							onNodesChange={onNodesChange}
 							onNodeDragStop={onNodeDragStop}
 							onNodeClick={onNodeClick}
-						onNodeDoubleClick={onNodeDoubleClick}
+							onNodeDoubleClick={onNodeDoubleClick}
 							onPaneClick={onPaneClick}
 							onConnect={onConnect}
 							onEdgesDelete={onEdgesDelete}

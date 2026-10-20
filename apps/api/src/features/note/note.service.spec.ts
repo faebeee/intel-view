@@ -790,6 +790,175 @@ describe('NoteService', () => {
     });
   });
 
+  describe('ip validation', () => {
+    it("creates an 'ip' note with a well-formed IPv4 address", async () => {
+      const projectId = 1;
+      const createNoteDto = {
+        type: 'ip' as const,
+        content: '192.168.1.1',
+      };
+      const createdNote = {
+        id: 7,
+        projectId,
+        ...createNoteDto,
+      } as unknown as Note;
+
+      mockNoteRepository.create.mockReturnValue(createdNote);
+      mockNoteRepository.save.mockResolvedValue(createdNote);
+
+      const result = await service.create(projectId, createNoteDto);
+
+      expect(result).toEqual(createdNote);
+    });
+
+    it("creates an 'ip' note with a well-formed IPv6 address", async () => {
+      const projectId = 1;
+      const createNoteDto = {
+        type: 'ip' as const,
+        content: '2001:db8::1',
+      };
+      const createdNote = {
+        id: 7,
+        projectId,
+        ...createNoteDto,
+      } as unknown as Note;
+
+      mockNoteRepository.create.mockReturnValue(createdNote);
+      mockNoteRepository.save.mockResolvedValue(createdNote);
+
+      const result = await service.create(projectId, createNoteDto);
+
+      expect(result).toEqual(createdNote);
+    });
+
+    it("allows creating an 'ip' note with empty content", async () => {
+      const projectId = 1;
+      const createNoteDto = { type: 'ip' as const, content: '' };
+      const createdNote = {
+        id: 7,
+        projectId,
+        ...createNoteDto,
+      } as unknown as Note;
+
+      mockNoteRepository.create.mockReturnValue(createdNote);
+      mockNoteRepository.save.mockResolvedValue(createdNote);
+
+      const result = await service.create(projectId, createNoteDto);
+
+      expect(result).toEqual(createdNote);
+    });
+
+    it("allows creating an 'ip' note with null content", async () => {
+      const projectId = 1;
+      const createNoteDto = { type: 'ip' as const, content: null as unknown as string };
+      const createdNote = {
+        id: 7,
+        projectId,
+        ...createNoteDto,
+      } as unknown as Note;
+
+      mockNoteRepository.create.mockReturnValue(createdNote);
+      mockNoteRepository.save.mockResolvedValue(createdNote);
+
+      const result = await service.create(projectId, createNoteDto);
+
+      expect(result).toEqual(createdNote);
+    });
+
+    it("rejects creating an 'ip' note with a malformed address", async () => {
+      const projectId = 1;
+      const createNoteDto = {
+        type: 'ip' as const,
+        content: 'not an ip',
+      };
+
+      await expect(service.create(projectId, createNoteDto)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockNoteRepository.create).not.toHaveBeenCalled();
+    });
+
+    it("does not validate content as an IP address for non-'ip' note types", async () => {
+      const projectId = 1;
+      const createNoteDto = { content: 'not an ip' };
+      const createdNote = {
+        id: 1,
+        projectId,
+        type: 'standard',
+        content: 'not an ip',
+      } as unknown as Note;
+
+      mockNoteRepository.create.mockReturnValue(createdNote);
+      mockNoteRepository.save.mockResolvedValue(createdNote);
+
+      await expect(
+        service.create(projectId, createNoteDto),
+      ).resolves.toEqual(createdNote);
+    });
+
+    it("re-validates an 'ip' note's content when it is updated", async () => {
+      const projectId = 1;
+      const existingNote = {
+        id: 1,
+        projectId,
+        type: 'ip',
+        content: '10.0.0.1',
+      } as unknown as Note;
+      const updateNoteDto = { content: 'not an ip' };
+
+      mockNoteRepository.findOne.mockResolvedValue(existingNote);
+
+      await expect(
+        service.update(projectId, 1, updateNoteDto),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockNoteRepository.save).not.toHaveBeenCalled();
+    });
+
+    it("does not re-validate an 'ip' note's content when it is unchanged", async () => {
+      const projectId = 1;
+      const existingNote = {
+        id: 1,
+        projectId,
+        type: 'ip',
+        content: '10.0.0.1',
+        title: 'old title',
+      } as unknown as Note;
+      const updateNoteDto = {
+        title: 'new title',
+        content: '10.0.0.1',
+      };
+
+      mockNoteRepository.findOne.mockResolvedValue(existingNote);
+      mockNoteRepository.save.mockImplementation((note: Note) =>
+        Promise.resolve(note),
+      );
+
+      await expect(
+        service.update(projectId, 1, updateNoteDto),
+      ).resolves.toBeDefined();
+    });
+
+    it("allows clearing an 'ip' note's content to empty on update", async () => {
+      const projectId = 1;
+      const existingNote = {
+        id: 1,
+        projectId,
+        type: 'ip',
+        content: '10.0.0.1',
+      } as unknown as Note;
+      const updateNoteDto = { content: '' };
+
+      mockNoteRepository.findOne.mockResolvedValue(existingNote);
+      mockNoteRepository.save.mockImplementation((note: Note) =>
+        Promise.resolve(note),
+      );
+
+      await expect(
+        service.update(projectId, 1, updateNoteDto),
+      ).resolves.toBeDefined();
+    });
+  });
+
   describe('findLocations', () => {
     it("returns a note's derived locations enriched with the note's label and tags", async () => {
       const projectId = 1;

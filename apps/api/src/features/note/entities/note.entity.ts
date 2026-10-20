@@ -16,16 +16,18 @@ import { NoteLogEntry } from './note-log-entry.entity';
  * uploaded file, stored in MinIO object storage and described by the
  * `file*` columns. `'url'` notes store a single URL in `content`, which must
  * be a well-formed `http(s)://` URL; unlike other type-specific columns, no
- * extra fetching/unfurling is performed. The `type` itself is set once at
- * creation and never changed afterwards.
+ * extra fetching/unfurling is performed. `'ip'` notes store a single IPv4 or
+ * IPv6 address in `content`. The `type` itself is set once at creation and
+ * never changed afterwards.
  */
-export type NoteType = 'standard' | 'log' | 'address' | 'file' | 'url';
+export type NoteType = 'standard' | 'log' | 'address' | 'file' | 'url' | 'ip';
 export const NOTE_TYPES: NoteType[] = [
   'standard',
   'log',
   'address',
   'file',
   'url',
+  'ip',
 ];
 
 /** Outcome of the most recent attempt to geocode an `'address'` note's `content`. */
@@ -48,7 +50,7 @@ export class Note extends BaseEntity {
   @Column({ type: 'varchar', length: 20, default: 'standard' })
   @ApiProperty({
     description:
-      "The kind of note: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'address' (content is a physical address, automatically resolved to coordinates), 'file' (holds a single uploaded file stored in object storage), or 'url' (content is a single well-formed URL). Set at creation and immutable afterwards.",
+      "The kind of note: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'address' (content is a physical address, automatically resolved to coordinates), 'file' (holds a single uploaded file stored in object storage), 'url' (content is a single well-formed URL), or 'ip' (content is a single well-formed IPv4 or IPv6 address). Set at creation and immutable afterwards.",
     enum: NOTE_TYPES,
     default: 'standard',
   })

@@ -4,12 +4,8 @@ import type { JSX } from "react";
 import * as React from "react";
 import { Dialog, DialogContent, DialogTitle } from "#/components/ui/dialog.tsx";
 import { LoadingState } from "#/components/ui/loading-state.tsx";
-import { NoteAddressEditorPane } from "#/features/notes/components/NoteAddressEditorPane.tsx";
-import { NoteEditorPane } from "#/features/notes/components/NoteEditorPane.tsx";
-import { NoteFileEditorPane } from "#/features/notes/components/NoteFileEditorPane.tsx";
-import { NoteLogEditorPane } from "#/features/notes/components/NoteLogEditorPane.tsx";
+import { NoteContentEditor } from "#/features/notes/components/NoteContentEditor.tsx";
 import { NoteSettingsPanel } from "#/features/notes/components/NoteSettingsPanel.tsx";
-import { NoteUrlEditorPane } from "#/features/notes/components/NoteUrlEditorPane.tsx";
 import { useDeleteNote } from "#/features/notes/hooks/useDeleteNote.ts";
 import { useNoteDraftAutosave } from "#/features/notes/hooks/useNoteDraftAutosave.ts";
 import {
@@ -142,54 +138,17 @@ export function NoteEditModal({
 				{isReady && note ? (
 					<div className="flex-1 min-h-0 flex">
 						<div className="flex-1 min-w-0 border-r border-line">
-							{note.type === "log" ? (
-								<NoteLogEditorPane
-									projectId={projectId}
-									note={note}
-									title={draftTitle}
-									onTitleChange={setDraftTitle}
-									saveStatus={saveStatus}
-									notes={notes}
-									className="h-full"
-								/>
-							) : note.type === "address" ? (
-								<NoteAddressEditorPane
-									projectId={projectId}
-									note={note}
-									title={draftTitle}
-									onTitleChange={setDraftTitle}
-									saveStatus={saveStatus}
-									className="h-full"
-								/>
-							) : note.type === "file" ? (
-								<NoteFileEditorPane
-									projectId={projectId}
-									note={note}
-									title={draftTitle}
-									onTitleChange={setDraftTitle}
-									saveStatus={saveStatus}
-									className="h-full"
-								/>
-							) : note.type === "url" ? (
-								<NoteUrlEditorPane
-									projectId={projectId}
-									note={note}
-									title={draftTitle}
-									onTitleChange={setDraftTitle}
-									saveStatus={saveStatus}
-									className="h-full"
-								/>
-							) : (
-								<NoteEditorPane
-									title={draftTitle}
-									content={draftContent}
-									onTitleChange={setDraftTitle}
-									onContentChange={setDraftContent}
-									notes={notes}
-									saveStatus={saveStatus}
-									className="h-full"
-								/>
-							)}
+							<NoteContentEditor
+								projectId={projectId}
+								note={note}
+								notes={notes}
+								title={draftTitle}
+								content={draftContent}
+								onTitleChange={setDraftTitle}
+								onContentChange={setDraftContent}
+								saveStatus={saveStatus}
+								className="h-full"
+							/>
 						</div>
 
 						<div className="w-72 shrink-0">

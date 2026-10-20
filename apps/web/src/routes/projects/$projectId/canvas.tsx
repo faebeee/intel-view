@@ -57,6 +57,10 @@ function CanvasRouteComponent(): JSX.Element {
 						setSelectedNoteId(noteId);
 						setIsEditModalOpen(true);
 					}}
+					onNoteCreated={(noteId) => {
+						setSelectedNoteId(noteId);
+						setIsEditModalOpen(true);
+					}}
 				/>
 			</div>
 

@@ -8,13 +8,9 @@ import { toast } from "sonner";
 import { Button } from "#/components/ui/button.tsx";
 import { LoadingState, NotFoundState } from "#/components/ui/loading-state.tsx";
 import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal.tsx";
-import { NoteAddressEditorPane } from "#/features/notes/components/NoteAddressEditorPane.tsx";
-import { NoteEditorPane } from "#/features/notes/components/NoteEditorPane.tsx";
-import { NoteFileEditorPane } from "#/features/notes/components/NoteFileEditorPane.tsx";
-import { NoteLogEditorPane } from "#/features/notes/components/NoteLogEditorPane.tsx";
+import { NoteContentEditor } from "#/features/notes/components/NoteContentEditor.tsx";
 import { NoteSettingsPanel } from "#/features/notes/components/NoteSettingsPanel.tsx";
 import { NoteTree } from "#/features/notes/components/NoteTree.tsx";
-import { NoteUrlEditorPane } from "#/features/notes/components/NoteUrlEditorPane.tsx";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 import { useCreateNote } from "#/features/notes/hooks/useCreateNote.ts";
 import { useNoteDraftAutosave } from "#/features/notes/hooks/useNoteDraftAutosave.ts";
@@ -247,54 +243,17 @@ function NotesRouteComponent(): JSX.Element {
 
 					<div className="flex-1 min-w-0">
 						{selectedNote && initializedNoteId === selectedNote.id ? (
-							selectedNote.type === "log" ? (
-								<NoteLogEditorPane
-									projectId={projectId}
-									note={selectedNote}
-									title={draftTitle}
-									onTitleChange={setDraftTitle}
-									saveStatus={saveStatus}
-									notes={notes}
-									className="h-full"
-								/>
-							) : selectedNote.type === "address" ? (
-								<NoteAddressEditorPane
-									projectId={projectId}
-									note={selectedNote}
-									title={draftTitle}
-									onTitleChange={setDraftTitle}
-									saveStatus={saveStatus}
-									className="h-full"
-								/>
-							) : selectedNote.type === "file" ? (
-								<NoteFileEditorPane
-									projectId={projectId}
-									note={selectedNote}
-									title={draftTitle}
-									onTitleChange={setDraftTitle}
-									saveStatus={saveStatus}
-									className="h-full"
-								/>
-							) : selectedNote.type === "url" ? (
-								<NoteUrlEditorPane
-									projectId={projectId}
-									note={selectedNote}
-									title={draftTitle}
-									onTitleChange={setDraftTitle}
-									saveStatus={saveStatus}
-									className="h-full"
-								/>
-							) : (
-								<NoteEditorPane
-									title={draftTitle}
-									content={draftContent}
-									onTitleChange={setDraftTitle}
-									onContentChange={setDraftContent}
-									notes={notes}
-									saveStatus={saveStatus}
-									className="h-full"
-								/>
-							)
+							<NoteContentEditor
+								projectId={projectId}
+								note={selectedNote}
+								notes={notes}
+								title={draftTitle}
+								content={draftContent}
+								onTitleChange={setDraftTitle}
+								onContentChange={setDraftContent}
+								saveStatus={saveStatus}
+								className="h-full"
+							/>
 						) : selectedNoteId !== undefined ? (
 							<LoadingState label="Loading note..." compact />
 						) : (

@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull, In } from 'typeorm';
+import { isIP } from 'node:net';
 import {
   paginate,
   PaginateQuery,
@@ -458,12 +459,36 @@ export class NoteService {
     }
   }
 
+  /**
+   * Validates that `content` is a well-formed IPv4 or IPv6 address, throwing
+   * a `BadRequestException` if not. Only applicable to `'ip'`-type notes.
+   * Empty/null content is allowed (an ip note can be created without an
+   * address set yet) and is simply skipped.
+   */
+  private assertValidIpContent(content: string | null | undefined): void {
+    const trimmed = content?.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    if (isIP(trimmed) === 0) {
+      throw new BadRequestException(
+        `'${trimmed}' is not a valid IPv4 or IPv6 address`,
+      );
+    }
+  }
+
   async create(projectId: number, createNoteDto: CreateNoteDto): Promise<Note> {
     await this.assertProjectExists(projectId);
 
     if (createNoteDto.type === 'url') {
       this.assertValidUrlContent(createNoteDto.content);
     }
+
+    if (createNoteDto.type === 'ip') {
+      this.assertValidIpContent(createNoteDto.content);
+    }
+
 
     const parentIds = createNoteDto.parentIds ?? [];
     for (const parentId of parentIds) {
@@ -903,6 +928,14 @@ export class NoteService {
       !valuesAreEqual(note.content, updateNoteDto.content)
     ) {
       this.assertValidUrlContent(updateNoteDto.content);
+    }
+
+    if (
+      note.type === 'ip' &&
+      updateNoteDto.content !== undefined &&
+      !valuesAreEqual(note.content, updateNoteDto.content)
+    ) {
+      this.assertValidIpContent(updateNoteDto.content);
     }
 
     // Compute field-level diffs for tracked fields before applying the

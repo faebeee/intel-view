@@ -4,6 +4,8 @@ import { PluginController } from './plugin.controller';
 import { PluginRegistryService } from './plugin-registry.service';
 import { NOTE_PLUGIN } from './plugin.interface';
 import { UrlFetchSnippetPlugin } from './plugins/url-fetch-snippet.plugin';
+import { GobusterDirectoryEnumerationPlugin } from './plugins/gobuster-directory-enumeration.plugin';
+import { NmapHalfOpenScanPlugin } from './plugins/nmap-half-open-scan.plugin';
 
 /**
  * Registers all `NotePlugin` implementations as a multi-provider under the
@@ -16,13 +18,25 @@ import { UrlFetchSnippetPlugin } from './plugins/url-fetch-snippet.plugin';
   providers: [
     PluginRegistryService,
     UrlFetchSnippetPlugin,
+    GobusterDirectoryEnumerationPlugin,
+    NmapHalfOpenScanPlugin,
     {
       provide: NOTE_PLUGIN,
-      useFactory: (urlFetchSnippetPlugin: UrlFetchSnippetPlugin) => [
-        urlFetchSnippetPlugin,
+      useFactory: (
+        urlFetchSnippetPlugin: UrlFetchSnippetPlugin,
+        gobusterDirectoryEnumerationPlugin: GobusterDirectoryEnumerationPlugin,
+        nmapHalfOpenScanPlugin: NmapHalfOpenScanPlugin,
+      ) => [
+          urlFetchSnippetPlugin,
+          gobusterDirectoryEnumerationPlugin,
+          nmapHalfOpenScanPlugin,
+        ],
+      inject: [
+        UrlFetchSnippetPlugin,
+        GobusterDirectoryEnumerationPlugin,
+        NmapHalfOpenScanPlugin,
       ],
-      inject: [UrlFetchSnippetPlugin],
     },
   ],
 })
-export class PluginModule {}
+export class PluginModule { }

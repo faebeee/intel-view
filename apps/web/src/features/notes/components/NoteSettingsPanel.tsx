@@ -17,6 +17,7 @@ import { FormField } from "#/components/ui/form-field.tsx";
 import { ColorPickerField } from "#/features/common/components/ColorPickerField.tsx";
 import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
 import { NoteHistorySection } from "#/features/notes/components/NoteHistorySection.tsx";
+import { NotePluginsPanel } from "#/features/notes/components/NotePluginsPanel.tsx";
 import { useNoteHistoryQuery } from "#/features/notes/hooks/useNoteHistoryQuery.ts";
 import {
 	getNoteLabel,
@@ -166,9 +167,19 @@ export function NoteSettingsPanel({
 								? "Address"
 								: note.type === "file"
 									? "File"
-									: "Standard"}
+									: note.type === "url"
+										? "Link"
+										: note.type === "ip"
+											? "IP Address"
+											: "Standard"}
 					</span>
 				</div>
+
+				<NotePluginsPanel
+					projectId={projectId}
+					noteId={note.id}
+					className="px-1"
+				/>
 
 				<FormField label="Parent Notes" htmlFor="note-parents" className="px-1">
 					<Combobox

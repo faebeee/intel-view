@@ -1,4 +1,11 @@
-import { FileText, Link, MapPin, Paperclip, ScrollText } from "lucide-react";
+import {
+	FileText,
+	Link,
+	MapPin,
+	Network,
+	Paperclip,
+	ScrollText,
+} from "lucide-react";
 import * as React from "react";
 import { Button } from "#/components/ui/button.tsx";
 import {
@@ -61,6 +68,12 @@ const NOTE_TYPE_OPTIONS: NoteTypeOption[] = [
 		label: "Link",
 		description: "A note holding a single URL.",
 		icon: Link,
+	},
+	{
+		value: "ip",
+		label: "IP Address",
+		description: "A note holding a single IPv4 or IPv6 address.",
+		icon: Network,
 	},
 ];
 

@@ -24,7 +24,7 @@ const createNoteParams = z.object({
     .enum(NOTE_TYPES as [NoteType, ...NoteType[]])
     .optional()
     .describe(
-      "The kind of note to create: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'address' (content is a physical address, automatically resolved to coordinates), or 'file' (holds a single uploaded file, not settable via MCP). Defaults to 'standard'.",
+      "The kind of note to create: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'address' (content is a physical address, automatically resolved to coordinates), 'url' (content must be a single well-formed URL), 'ip' (content must be a single well-formed IPv4 or IPv6 address), or 'file' (holds a single uploaded file, not settable via MCP). Defaults to 'standard'.",
     ),
   title: z.string().optional().describe('The title of the note'),
   content: z.string().optional().describe('The markdown content of the note'),

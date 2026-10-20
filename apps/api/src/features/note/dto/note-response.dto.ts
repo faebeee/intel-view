@@ -15,7 +15,7 @@ export class NoteResponseDto {
 
   @ApiProperty({
     description:
-      "The kind of note: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'address' (content is a physical address, automatically resolved to coordinates), or 'file' (holds a single uploaded file stored in object storage)",
+      "The kind of note: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'address' (content is a physical address, automatically resolved to coordinates), 'file' (holds a single uploaded file stored in object storage), 'url' (content is a single well-formed URL), or 'ip' (content is a single well-formed IPv4 or IPv6 address)",
     enum: NOTE_TYPES,
   })
   type: NoteType;

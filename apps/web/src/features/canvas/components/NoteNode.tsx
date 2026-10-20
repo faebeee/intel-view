@@ -3,6 +3,7 @@ import { Handle, Position } from "@xyflow/react";
 import {
 	Link,
 	MapPin,
+	Network,
 	Paperclip,
 	ScrollText,
 	StickyNote,
@@ -83,6 +84,8 @@ export function NoteNode({ data, selected }: NoteNodeProps) {
 							<MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
 						) : note.type === "url" ? (
 							<Link className="h-3.5 w-3.5 text-primary shrink-0" />
+						) : note.type === "ip" ? (
+							<Network className="h-3.5 w-3.5 text-primary shrink-0" />
 						) : (
 							<StickyNote className="h-3.5 w-3.5 text-primary shrink-0" />
 						)}

@@ -14,7 +14,7 @@ export class UpdateNoteDto {
   @IsOptional()
   @ApiProperty({
     description:
-      "The markdown content of the note. For 'url'-type notes, must be a single well-formed http(s):// URL.",
+      "The markdown content of the note. For 'url'-type notes, must be a single well-formed http(s):// URL. For 'ip'-type notes, must be a single well-formed IPv4 or IPv6 address.",
     required: false,
   })
   content?: string;
