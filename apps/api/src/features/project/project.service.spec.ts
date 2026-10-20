@@ -70,7 +70,11 @@ describe('ProjectService', () => {
     });
 
     it('validates the folder exists when assigning a folderId', async () => {
-      const existingProject = { id: 1, name: 'Op Blue Horizon', folderId: null };
+      const existingProject = {
+        id: 1,
+        name: 'Op Blue Horizon',
+        folderId: null,
+      };
       mockProjectRepository.findOne.mockResolvedValue(existingProject);
       mockProjectRepository.save.mockImplementation(
         (project: unknown) => project,

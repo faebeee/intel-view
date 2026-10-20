@@ -447,9 +447,7 @@ export class NoteService {
     try {
       parsed = new URL(trimmed);
     } catch {
-      throw new BadRequestException(
-        `'${trimmed}' is not a valid URL`,
-      );
+      throw new BadRequestException(`'${trimmed}' is not a valid URL`);
     }
 
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
@@ -488,7 +486,6 @@ export class NoteService {
     if (createNoteDto.type === 'ip') {
       this.assertValidIpContent(createNoteDto.content);
     }
-
 
     const parentIds = createNoteDto.parentIds ?? [];
     for (const parentId of parentIds) {

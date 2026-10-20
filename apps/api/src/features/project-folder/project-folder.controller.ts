@@ -39,7 +39,9 @@ export class ProjectFolderController {
   async create(
     @Body() createProjectFolderDto: CreateProjectFolderDto,
   ): Promise<ProjectFolderResponseDto> {
-    const folder = await this.projectFolderService.create(createProjectFolderDto);
+    const folder = await this.projectFolderService.create(
+      createProjectFolderDto,
+    );
     return toProjectFolderResponseDto(folder);
   }
 
@@ -62,7 +64,10 @@ export class ProjectFolderController {
     return {
       ...paginated,
       data: paginated.data.map((folder) =>
-        toProjectFolderResponseDto(folder, countsByFolderId.get(folder.id) ?? 0),
+        toProjectFolderResponseDto(
+          folder,
+          countsByFolderId.get(folder.id) ?? 0,
+        ),
       ),
     } as unknown as Paginated<ProjectFolderResponseDto>;
   }

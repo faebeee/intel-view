@@ -8,9 +8,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * structural/behavioral change to the relation itself (still a nullable FK
  * on `project`, still a flat/non-nested grouping).
  */
-export class RenameProjectGroupToProjectFolder1791535074701
-  implements MigrationInterface
-{
+export class RenameProjectGroupToProjectFolder1791535074701 implements MigrationInterface {
   name = 'RenameProjectGroupToProjectFolder1791535074701';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

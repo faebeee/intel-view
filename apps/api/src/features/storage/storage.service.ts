@@ -62,7 +62,11 @@ export class StorageService implements OnModuleInit {
    * file never overwrites the previous object in place (the old one is
    * deleted explicitly).
    */
-  buildNoteFileKey(projectId: number, noteId: number, fileName: string): string {
+  buildNoteFileKey(
+    projectId: number,
+    noteId: number,
+    fileName: string,
+  ): string {
     const extension = fileName.includes('.')
       ? `.${fileName.split('.').pop()}`
       : '';

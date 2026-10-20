@@ -669,7 +669,10 @@ describe('NoteService', () => {
 
     it("allows creating a 'url' note with null content", async () => {
       const projectId = 1;
-      const createNoteDto = { type: 'url' as const, content: null as unknown as string };
+      const createNoteDto = {
+        type: 'url' as const,
+        content: null as unknown as string,
+      };
       const createdNote = {
         id: 7,
         projectId,
@@ -723,9 +726,9 @@ describe('NoteService', () => {
       mockNoteRepository.create.mockReturnValue(createdNote);
       mockNoteRepository.save.mockResolvedValue(createdNote);
 
-      await expect(
-        service.create(projectId, createNoteDto),
-      ).resolves.toEqual(createdNote);
+      await expect(service.create(projectId, createNoteDto)).resolves.toEqual(
+        createdNote,
+      );
     });
 
     it("re-validates a 'url' note's content when it is updated", async () => {
@@ -740,9 +743,9 @@ describe('NoteService', () => {
 
       mockNoteRepository.findOne.mockResolvedValue(existingNote);
 
-      await expect(
-        service.update(projectId, 1, updateNoteDto),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.update(projectId, 1, updateNoteDto)).rejects.toThrow(
+        BadRequestException,
+      );
       expect(mockNoteRepository.save).not.toHaveBeenCalled();
     });
 
@@ -850,7 +853,10 @@ describe('NoteService', () => {
 
     it("allows creating an 'ip' note with null content", async () => {
       const projectId = 1;
-      const createNoteDto = { type: 'ip' as const, content: null as unknown as string };
+      const createNoteDto = {
+        type: 'ip' as const,
+        content: null as unknown as string,
+      };
       const createdNote = {
         id: 7,
         projectId,
@@ -891,9 +897,9 @@ describe('NoteService', () => {
       mockNoteRepository.create.mockReturnValue(createdNote);
       mockNoteRepository.save.mockResolvedValue(createdNote);
 
-      await expect(
-        service.create(projectId, createNoteDto),
-      ).resolves.toEqual(createdNote);
+      await expect(service.create(projectId, createNoteDto)).resolves.toEqual(
+        createdNote,
+      );
     });
 
     it("re-validates an 'ip' note's content when it is updated", async () => {
@@ -908,9 +914,9 @@ describe('NoteService', () => {
 
       mockNoteRepository.findOne.mockResolvedValue(existingNote);
 
-      await expect(
-        service.update(projectId, 1, updateNoteDto),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.update(projectId, 1, updateNoteDto)).rejects.toThrow(
+        BadRequestException,
+      );
       expect(mockNoteRepository.save).not.toHaveBeenCalled();
     });
 
