@@ -12,7 +12,7 @@ import type { NoteResponseDto } from '../note/dto/note-response.dto';
  */
 @Injectable()
 export class PluginRegistryService {
-  constructor(@Inject(NOTE_PLUGIN) private readonly plugins: NotePlugin[]) {}
+  constructor(@Inject(NOTE_PLUGIN) private readonly plugins: NotePlugin[]) { }
 
   /** Returns the plugins applicable to the given note type. */
   listForNoteType(noteType: NoteType): NotePlugin[] {
@@ -24,7 +24,7 @@ export class PluginRegistryService {
    * and runs it against `note`, returning its string result. Throws
    * `NotFoundException` if no such applicable plugin exists.
    */
-  async execute(pluginId: string, note: NoteResponseDto): Promise<string> {
+  async preview(pluginId: string, note: NoteResponseDto): Promise<string> {
     const plugin = this.listForNoteType(note.type).find(
       (candidate) => candidate.id === pluginId,
     );

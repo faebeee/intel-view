@@ -1,9 +1,9 @@
 "use client";
 
+import type { PluginResponseDto as Plugin } from "@repo/sdk";
 import { ClipboardCopy, FilePlus2, Loader2, Puzzle } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
-import type { PluginResponseDto as Plugin } from "@repo/sdk";
 import { Button } from "#/components/ui/button.tsx";
 import {
 	Popover,
@@ -16,10 +16,10 @@ import {
 	TooltipTrigger,
 } from "#/components/ui/tooltip.tsx";
 import { useCreateNote } from "#/features/notes/hooks/useCreateNote.ts";
-import { useExecuteNotePlugin } from "#/features/notes/hooks/useExecuteNotePlugin.ts";
 import { useNotePluginsQuery } from "#/features/notes/hooks/useNotePluginsQuery.ts";
 import { copyToClipboard } from "#/lib/clipboard.ts";
 import { cn } from "#/lib/utils.ts";
+import { usePreviewNotePlugin } from "../hooks/usePreviewNotePlugin";
 
 export type NotePluginsPanelProps = {
 	projectId: number;
@@ -49,7 +49,7 @@ export function NotePluginsPanel({
 	className,
 }: NotePluginsPanelProps) {
 	const { data: plugins = [] } = useNotePluginsQuery(projectId, noteId);
-	const executePluginMutation = useExecuteNotePlugin(projectId);
+	const previewPluginMutation = usePreviewNotePlugin(projectId);
 	const createNoteMutation = useCreateNote(projectId);
 	const [pending, setPending] = React.useState<{
 		pluginId: string;
@@ -63,7 +63,7 @@ export function NotePluginsPanel({
 		(pluginId: string) => {
 			if (noteId === undefined) return;
 			setPending({ pluginId, action: "copy" });
-			executePluginMutation.mutate(
+			previewPluginMutation.mutate(
 				{ noteId, pluginId },
 				{
 					onSuccess: async (result) => {
@@ -76,14 +76,14 @@ export function NotePluginsPanel({
 				},
 			);
 		},
-		[executePluginMutation, noteId],
+		[previewPluginMutation, noteId],
 	);
 
 	const handleRunAndCreateNote = React.useCallback(
 		(plugin: Plugin) => {
 			if (noteId === undefined) return;
 			setPending({ pluginId: plugin.id, action: "create" });
-			executePluginMutation.mutate(
+			previewPluginMutation.mutate(
 				{ noteId, pluginId: plugin.id },
 				{
 					onSuccess: async (result) => {
@@ -103,7 +103,7 @@ export function NotePluginsPanel({
 				},
 			);
 		},
-		[createNoteMutation, executePluginMutation, noteId],
+		[createNoteMutation, previewPluginMutation, noteId],
 	);
 
 	if (plugins.length === 0) {

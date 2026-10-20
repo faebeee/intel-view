@@ -19,7 +19,7 @@ export class PluginController {
   constructor(
     private readonly noteService: NoteService,
     private readonly pluginRegistryService: PluginRegistryService,
-  ) {}
+  ) { }
 
   @Get()
   @ApiOperation({
@@ -59,7 +59,7 @@ export class PluginController {
     description:
       'Note not found, or the plugin does not exist/is not applicable to this note.',
   })
-  async execute(
+  async preview(
     @Param('projectId', ParseIntPipe) projectId: number,
     @Param('noteId', ParseIntPipe) noteId: number,
     @Param('pluginId') pluginId: string,
@@ -68,7 +68,7 @@ export class PluginController {
     if (!note) {
       throw new NotFoundException(`Note with ID ${noteId} not found`);
     }
-    const result = await this.pluginRegistryService.execute(
+    const result = await this.pluginRegistryService.preview(
       pluginId,
       toNoteResponseDto(note),
     );
