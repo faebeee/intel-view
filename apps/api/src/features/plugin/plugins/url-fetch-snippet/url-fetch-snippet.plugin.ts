@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { NotePlugin } from '../plugin.interface';
-import type { NoteResponseDto } from '../../note/dto/note-response.dto';
+import type { NotePlugin } from '../../plugin.interface';
+import type { NoteResponseDto } from '../../../note/dto/note-response.dto';
 
 /**
  * Generates a JavaScript `fetch` snippet for a `'url'`-type note's content,

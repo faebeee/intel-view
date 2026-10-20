@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { NotePlugin } from '../plugin.interface';
+import { NotePlugin } from '../../plugin.interface';
 import { NoteResponseDto } from 'src/features/note/dto/note-response.dto';
 
 @Injectable()
-export class NmapServiceVersionScanPlugin implements NotePlugin {
-  id = 'nmap-service-version-scan';
-  label = 'Nmap service/version scan';
+export class NmapHalfOpenScanPlugin implements NotePlugin {
+  id = 'nmap-half-open-scan';
+  label = 'Nmap Half open scan';
   noteTypes: NotePlugin['noteTypes'] = ['ip'];
 
   execute(note: NoteResponseDto): string {
     const ip = note.content?.trim() || '127.0.0.1';
-    return `nmap -sV -sC -p- ${ip}`;
+    return `sudo nmap -sA ${ip}`;
   }
 }

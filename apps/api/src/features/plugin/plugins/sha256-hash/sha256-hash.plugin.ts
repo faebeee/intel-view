@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { NotePlugin } from '../plugin.interface';
+import { NotePlugin } from '../../plugin.interface';
 import { NoteResponseDto } from 'src/features/note/dto/note-response.dto';
 
 @Injectable()
-export class FileTypeStringsPlugin implements NotePlugin {
-  id = 'file-type-strings';
-  label = 'File type & strings';
+export class Sha256HashPlugin implements NotePlugin {
+  id = 'sha256-hash';
+  label = 'SHA-256 hash';
   noteTypes: NotePlugin['noteTypes'] = ['file'];
 
   execute(note: NoteResponseDto): string {
     const fileName = note.fileName?.trim() || 'file.ext';
-    return `file "${fileName}" && strings "${fileName}" | less`;
+    return `sha256sum "${fileName}"`;
   }
 }
