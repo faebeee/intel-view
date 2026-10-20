@@ -8,7 +8,7 @@ export class FileTypeStringsPlugin implements NotePlugin {
   label = 'File type & strings';
   noteTypes: NotePlugin['noteTypes'] = ['file'];
 
-  execute(note: NoteResponseDto): string {
+  preview(note: NoteResponseDto): string {
     const fileName = note.fileName?.trim() || 'file.ext';
     return `file "${fileName}" && strings "${fileName}" | less`;
   }

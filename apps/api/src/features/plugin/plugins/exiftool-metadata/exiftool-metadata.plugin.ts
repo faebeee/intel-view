@@ -8,7 +8,7 @@ export class ExiftoolMetadataPlugin implements NotePlugin {
   label = 'Extract metadata (exiftool)';
   noteTypes: NotePlugin['noteTypes'] = ['file'];
 
-  execute(note: NoteResponseDto): string {
+  preview(note: NoteResponseDto): string {
     const fileName = note.fileName?.trim() || 'file.ext';
     return `exiftool "${fileName}"`;
   }

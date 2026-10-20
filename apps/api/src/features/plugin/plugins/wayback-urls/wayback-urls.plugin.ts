@@ -8,7 +8,7 @@ export class WaybackUrlsPlugin implements NotePlugin {
   label = 'Historical URLs (Wayback)';
   noteTypes: NotePlugin['noteTypes'] = ['url'];
 
-  execute(note: NoteResponseDto): string {
+  preview(note: NoteResponseDto): string {
     const url = note.content?.trim() || 'https://example.com';
     let host = url;
     try {

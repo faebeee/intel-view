@@ -10,11 +10,11 @@ describe('ExiftoolMetadataPlugin', () => {
 
   it('should generate the correct command for a given fileName', () => {
     const note = { fileName: 'image.jpg' } as NoteResponseDto;
-    expect(plugin.execute(note)).toBe('exiftool "image.jpg"');
+    expect(plugin.preview(note)).toBe('exiftool "image.jpg"');
   });
 
   it('should fallback to file.ext if fileName is missing', () => {
     const note = { fileName: '' } as NoteResponseDto;
-    expect(plugin.execute(note)).toBe('exiftool "file.ext"');
+    expect(plugin.preview(note)).toBe('exiftool "file.ext"');
   });
 });

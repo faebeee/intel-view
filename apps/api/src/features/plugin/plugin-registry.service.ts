@@ -33,6 +33,6 @@ export class PluginRegistryService {
         `Plugin '${pluginId}' not found or not applicable to notes of type '${note.type}'`,
       );
     }
-    return plugin.execute(note);
+    return plugin.preview(note);
   }
 }

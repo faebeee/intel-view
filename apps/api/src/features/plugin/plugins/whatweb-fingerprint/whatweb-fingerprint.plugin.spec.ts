@@ -10,11 +10,11 @@ describe('WhatWebFingerprintPlugin', () => {
 
   it('should generate the correct command for a given URL', () => {
     const note = { content: 'https://example.com' } as NoteResponseDto;
-    expect(plugin.execute(note)).toBe('whatweb https://example.com');
+    expect(plugin.preview(note)).toBe('whatweb https://example.com');
   });
 
   it('should fallback to example.com if content is missing', () => {
     const note = { content: '' } as NoteResponseDto;
-    expect(plugin.execute(note)).toBe('whatweb https://example.com');
+    expect(plugin.preview(note)).toBe('whatweb https://example.com');
   });
 });

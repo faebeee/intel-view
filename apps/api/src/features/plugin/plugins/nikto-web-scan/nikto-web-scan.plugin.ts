@@ -8,7 +8,7 @@ export class NiktoWebScanPlugin implements NotePlugin {
   label = 'Nikto web scan';
   noteTypes: NotePlugin['noteTypes'] = ['url'];
 
-  execute(note: NoteResponseDto): string {
+  preview(note: NoteResponseDto): string {
     const url = note.content?.trim() || 'https://example.com';
     return `nikto -h ${url}`;
   }

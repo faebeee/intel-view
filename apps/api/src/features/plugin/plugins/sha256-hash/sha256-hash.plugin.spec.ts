@@ -10,11 +10,11 @@ describe('Sha256HashPlugin', () => {
 
   it('should generate the correct command for a given fileName', () => {
     const note = { fileName: 'hashme.txt' } as NoteResponseDto;
-    expect(plugin.execute(note)).toBe('sha256sum "hashme.txt"');
+    expect(plugin.preview(note)).toBe('sha256sum "hashme.txt"');
   });
 
   it('should fallback to file.ext if fileName is missing', () => {
     const note = { fileName: '' } as NoteResponseDto;
-    expect(plugin.execute(note)).toBe('sha256sum "file.ext"');
+    expect(plugin.preview(note)).toBe('sha256sum "file.ext"');
   });
 });

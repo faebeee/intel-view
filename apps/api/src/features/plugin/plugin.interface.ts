@@ -9,14 +9,14 @@ import type { NoteResponseDto } from '../note/dto/note-response.dto';
  * caller for display.
  */
 export type NotePlugin = {
-  /** Stable, unique identifier for this plugin, used in the execute route. */
+  /** Stable, unique identifier for this plugin, used in the preview route. */
   id: string;
   /** Human-readable label shown on the plugin's button in the UI. */
   label: string;
   /** The note types this plugin is applicable to. */
   noteTypes: NoteType[];
-  /** Runs the plugin against a note, returning the derived string result. */
-  execute(note: NoteResponseDto): Promise<string> | string;
+  /** Previews the plugin against a note, returning the derived string result. */
+  preview(note: NoteResponseDto): Promise<string> | string;
 };
 
 /**

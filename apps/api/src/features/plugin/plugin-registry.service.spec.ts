@@ -13,13 +13,13 @@ describe('PluginRegistryService', () => {
     id: 'url-fetch-snippet',
     label: 'Generate fetch snippet',
     noteTypes: ['url'],
-    execute: urlPluginExecute,
+    preview: urlPluginExecute,
   };
   const standardPlugin: NotePlugin = {
     id: 'standard-only',
     label: 'Standard only plugin',
     noteTypes: ['standard'],
-    execute: jest.fn().mockReturnValue('standard result'),
+    preview: jest.fn().mockReturnValue('standard result'),
   };
 
   const makeNote = (

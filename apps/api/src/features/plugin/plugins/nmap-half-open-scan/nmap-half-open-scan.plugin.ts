@@ -8,7 +8,7 @@ export class NmapHalfOpenScanPlugin implements NotePlugin {
   label = 'Nmap Half open scan';
   noteTypes: NotePlugin['noteTypes'] = ['ip'];
 
-  execute(note: NoteResponseDto): string {
+  preview(note: NoteResponseDto): string {
     const ip = note.content?.trim() || '127.0.0.1';
     return `sudo nmap -sA ${ip}`;
   }

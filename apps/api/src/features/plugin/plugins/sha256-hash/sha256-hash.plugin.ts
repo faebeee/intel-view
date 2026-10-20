@@ -8,7 +8,7 @@ export class Sha256HashPlugin implements NotePlugin {
   label = 'SHA-256 hash';
   noteTypes: NotePlugin['noteTypes'] = ['file'];
 
-  execute(note: NoteResponseDto): string {
+  preview(note: NoteResponseDto): string {
     const fileName = note.fileName?.trim() || 'file.ext';
     return `sha256sum "${fileName}"`;
   }

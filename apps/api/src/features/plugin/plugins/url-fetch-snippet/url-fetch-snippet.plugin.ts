@@ -12,7 +12,7 @@ export class UrlFetchSnippetPlugin implements NotePlugin {
   label = 'Generate fetch snippet';
   noteTypes: NotePlugin['noteTypes'] = ['url'];
 
-  execute(note: NoteResponseDto): string {
+  preview(note: NoteResponseDto): string {
     const url = note.content?.trim() || 'https://example.com';
     return [
       `const response = await fetch(${JSON.stringify(url)});`,

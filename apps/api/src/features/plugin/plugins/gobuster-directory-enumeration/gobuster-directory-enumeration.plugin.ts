@@ -8,7 +8,7 @@ export class GobusterDirectoryEnumerationPlugin implements NotePlugin {
   label = 'Directory enumeration';
   noteTypes: NotePlugin['noteTypes'] = ['url'];
 
-  execute(note: NoteResponseDto): string {
+  preview(note: NoteResponseDto): string {
     const url = note.content?.trim() || 'https://example.com';
     return `gobuster dir -u "${url}" -w /usr/share/wordlists/dirb/common.txt`;
   }

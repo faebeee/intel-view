@@ -8,7 +8,7 @@ export class MasscanFastPortScanPlugin implements NotePlugin {
   label = 'Masscan fast port scan';
   noteTypes: NotePlugin['noteTypes'] = ['ip'];
 
-  execute(note: NoteResponseDto): string {
+  preview(note: NoteResponseDto): string {
     const ip = note.content?.trim() || '127.0.0.1';
     return `sudo masscan -p1-65535 ${ip} --rate=1000`;
   }

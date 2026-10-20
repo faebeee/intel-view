@@ -8,7 +8,7 @@ export class ReverseDnsLookupPlugin implements NotePlugin {
   label = 'Reverse DNS lookup';
   noteTypes: NotePlugin['noteTypes'] = ['ip'];
 
-  execute(note: NoteResponseDto): string {
+  preview(note: NoteResponseDto): string {
     const ip = note.content?.trim() || '127.0.0.1';
     return `dig -x ${ip} +short`;
   }

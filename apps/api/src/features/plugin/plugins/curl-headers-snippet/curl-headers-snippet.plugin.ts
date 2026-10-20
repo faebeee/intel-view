@@ -8,7 +8,7 @@ export class CurlHeadersSnippetPlugin implements NotePlugin {
   label = 'cURL response headers';
   noteTypes: NotePlugin['noteTypes'] = ['url'];
 
-  execute(note: NoteResponseDto): string {
+  preview(note: NoteResponseDto): string {
     const url = note.content?.trim() || 'https://example.com';
     return `curl -sI "${url}"`;
   }

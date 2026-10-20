@@ -10,11 +10,11 @@ describe('ReverseDnsLookupPlugin', () => {
 
   it('should generate the correct command for a given IP', () => {
     const note = { content: '1.1.1.1' } as NoteResponseDto;
-    expect(plugin.execute(note)).toBe('dig -x 1.1.1.1 +short');
+    expect(plugin.preview(note)).toBe('dig -x 1.1.1.1 +short');
   });
 
   it('should fallback to 127.0.0.1 if content is missing', () => {
     const note = { content: '' } as NoteResponseDto;
-    expect(plugin.execute(note)).toBe('dig -x 127.0.0.1 +short');
+    expect(plugin.preview(note)).toBe('dig -x 127.0.0.1 +short');
   });
 });
