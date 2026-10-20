@@ -8,10 +8,15 @@ export type CreateNoteArgs = {
 	/** The note this one should be nested under, if any. `null` creates a root (top-level) note. */
 	parentId: number | null;
 	type: NoteType;
+	/** Optional title of the new note. Defaults to an empty title. */
+	title?: string;
+	/** Optional initial content (markdown) of the new note. Defaults to empty content. */
+	content?: string;
 };
 
 /**
- * Creates a new (initially empty) note, optionally nested under a parent.
+ * Creates a new note, optionally nested under a parent and optionally
+ * pre-filled with a title and content.
  * Shared by every view that can spawn a note from its notes tree/sidebar
  * (the notes page, the map view, ...), so creation behavior and cache
  * invalidation stay consistent across them.
@@ -20,12 +25,17 @@ export function useCreateNote(projectId: number) {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async ({ parentId, type }: CreateNoteArgs) => {
+		mutationFn: async ({
+			parentId,
+			type,
+			title = "",
+			content = "",
+		}: CreateNoteArgs) => {
 			const res = await noteControllerCreate({
 				path: { projectId },
 				body: {
-					title: "",
-					content: "",
+					title,
+					content,
 					parentIds: parentId !== null ? [parentId] : undefined,
 					type,
 				},
