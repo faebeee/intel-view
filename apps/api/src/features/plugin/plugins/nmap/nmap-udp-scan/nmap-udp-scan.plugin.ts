@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { NotePlugin } from '../../plugin.interface';
+import { NotePlugin } from '../../../plugin.interface';
 import { NoteResponseDto } from 'src/features/note/dto/note-response.dto';
 
 @Injectable()

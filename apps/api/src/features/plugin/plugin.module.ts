@@ -3,11 +3,7 @@ import { NoteModule } from '../note/note.module';
 import { PluginController } from './plugin.controller';
 import { PluginRegistryService } from './plugin-registry.service';
 import { NOTE_PLUGIN } from './plugin.interface';
-import { UrlFetchSnippetPlugin } from './plugins/url-fetch-snippet/url-fetch-snippet.plugin';
 import { GobusterDirectoryEnumerationPlugin } from './plugins/gobuster-directory-enumeration/gobuster-directory-enumeration.plugin';
-import { NmapHalfOpenScanPlugin } from './plugins/nmap-half-open-scan/nmap-half-open-scan.plugin';
-import { NmapServiceVersionScanPlugin } from './plugins/nmap-service-version-scan/nmap-service-version-scan.plugin';
-import { NmapUdpScanPlugin } from './plugins/nmap-udp-scan/nmap-udp-scan.plugin';
 import { WhoisLookupPlugin } from './plugins/whois-lookup/whois-lookup.plugin';
 import { ReverseDnsLookupPlugin } from './plugins/reverse-dns-lookup/reverse-dns-lookup.plugin';
 import { MasscanFastPortScanPlugin } from './plugins/masscan-fast-port-scan/masscan-fast-port-scan.plugin';
@@ -20,6 +16,9 @@ import { CurlHeadersSnippetPlugin } from './plugins/curl-headers-snippet/curl-he
 import { ExiftoolMetadataPlugin } from './plugins/exiftool-metadata/exiftool-metadata.plugin';
 import { FileTypeStringsPlugin } from './plugins/file-type-strings/file-type-strings.plugin';
 import { Sha256HashPlugin } from './plugins/sha256-hash/sha256-hash.plugin';
+import { NmapHalfOpenScanPlugin } from './plugins/nmap/nmap-half-open-scan/nmap-half-open-scan.plugin';
+import { NmapServiceVersionScanPlugin } from './plugins/nmap/nmap-service-version-scan/nmap-service-version-scan.plugin';
+import { NmapUdpScanPlugin } from './plugins/nmap/nmap-udp-scan/nmap-udp-scan.plugin';
 
 /**
  * Registers all `NotePlugin` implementations as a multi-provider under the
@@ -31,7 +30,6 @@ import { Sha256HashPlugin } from './plugins/sha256-hash/sha256-hash.plugin';
   controllers: [PluginController],
   providers: [
     PluginRegistryService,
-    UrlFetchSnippetPlugin,
     GobusterDirectoryEnumerationPlugin,
     NmapHalfOpenScanPlugin,
     NmapServiceVersionScanPlugin,
@@ -51,7 +49,6 @@ import { Sha256HashPlugin } from './plugins/sha256-hash/sha256-hash.plugin';
     {
       provide: NOTE_PLUGIN,
       useFactory: (
-        urlFetchSnippetPlugin: UrlFetchSnippetPlugin,
         gobusterDirectoryEnumerationPlugin: GobusterDirectoryEnumerationPlugin,
         nmapHalfOpenScanPlugin: NmapHalfOpenScanPlugin,
         nmapServiceVersionScanPlugin: NmapServiceVersionScanPlugin,
@@ -69,26 +66,24 @@ import { Sha256HashPlugin } from './plugins/sha256-hash/sha256-hash.plugin';
         fileTypeStringsPlugin: FileTypeStringsPlugin,
         sha256HashPlugin: Sha256HashPlugin,
       ) => [
-        urlFetchSnippetPlugin,
-        gobusterDirectoryEnumerationPlugin,
-        nmapHalfOpenScanPlugin,
-        nmapServiceVersionScanPlugin,
-        nmapUdpScanPlugin,
-        whoisLookupPlugin,
-        reverseDnsLookupPlugin,
-        masscanFastPortScanPlugin,
-        niktoWebScanPlugin,
-        whatWebFingerprintPlugin,
-        sslScanTlsCheckPlugin,
-        subdomainEnumSubfinderPlugin,
-        waybackUrlsPlugin,
-        curlHeadersSnippetPlugin,
-        exiftoolMetadataPlugin,
-        fileTypeStringsPlugin,
-        sha256HashPlugin,
-      ],
+          gobusterDirectoryEnumerationPlugin,
+          nmapHalfOpenScanPlugin,
+          nmapServiceVersionScanPlugin,
+          nmapUdpScanPlugin,
+          whoisLookupPlugin,
+          reverseDnsLookupPlugin,
+          masscanFastPortScanPlugin,
+          niktoWebScanPlugin,
+          whatWebFingerprintPlugin,
+          sslScanTlsCheckPlugin,
+          subdomainEnumSubfinderPlugin,
+          waybackUrlsPlugin,
+          curlHeadersSnippetPlugin,
+          exiftoolMetadataPlugin,
+          fileTypeStringsPlugin,
+          sha256HashPlugin,
+        ],
       inject: [
-        UrlFetchSnippetPlugin,
         GobusterDirectoryEnumerationPlugin,
         NmapHalfOpenScanPlugin,
         NmapServiceVersionScanPlugin,
@@ -109,4 +104,4 @@ import { Sha256HashPlugin } from './plugins/sha256-hash/sha256-hash.plugin';
     },
   ],
 })
-export class PluginModule {}
+export class PluginModule { }
