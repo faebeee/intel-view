@@ -1,6 +1,5 @@
-import * as React from "react";
 import { parseMarkdown, renderHtml } from "@tanstack/markdown";
-import { noteLocationMarkdownExtension } from "#/components/ui/markdown/note-location-extension.ts";
+import * as React from "react";
 import { noteReferenceMarkdownExtension } from "#/components/ui/markdown/note-reference-extension.ts";
 import { cn } from "#/lib/utils.ts";
 
@@ -15,7 +14,7 @@ type MarkdownProps = {
 	onNoteReferenceClick?: (noteId: number) => void;
 };
 
-const MARKDOWN_EXTENSIONS = [noteReferenceMarkdownExtension(), noteLocationMarkdownExtension()];
+const MARKDOWN_EXTENSIONS = [noteReferenceMarkdownExtension()];
 
 export function Markdown({
 	content,
@@ -24,7 +23,9 @@ export function Markdown({
 }: MarkdownProps) {
 	const html = React.useMemo(() => {
 		try {
-			const parsed = parseMarkdown(content, { extensions: MARKDOWN_EXTENSIONS });
+			const parsed = parseMarkdown(content, {
+				extensions: MARKDOWN_EXTENSIONS,
+			});
 			return renderHtml(parsed, { extensions: MARKDOWN_EXTENSIONS });
 		} catch (err) {
 			console.error("Failed to parse markdown:", err);

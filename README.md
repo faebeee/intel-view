@@ -1,8 +1,8 @@
 # Intel View
 
-Intel View is a self-hostable **project intelligence board**: a place to dump freeform notes about anything you're investigating or tracking, then organize, geolocate, visually connect, and query them — by hand, or through an AI agent.
+Intel View is a self-hostable **project intelligence board**: a place to dump freeform notes about anything you're investigating or tracking, then organize, visually connect, and query them — by hand, or through an AI agent.
 
-The idea: instead of scattering research, evidence, logs, and files across a dozen tools, you keep everything as **notes** inside a **project**. Notes can be nested under one another, tagged, linked by reference, pinned to a location on a map, and dragged around a visual canvas to sketch out how they relate. Every change is recorded automatically, so you always have a full history of how your understanding evolved. And because the whole thing is also exposed as an **MCP server**, you (or an AI assistant like Claude) can read and write that same data directly from a chat — asking it to create notes, summarize a project, log an update, or look up what's connected to what.
+The idea: instead of scattering research, evidence, logs, and files across a dozen tools, you keep everything as **notes** inside a **project**. Notes can be nested under one another, tagged, linked by reference, and dragged around a visual canvas to sketch out how they relate. Every change is recorded automatically, so you always have a full history of how your understanding evolved. And because the whole thing is also exposed as an **MCP server**, you (or an AI assistant like Claude) can read and write that same data directly from a chat — asking it to create notes, summarize a project, log an update, or look up what's connected to what.
 
 It's built as a Turborepo monorepo with a decoupled [TanStack Start](https://tanstack.com/start) frontend and a [NestJS](https://nestjs.com/) + [TypeORM](https://typeorm.io/) REST API backed by PostgreSQL.
 
@@ -16,7 +16,6 @@ It's built as a Turborepo monorepo with a decoupled [TanStack Start](https://tan
 - [User Handbook](#user-handbook)
   - [Dashboard: Projects & Project Groups](#dashboard-projects--project-groups)
   - [Working with Notes](#working-with-notes)
-  - [Map View](#map-view)
   - [Canvas View](#canvas-view)
   - [Tags](#tags)
   - [Note History](#note-history)
@@ -41,14 +40,12 @@ A quick glossary before diving into the handbook:
 
 - **Project** — the top-level container for everything else: a set of notes and a project-scoped tag palette. Everything you do in Intel View happens inside a project.
 - **Project Group** — an optional, color-coded folder on the dashboard for organizing related projects (e.g. by client, case, or theme). A project belongs to at most one group, or none.
-- **Note** — the core content unit. Every note has one of four types:
+- **Note** — the core content unit. Every note has one of these types:
   - `standard` — freely-editable rich text, edited with a [Tiptap](https://tiptap.dev/)-based markdown editor.
   - `log` — an append-only note: instead of editing shared content, you append timestamped entries that are never edited or removed (good for running status updates / incident logs).
-  - `address` — a note built around a physical address/location.
   - `file` — a note holding a single uploaded file (image, PDF, etc.), previewed inline where possible.
 - **Nesting (parent/child)** — any note can be linked under one or more parent notes and can have one or more children, forming a graph (not just a strict tree) of related notes.
-- **`[[NOTE_ID]]` references** — typing `[[123]]` inside a note's content links it to note `#123` without making it a parent/child — a lightweight, inline cross-reference, shown as a dashed connection on the Map and Canvas views.
-- **`[[geo:LAT,LNG,LABEL]]` pins** — typing this inside a note's content automatically drops a pin for that note on the Map view; you don't manage a separate "location" field by hand.
+- **`[[NOTE_ID]]` references** — typing `[[123]]` inside a note's content links it to note `#123` without making it a parent/child — a lightweight, inline cross-reference, shown as a dashed connection on the Canvas view.
 - **Tags** — a per-project color-coded palette (name + color) plus a free-text `tags` field on each note, which can reuse a palette name for consistent coloring or be any arbitrary word.
 - **Note History** — every note automatically records `created`/`updated` entries with field-level diffs, so you can see exactly what changed and when.
 
@@ -62,9 +59,9 @@ This section walks through how to actually use the app day-to-day.
 
 The dashboard (home page) is where you land after opening Intel View. From here you can:
 
-- **Create a project** — give it a name, description, a map theme, and a color. This is your workspace for one investigation/topic.
+- **Create a project** — give it a name, description, and a color. This is your workspace for one investigation/topic.
 - **Create a project group** — an optional color-coded folder to visually cluster related projects together on the dashboard. Manage groups from the "Manage Project Groups" dialog on the home page; assign a project to a group (or unassign it) when creating/editing the project.
-- Click into a project to open its own dashboard, showing quick stats (note counts by type, tag counts, location counts) and links into its Notes, Map, and Canvas views.
+- Click into a project to open its own dashboard, opening straight into its Canvas view.
 
 ### Working with Notes
 
@@ -72,30 +69,19 @@ The dashboard (home page) is where you land after opening Intel View. From here 
 
 The **Notes** tab is where content lives. On the left is a tree of every note in the project (respecting parent/child nesting); on the right is the editor for whichever note is selected.
 
-- **Create a note** — pick a type (`standard`, `log`, `address`, or `file`) from the "New Note" dialog. Optionally create it as a child of the currently-selected note.
-- **Edit content** — `standard` notes use a rich markdown editor with a toolbar (headings, lists, links, an inline geo-pin button that inserts a `[[geo:LAT,LNG,LABEL]]` token, and note-reference autocomplete for `[[NOTE_ID]]` links). Changes autosave a moment after you stop typing.
+- **Create a note** — pick a type (`standard`, `log`, `url`, `ip`, or `file`) from the "New Note" dialog. Optionally create it as a child of the currently-selected note.
+- **Edit content** — `standard` notes use a rich markdown editor with a toolbar (headings, lists, links, and note-reference autocomplete for `[[NOTE_ID]]` links). Changes autosave a moment after you stop typing.
 - **Log entries** — on a `log` note, instead of editing shared content you append new timestamped entries; older entries stay immutable.
 - **Files** — on a `file` note, upload a single file (stored privately in MinIO and proxied by the API); images preview inline.
 - **Nest notes** — drag a note onto another in the tree (or set its parent when creating it) to nest it; a note can have multiple parents. Cycles and self-parenting are rejected automatically.
 - **Tag a note** — add tag names in the note's tag field; reuse palette names for consistent coloring across the project.
 - **Delete a note** — soft-deletes it (and cascades to its descendants); nothing is destroyed at the database level, so recovery/audit is always possible in principle.
 
-### Map View
-
-![Map](./docs/map.png)
-
-The **Map** tab plots every geo-pin (`[[geo:...]]` token) found across all notes in the project on an interactive [Leaflet](https://leafletjs.com/) map.
-
-- Switch **base map themes** (street / satellite / light / dark / futuristic) independently of the app's own light/dark UI mode, from the layers control on the map.
-- **Select a note** (from the sidebar tree or by clicking one of its pins) to filter the map down to just that note plus **every note connected to it** — parents, children, and `[[NOTE_ID]]` references — followed **transitively in any direction** through the whole connected chain. Unrelated notes' pins are hidden until you clear the selection, so you can focus on one cluster of related intel at a time.
-- Solid lines connect a note to its parent/child notes; dashed lines connect notes linked purely by `[[NOTE_ID]]` reference.
-- Click a pin's popup link to jump straight to that note in the Notes editor.
-
 ### Canvas View
 
 ![Canvas](./docs/canvas.png)
 
-The **Canvas** tab is a free-form, node-based workspace (via [`@xyflow/react`](https://reactflow.dev/)) for visually arranging and linking notes, independent of geography.
+The **Canvas** tab is a free-form, node-based workspace (via [`@xyflow/react`](https://reactflow.dev/)) for visually arranging and linking notes.
 
 - Every note is a draggable node; its position is saved per-note (`canvasX`/`canvasY`), so your layout persists.
 - **Drag from one node's handle to another** to create a parent/child connection between them.
@@ -145,7 +131,7 @@ Point your MCP client at the Streamable HTTP endpoint above. The exact configura
 
 | Domain            | Tools                                                                                                                                                                                                                                        |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Notes**          | `create_note`, `list_notes`, `get_note`, `update_note`, `delete_note`, `add_note_parent`, `remove_note_parent`, `add_note_child`, `remove_note_child`, `get_note_history`, `create_note_log_entry`, `list_note_log_entries`, `get_note_locations`, `list_all_project_note_locations` |
+| **Notes**          | `create_note`, `list_notes`, `get_note`, `update_note`, `delete_note`, `add_note_parent`, `remove_note_parent`, `add_note_child`, `remove_note_child`, `get_note_history`, `create_note_log_entry`, `list_note_log_entries` |
 | **Projects**       | `create_project`, `list_projects`, `get_project`, `update_project`, `delete_project`                                                                                                                                                        |
 | **Project Groups** | `create_project_group`, `list_project_groups`, `get_project_group`, `update_project_group`, `delete_project_group`                                                                                                                          |
 | **Tags**           | `create_tag`, `list_tags`, `get_tag`, `update_tag`, `delete_tag`                                                                                                                                                                             |
@@ -162,7 +148,7 @@ apps/web  (TanStack Start, Vite, React 19)  ───▶  apps/api  (NestJS, Typ
 ```
 
 - **`apps/web`** — the user-facing single-page application. Server-rendered via TanStack Start/Vite/Nitro, styled with Tailwind CSS v4 and shadcn-style primitives.
-- **`apps/api`** — the REST API. Exposes `/projects`, `/project-groups`, `/projects/:projectId/notes` (plus nested `/history`, `/log-entries`, and `/locations` sub-resources), and `/projects/:projectId/tags`, documented via Swagger — plus the `/mcp` endpoint described above.
+- **`apps/api`** — the REST API. Exposes `/projects`, `/project-groups`, `/projects/:projectId/notes` (plus nested `/history` and `/log-entries` sub-resources), and `/projects/:projectId/tags`, documented via Swagger — plus the `/mcp` endpoint described above.
 - **`packages/sdk`** — a typed API client (`@repo/sdk`) generated from the API's OpenAPI schema using [`@hey-api/openapi-ts`](https://heyapi.dev/). The web app never hand-writes fetch calls; it imports generated functions and types from this package.
 - **`packages/ui`** — shared, framework-level React primitives (`@repo/ui`) available to any app in the workspace.
 - **`packages/eslint-config`** / **`packages/typescript-config`** — shared lint and TypeScript configuration used across all workspaces.

@@ -12,8 +12,6 @@ describe('NoteMcpController', () => {
     update: jest.fn(),
     remove: jest.fn(),
     findHistory: jest.fn(),
-    findLocations: jest.fn(),
-    findAllLocations: jest.fn(),
     createLogEntry: jest.fn(),
     findLogEntries: jest.fn(),
     addRelation: jest.fn(),
@@ -33,11 +31,6 @@ describe('NoteMcpController', () => {
       childIds: [],
       canvasX: null,
       canvasY: null,
-      latitude: null,
-      longitude: null,
-      geocodeStatus: null,
-      geocodedLabel: null,
-      geocodeError: null,
       fileName: null,
       fileMimeType: null,
       fileSize: null,
@@ -324,65 +317,6 @@ describe('NoteMcpController', () => {
       await expect(
         controller.listNoteLogEntries({ projectId: 10, id: 99 }),
       ).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('getNoteLocations', () => {
-    it('returns the note locations', async () => {
-      mockNoteService.findLocations.mockResolvedValue([
-        {
-          id: 1,
-          noteId: 1,
-          lat: 1.1,
-          lng: 2.2,
-          label: null,
-          createdAt: new Date('2024-01-01T00:00:00.000Z'),
-          noteLabel: 'Sighting',
-          tags: [],
-          color: null,
-        },
-      ]);
-
-      const result = await controller.getNoteLocations({
-        projectId: 10,
-        id: 1,
-      });
-
-      expect(mockNoteService.findLocations).toHaveBeenCalledWith(10, 1);
-      expect(parseResult(result)).toMatchObject([{ noteLabel: 'Sighting' }]);
-    });
-
-    it('throws NotFoundException when the note does not exist', async () => {
-      mockNoteService.findLocations.mockResolvedValue(null);
-
-      await expect(
-        controller.getNoteLocations({ projectId: 10, id: 99 }),
-      ).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('listAllProjectNoteLocations', () => {
-    it('returns all project note locations', async () => {
-      mockNoteService.findAllLocations.mockResolvedValue([
-        {
-          id: 1,
-          noteId: 1,
-          lat: 1.1,
-          lng: 2.2,
-          label: null,
-          createdAt: new Date('2024-01-01T00:00:00.000Z'),
-          noteLabel: 'Sighting',
-          tags: [],
-          color: null,
-        },
-      ]);
-
-      const result = await controller.listAllProjectNoteLocations({
-        projectId: 10,
-      });
-
-      expect(mockNoteService.findAllLocations).toHaveBeenCalledWith(10);
-      expect(parseResult(result)).toMatchObject([{ noteLabel: 'Sighting' }]);
     });
   });
 });

@@ -163,15 +163,13 @@ export function NoteSettingsPanel({
 					<span className="text-xs font-mono text-sea-ink-soft">
 						{note.type === "log"
 							? "Log"
-							: note.type === "address"
-								? "Address"
-								: note.type === "file"
-									? "File"
-									: note.type === "url"
-										? "Link"
-										: note.type === "ip"
-											? "IP Address"
-											: "Standard"}
+							: note.type === "file"
+								? "File"
+								: note.type === "url"
+									? "Link"
+									: note.type === "ip"
+										? "IP Address"
+										: "Standard"}
 					</span>
 				</div>
 

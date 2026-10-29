@@ -19,7 +19,6 @@ export function useDeleteNote(projectId: number) {
 				queryKey: ["notes", "canvas", projectId],
 			});
 			queryClient.invalidateQueries({ queryKey: ["notes", "all", projectId] });
-			queryClient.invalidateQueries({ queryKey: ["notes", "map", projectId] });
 		},
 		onError: (err) => {
 			console.error("Failed to delete note:", err);

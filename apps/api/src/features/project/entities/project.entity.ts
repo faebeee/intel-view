@@ -5,23 +5,6 @@ import { Note } from '../../note/entities/note.entity';
 import { ProjectFolder } from '../../project-folder/entities/project-folder.entity';
 
 /**
- * The base map tile layer style selected for a project's map view. Mirrors
- * the frontend's `MapThemeId` (`apps/web/src/features/map/lib/map-themes.ts`)
- * so the user's chosen look persists across sessions/devices instead of
- * always resetting to the default on each map load.
- */
-export type ProjectMapTheme =
-  'street' | 'satellite' | 'light' | 'dark' | 'futuristic';
-export const PROJECT_MAP_THEMES: ProjectMapTheme[] = [
-  'street',
-  'satellite',
-  'light',
-  'dark',
-  'futuristic',
-];
-export const DEFAULT_PROJECT_MAP_THEME: ProjectMapTheme = 'street';
-
-/**
  * The accent color palette applied app-wide (via the `data-theme` attribute
  * on <html>, see the frontend's `apps/web/src/styles.css`) whenever this
  * project is open. Replaces the old global, user-level color theme picker so
@@ -66,19 +49,6 @@ export class Project extends BaseEntity {
   })
   @JoinColumn({ name: 'folderId' })
   folder: ProjectFolder | null;
-
-  @Column({
-    type: 'varchar',
-    length: 20,
-    default: DEFAULT_PROJECT_MAP_THEME,
-  })
-  @ApiProperty({
-    description:
-      "The selected base map tile style for this project's map view, persisted so it's remembered across sessions.",
-    enum: PROJECT_MAP_THEMES,
-    default: DEFAULT_PROJECT_MAP_THEME,
-  })
-  mapTheme: ProjectMapTheme;
 
   @Column({
     type: 'varchar',

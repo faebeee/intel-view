@@ -47,7 +47,6 @@ export function useCreateNote(projectId: number) {
 				queryKey: ["notes", "canvas", projectId],
 			});
 			queryClient.invalidateQueries({ queryKey: ["notes", "all", projectId] });
-			queryClient.invalidateQueries({ queryKey: ["notes", "map", projectId] });
 		},
 		onError: toastApiError("create note"),
 	});

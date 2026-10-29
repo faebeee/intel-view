@@ -1,6 +1,5 @@
 import type { NoteResponseDto as Note } from "@repo/sdk";
 import type { JSX } from "react";
-import { NoteAddressEditorPane } from "#/features/notes/components/NoteAddressEditorPane.tsx";
 import type { NoteSaveStatus } from "#/features/notes/components/NoteEditorPane.tsx";
 import { NoteEditorPane } from "#/features/notes/components/NoteEditorPane.tsx";
 import { NoteFileEditorPane } from "#/features/notes/components/NoteFileEditorPane.tsx";
@@ -46,19 +45,6 @@ export function NoteContentEditor({
 				onTitleChange={onTitleChange}
 				saveStatus={saveStatus}
 				notes={notes}
-				className={className}
-			/>
-		);
-	}
-
-	if (note.type === "address") {
-		return (
-			<NoteAddressEditorPane
-				projectId={projectId}
-				note={note}
-				title={title}
-				onTitleChange={onTitleChange}
-				saveStatus={saveStatus}
 				className={className}
 			/>
 		);

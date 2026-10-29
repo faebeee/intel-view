@@ -20,7 +20,6 @@ describe('ProjectMcpController', () => {
       description: null,
       folderId: null,
       folder: null,
-      mapTheme: 'street',
       color: 'ocean',
       createdAt: new Date('2024-01-01T00:00:00.000Z'),
       updatedAt: new Date('2024-01-02T00:00:00.000Z'),

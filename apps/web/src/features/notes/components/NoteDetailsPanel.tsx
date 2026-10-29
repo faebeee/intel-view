@@ -1,7 +1,5 @@
 import type { NoteResponseDto as Note } from "@repo/sdk";
-import { Link } from "@tanstack/react-router";
 import {
-	ExternalLink,
 	Link as Link2,
 	Network,
 	Pencil,
@@ -27,7 +25,6 @@ import { cn } from "#/lib/utils.ts";
 export type NoteDetailsPanelProps = {
 	projectId: number;
 	/** String form of `projectId` as used in the route params, for the "Open note" link. */
-	projectIdParam: string;
 	note: Note;
 	notes: Note[];
 	/** When provided, renders a close (X) button in the header — used by views (e.g. canvas) with no other way to deselect the note. */
@@ -49,7 +46,6 @@ export type NoteDetailsPanelProps = {
  */
 export function NoteDetailsPanel({
 	projectId,
-	projectIdParam,
 	note,
 	notes,
 	onClose,
@@ -226,22 +222,6 @@ export function NoteDetailsPanel({
 						<span>Edit</span>
 					</Button>
 				)}
-				<Button
-					asChild
-					variant={onEdit ? "outline" : "default"}
-					size="sm"
-					className={onEdit ? undefined : "flex-1"}
-				>
-					<Link
-						to="/projects/$projectId/notes"
-						params={{ projectId: projectIdParam }}
-						search={{ noteId: note.id }}
-						className={onEdit ? undefined : "text-primary-foreground!"}
-					>
-						<ExternalLink className="h-3.5 w-3.5" />
-						<span>Open note</span>
-					</Link>
-				</Button>
 				<ConfirmationButton
 					variant="outline"
 					size="sm"

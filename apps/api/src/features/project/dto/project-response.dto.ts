@@ -1,13 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  PROJECT_COLOR_THEMES,
-  PROJECT_MAP_THEMES,
-  Project,
-} from '../entities/project.entity';
-import type {
-  ProjectColorTheme,
-  ProjectMapTheme,
-} from '../entities/project.entity';
+import { PROJECT_COLOR_THEMES, Project } from '../entities/project.entity';
+import type { ProjectColorTheme } from '../entities/project.entity';
 
 export class ProjectFolderSummaryDto {
   @ApiProperty()
@@ -42,13 +35,6 @@ export class ProjectResponseDto {
 
   @ApiProperty({
     description:
-      "The selected base map tile style for this project's map view.",
-    enum: PROJECT_MAP_THEMES,
-  })
-  mapTheme: ProjectMapTheme;
-
-  @ApiProperty({
-    description:
       'The accent color palette applied app-wide while this project is open.',
     enum: PROJECT_COLOR_THEMES,
   })
@@ -74,7 +60,6 @@ export function toProjectResponseDto(project: Project): ProjectResponseDto {
           color: project.folder.color,
         }
       : null,
-    mapTheme: project.mapTheme,
     color: project.color,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,

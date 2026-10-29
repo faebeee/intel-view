@@ -36,11 +36,6 @@ describe('PluginRegistryService', () => {
     childIds: [],
     canvasX: null,
     canvasY: null,
-    latitude: null,
-    longitude: null,
-    geocodeStatus: null,
-    geocodedLabel: null,
-    geocodeError: null,
     fileName: null,
     fileMimeType: null,
     fileSize: null,
@@ -73,24 +68,24 @@ describe('PluginRegistryService', () => {
     });
   });
 
-  describe('execute', () => {
+  describe('preview', () => {
     it('executes the matching plugin and returns its result', async () => {
       const note = makeNote();
-      const result = await service.execute('url-fetch-snippet', note);
+      const result = await service.preview('url-fetch-snippet', note);
       expect(result).toBe('fetch snippet result');
       expect(urlPluginExecute).toHaveBeenCalledWith(note);
     });
 
     it('throws NotFoundException if the plugin id does not exist', async () => {
       const note = makeNote();
-      await expect(service.execute('nonexistent', note)).rejects.toThrow(
+      await expect(service.preview('nonexistent', note)).rejects.toThrow(
         NotFoundException,
       );
     });
 
     it('throws NotFoundException if the plugin exists but is not applicable to the note type', async () => {
       const note = makeNote({ type: 'standard' });
-      await expect(service.execute('url-fetch-snippet', note)).rejects.toThrow(
+      await expect(service.preview('url-fetch-snippet', note)).rejects.toThrow(
         NotFoundException,
       );
     });

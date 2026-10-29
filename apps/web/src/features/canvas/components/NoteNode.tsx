@@ -2,7 +2,6 @@ import type { NodeProps } from "@xyflow/react";
 import { Handle, Position } from "@xyflow/react";
 import {
 	Link,
-	MapPin,
 	Network,
 	Paperclip,
 	ScrollText,
@@ -80,8 +79,6 @@ export function NoteNode({ data, selected }: NoteNodeProps) {
 							<ScrollText className="h-3.5 w-3.5 text-primary shrink-0" />
 						) : note.type === "file" ? (
 							<Paperclip className="h-3.5 w-3.5 text-primary shrink-0" />
-						) : note.type === "address" ? (
-							<MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
 						) : note.type === "url" ? (
 							<Link className="h-3.5 w-3.5 text-primary shrink-0" />
 						) : note.type === "ip" ? (

@@ -1,10 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  Note,
-  NOTE_TYPES,
-  NOTE_GEOCODE_STATUSES,
-} from '../entities/note.entity';
-import type { NoteType, NoteGeocodeStatus } from '../entities/note.entity';
+import { Note, NOTE_TYPES } from '../entities/note.entity';
+import type { NoteType } from '../entities/note.entity';
 
 export class NoteResponseDto {
   @ApiProperty()
@@ -15,7 +11,7 @@ export class NoteResponseDto {
 
   @ApiProperty({
     description:
-      "The kind of note: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'address' (content is a physical address, automatically resolved to coordinates), 'file' (holds a single uploaded file stored in object storage), 'url' (content is a single well-formed URL), or 'ip' (content is a single well-formed IPv4 or IPv6 address)",
+      "The kind of note: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'file' (holds a single uploaded file stored in object storage), 'url' (content is a single well-formed URL), or 'ip' (content is a single well-formed IPv4 or IPv6 address)",
     enum: NOTE_TYPES,
   })
   type: NoteType;
@@ -74,49 +70,6 @@ export class NoteResponseDto {
 
   @ApiProperty({
     description:
-      "Latitude resolved from this note's content (only set for 'address'-type notes with a successfully geocoded address).",
-    required: false,
-    nullable: true,
-    type: 'number',
-  })
-  latitude: number | null;
-
-  @ApiProperty({
-    description:
-      "Longitude resolved from this note's content (only set for 'address'-type notes with a successfully geocoded address).",
-    required: false,
-    nullable: true,
-    type: 'number',
-  })
-  longitude: number | null;
-
-  @ApiProperty({
-    description:
-      "Outcome of the most recent attempt to geocode this note's content (only applicable to 'address'-type notes). Null until a save has been attempted.",
-    enum: NOTE_GEOCODE_STATUSES,
-    required: false,
-    nullable: true,
-  })
-  geocodeStatus: NoteGeocodeStatus | null;
-
-  @ApiProperty({
-    description:
-      'Human-readable place name returned by the geocoding provider for this address note, if resolution succeeded.',
-    required: false,
-    nullable: true,
-  })
-  geocodedLabel: string | null;
-
-  @ApiProperty({
-    description:
-      'Explanation of why geocoding failed for this address note, if resolution did not succeed.',
-    required: false,
-    nullable: true,
-  })
-  geocodeError: string | null;
-
-  @ApiProperty({
-    description:
       "Original name of the file uploaded to this note (only set for 'file'-type notes that have a file).",
     required: false,
     nullable: true,
@@ -160,11 +113,6 @@ export function toNoteResponseDto(note: Note): NoteResponseDto {
     childIds: note.childIds ?? [],
     canvasX: note.canvasX,
     canvasY: note.canvasY,
-    latitude: note.latitude,
-    longitude: note.longitude,
-    geocodeStatus: note.geocodeStatus,
-    geocodedLabel: note.geocodedLabel,
-    geocodeError: note.geocodeError,
     fileName: note.fileName,
     fileMimeType: note.fileMimeType,
     fileSize: note.fileSize,

@@ -6,7 +6,7 @@ export type {
 	UpdateNoteDto,
 } from "@repo/sdk";
 
-/** The kind of note: `'standard'` (freely-editable rich text), `'log'` (append-only timestamped entries), `'address'` (physical address, auto-geocoded), `'file'` (single uploaded file), `'url'` (single URL), or `'ip'` (single IPv4/IPv6 address). Set at creation and immutable afterwards. */
+/** The kind of note: `'standard'` (freely-editable rich text), `'log'` (append-only timestamped entries), `'file'` (single uploaded file), `'url'` (single URL), or `'ip'` (single IPv4/IPv6 address). Set at creation and immutable afterwards. */
 export type NoteType = NoteResponseDto["type"];
 
 export type PaginatedResponse<T> = {

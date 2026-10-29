@@ -1,13 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import {
-  PROJECT_COLOR_THEMES,
-  PROJECT_MAP_THEMES,
-} from '../entities/project.entity';
-import type {
-  ProjectColorTheme,
-  ProjectMapTheme,
-} from '../entities/project.entity';
+import { PROJECT_COLOR_THEMES } from '../entities/project.entity';
+import type { ProjectColorTheme } from '../entities/project.entity';
 
 export class CreateProjectDto {
   @IsString()
@@ -32,16 +26,6 @@ export class CreateProjectDto {
     nullable: true,
   })
   folderId?: number | null;
-
-  @IsIn(PROJECT_MAP_THEMES)
-  @IsOptional()
-  @ApiProperty({
-    description:
-      "The selected base map tile style for this project's map view. Defaults to 'street'.",
-    enum: PROJECT_MAP_THEMES,
-    required: false,
-  })
-  mapTheme?: ProjectMapTheme;
 
   @IsIn(PROJECT_COLOR_THEMES)
   @IsOptional()

@@ -15,7 +15,10 @@ const AUTOSAVE_DEBOUNCE_MS = 800;
  * the first time) comes in, without clobbering in-flight local edits on
  * background refetches of the same note.
  */
-export function useNoteDraftAutosave(projectId: number, note: Note | undefined) {
+export function useNoteDraftAutosave(
+	projectId: number,
+	note: Note | undefined,
+) {
 	const queryClient = useQueryClient();
 
 	const invalidateNotes = React.useCallback(() => {
@@ -23,7 +26,6 @@ export function useNoteDraftAutosave(projectId: number, note: Note | undefined) 
 		queryClient.invalidateQueries({
 			queryKey: ["notes", "canvas", projectId],
 		});
-		queryClient.invalidateQueries({ queryKey: ["notes", "map", projectId] });
 	}, [queryClient, projectId]);
 
 	const invalidateNoteHistory = React.useCallback(

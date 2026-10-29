@@ -12,7 +12,7 @@ describe('PluginController', () => {
   };
   const mockPluginRegistryService = {
     listForNoteType: jest.fn(),
-    execute: jest.fn(),
+    preview: jest.fn(),
   };
 
   const makeNote = (overrides: Partial<Note> = {}): Note =>
@@ -28,11 +28,6 @@ describe('PluginController', () => {
       childIds: [],
       canvasX: null,
       canvasY: null,
-      latitude: null,
-      longitude: null,
-      geocodeStatus: null,
-      geocodedLabel: null,
-      geocodeError: null,
       fileKey: null,
       fileName: null,
       fileMimeType: null,
@@ -86,15 +81,15 @@ describe('PluginController', () => {
     });
   });
 
-  describe('execute', () => {
+  describe('preview', () => {
     it('executes the plugin and returns its result', async () => {
       const note = makeNote();
       mockNoteService.findOne.mockResolvedValue(note);
-      mockPluginRegistryService.execute.mockResolvedValue('snippet result');
+      mockPluginRegistryService.preview.mockResolvedValue('snippet result');
 
-      const result = await controller.execute(1, 1, 'url-fetch-snippet');
+      const result = await controller.preview(1, 1, 'url-fetch-snippet');
 
-      expect(mockPluginRegistryService.execute).toHaveBeenCalledWith(
+      expect(mockPluginRegistryService.preview).toHaveBeenCalledWith(
         'url-fetch-snippet',
         expect.objectContaining({ id: 1, type: 'url' }),
       );
@@ -104,7 +99,7 @@ describe('PluginController', () => {
     it('throws NotFoundException when the note does not exist', async () => {
       mockNoteService.findOne.mockResolvedValue(null);
       await expect(
-        controller.execute(1, 999, 'url-fetch-snippet'),
+        controller.preview(1, 999, 'url-fetch-snippet'),
       ).rejects.toThrow(NotFoundException);
     });
   });

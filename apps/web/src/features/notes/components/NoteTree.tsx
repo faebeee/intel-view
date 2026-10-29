@@ -1,8 +1,4 @@
-import type {
-	NoteResponseDto as Note,
-	NoteLocationResponseDto as NoteLocation,
-	TagResponseDto as Tag,
-} from "@repo/sdk";
+import type { NoteResponseDto as Note, TagResponseDto as Tag } from "@repo/sdk";
 import { ChevronRight, Plus, Search, StickyNote, Trash2 } from "lucide-react";
 import * as React from "react";
 import { Button } from "#/components/ui/button.tsx";
@@ -26,14 +22,11 @@ import { cn } from "#/lib/utils.ts";
 type NoteTreeProps = {
 	notes: Note[];
 	tags: Tag[];
-	/** Map pins, used only to also match a note's pin labels ("location") when searching. Omitted on views without a map. */
-	locations?: NoteLocation[];
 	selectedNoteId: number | undefined;
 	onSelect: (id: number) => void;
-	onCreateChild: (parentId: number | null) => void;
+	/** Omitted to hide the per-row "add child" affordances entirely (e.g. on the canvas, where notes are created by double-clicking the pane instead). */
+	onCreateChild?: (parentId: number | null) => void;
 	onDelete: (id: number) => void;
-	/** Reports the current search match as a note-id set, or `null` while the search box is empty (no filter active) — lets a parent (e.g. the map) restrict what it shows to the same result. */
-	onVisibleNoteIdsChange?: (ids: Set<number> | null) => void;
 	isMutating?: boolean;
 	className?: string;
 };
@@ -42,23 +35,20 @@ type NoteTreeProps = {
  * Left-column tree of a project's notes, grouped by parent/child relations
  * (a directed acyclic graph — a note may have multiple parents, in which
  * case it appears once under each). Each row can be expanded/collapsed (if
- * it has children), selected (opens it in the editor), given a child note,
- * or deleted (does not cascade — child notes remain, keeping any other
- * parent relations they have). A search field filters by note content,
- * location (geocoded address label or map pin labels), or tag; while
- * searching, matches are shown as a flat unindented list (the hierarchy no
- * longer applies cleanly since matches can be scattered across unrelated
- * branches) instead of the collapsible nested tree.
+ * it has children), selected, optionally given a child note, or deleted
+ * (does not cascade — child notes remain, keeping any other parent
+ * relations they have). A search field filters by note title, content, or
+ * tag; while searching, matches are shown as a flat unindented list (the
+ * hierarchy no longer applies cleanly since matches can be scattered
+ * across unrelated branches) instead of the collapsible nested tree.
  */
 export function NoteTree({
 	notes,
 	tags,
-	locations = [],
 	selectedNoteId,
 	onSelect,
 	onCreateChild,
 	onDelete,
-	onVisibleNoteIdsChange,
 	isMutating = false,
 	className,
 }: NoteTreeProps) {
@@ -69,25 +59,12 @@ export function NoteTree({
 
 	const trimmedQuery = search.trim().toLowerCase();
 
-	/** Pin labels grouped by note id, so a note's location pins can be matched by search without an O(n*m) scan per note. */
-	const locationLabelsByNoteId = React.useMemo(() => {
-		const map = new Map<number, string[]>();
-		for (const location of locations) {
-			if (!location.label) continue;
-			const labels = map.get(location.noteId) ?? [];
-			labels.push(location.label);
-			map.set(location.noteId, labels);
-		}
-		return map;
-	}, [locations]);
-
 	/**
 	 * When searching, hierarchy no longer applies cleanly (matches can be
 	 * scattered across unrelated branches), so we fall back to a flat,
 	 * unindented list of just the matching notes instead of the
 	 * collapsible nested tree. A note matches if the query is found in its
-	 * label, its full content, its tags, its geocoded address label, or
-	 * any of its map pin labels.
+	 * label, its full content, or its tags.
 	 */
 	const searchResults = React.useMemo(() => {
 		if (!trimmedQuery) return [];
@@ -103,44 +80,38 @@ export function NoteTree({
 					)
 				)
 					return true;
-				const geocodedLabel =
-					typeof note.geocodedLabel === "string" ? note.geocodedLabel : "";
-				if (geocodedLabel.toLowerCase().includes(trimmedQuery)) return true;
-				const pinLabels = locationLabelsByNoteId.get(note.id) ?? [];
-				return pinLabels.some((pinLabel) =>
-					pinLabel.toLowerCase().includes(trimmedQuery),
-				);
+				return false;
 			});
-	}, [childrenMap, trimmedQuery, locationLabelsByNoteId]);
-
-	React.useEffect(() => {
-		if (!onVisibleNoteIdsChange) return;
-		onVisibleNoteIdsChange(
-			trimmedQuery ? new Set(searchResults.map((note) => note.id)) : null,
-		);
-	}, [onVisibleNoteIdsChange, trimmedQuery, searchResults]);
+	}, [childrenMap, trimmedQuery]);
 
 	return (
 		<div className={cn("flex flex-col gap-2 h-full min-h-0", className)}>
 			<div className="flex items-center justify-between px-1">
 				<span className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft">
 					Notes
+					<span className="ml-1.5 font-mono text-muted-foreground">
+						{trimmedQuery
+							? `${searchResults.length}/${notes.length}`
+							: notes.length}
+					</span>
 				</span>
-				<Button
-					variant="outline"
-					size="icon-xs"
-					title="New root note"
-					onClick={() => onCreateChild(null)}
-					disabled={isMutating}
-				>
-					<Plus className="h-3 w-3" />
-				</Button>
+				{onCreateChild && (
+					<Button
+						variant="outline"
+						size="icon-xs"
+						title="New root note"
+						onClick={() => onCreateChild(null)}
+						disabled={isMutating}
+					>
+						<Plus className="h-3 w-3" />
+					</Button>
+				)}
 			</div>
 
 			<div className="relative px-1">
 				<Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
 				<Input
-					placeholder="Search content, location, or tag..."
+					placeholder="Search notes by title, content, or tag..."
 					value={search}
 					onChange={(event) => setSearch(event.target.value)}
 					className="h-8 pl-8 text-xs"
@@ -203,7 +174,7 @@ type NoteTreeItemProps = {
 	childrenMap: ReturnType<typeof buildNoteChildrenMap>;
 	selectedNoteId: number | undefined;
 	onSelect: (id: number) => void;
-	onCreateChild: (parentId: number | null) => void;
+	onCreateChild?: (parentId: number | null) => void;
 	onDelete: (id: number) => void;
 	isMutating: boolean;
 	tagColorMap: Map<string, string>;
@@ -271,7 +242,7 @@ type NoteTreeRowProps = {
 	depth: number;
 	isSelected: boolean;
 	onSelect: (id: number) => void;
-	onCreateChild: (parentId: number | null) => void;
+	onCreateChild?: (parentId: number | null) => void;
 	onDelete: (id: number) => void;
 	isMutating: boolean;
 	noteColor: string | undefined;
@@ -342,15 +313,17 @@ function NoteTreeRow({
 			</button>
 
 			<div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
-				<Button
-					variant="ghost"
-					size="icon-xs"
-					title="Add child note"
-					disabled={isMutating}
-					onClick={() => onCreateChild(note.id)}
-				>
-					<Plus className="h-3 w-3" />
-				</Button>
+				{onCreateChild && (
+					<Button
+						variant="ghost"
+						size="icon-xs"
+						title="Add child note"
+						disabled={isMutating}
+						onClick={() => onCreateChild(note.id)}
+					>
+						<Plus className="h-3 w-3" />
+					</Button>
+				)}
 				<ConfirmationButton
 					variant="ghost"
 					size="icon-xs"

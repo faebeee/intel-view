@@ -13,8 +13,6 @@ describe('NoteController', () => {
     update: jest.fn(),
     remove: jest.fn(),
     findHistory: jest.fn(),
-    findLocations: jest.fn(),
-    findAllLocations: jest.fn(),
     createLogEntry: jest.fn(),
     findLogEntries: jest.fn(),
     addRelation: jest.fn(),
@@ -285,60 +283,6 @@ describe('NoteController', () => {
     });
   });
 
-  describe('findLocations', () => {
-    afterEach(() => {
-      jest.clearAllMocks();
-    });
-
-    it("returns a note's locations mapped to NoteLocationResponseDto", async () => {
-      const projectId = 1;
-      const locations = [
-        {
-          id: 1,
-          noteId: 1,
-          noteLabel: 'My Trip',
-          tags: ['travel'],
-          color: null,
-          lat: 1.5,
-          lng: 2.5,
-          label: 'Home',
-          createdAt: new Date(),
-        },
-        {
-          id: 2,
-          noteId: 1,
-          noteLabel: 'My Trip',
-          tags: ['travel'],
-          color: null,
-          lat: -3,
-          lng: 4,
-          label: null,
-          createdAt: new Date(),
-        },
-      ];
-
-      mockNoteService.findLocations.mockResolvedValue(locations);
-
-      const result = await controller.findLocations(projectId, 1);
-
-      expect(mockNoteService.findLocations).toHaveBeenCalledWith(projectId, 1);
-      expect(result).toHaveLength(2);
-      expect(result[0].label).toBe('Home');
-      expect(result[0].noteLabel).toBe('My Trip');
-      expect(result[0].tags).toEqual(['travel']);
-      expect(result[0].color).toBeNull();
-      expect(result[1].label).toBeNull();
-    });
-
-    it('throws NotFoundException when the note does not exist', async () => {
-      mockNoteService.findLocations.mockResolvedValue(null);
-
-      await expect(controller.findLocations(1, 999)).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-  });
-
   describe('file endpoints', () => {
     afterEach(() => {
       jest.clearAllMocks();
@@ -418,60 +362,6 @@ describe('NoteController', () => {
 
       expect(mockNoteService.removeFile).toHaveBeenCalledWith(1, 3);
       expect(result.fileName).toBeNull();
-    });
-  });
-
-  describe('findAllLocations', () => {
-    afterEach(() => {
-      jest.clearAllMocks();
-    });
-
-    it('returns every location in the project mapped to NoteLocationResponseDto', async () => {
-      const projectId = 1;
-      const locations = [
-        {
-          id: 1,
-          noteId: 1,
-          noteLabel: 'Home',
-          tags: ['family'],
-          color: '#ff0000',
-          lat: 1.5,
-          lng: 2.5,
-          label: null,
-          createdAt: new Date(),
-        },
-        {
-          id: 2,
-          noteId: 2,
-          noteLabel: 'Office',
-          tags: [],
-          color: null,
-          lat: -3,
-          lng: 4,
-          label: 'Work',
-          createdAt: new Date(),
-        },
-      ];
-
-      mockNoteService.findAllLocations.mockResolvedValue(locations);
-
-      const result = await controller.findAllLocations(projectId);
-
-      expect(mockNoteService.findAllLocations).toHaveBeenCalledWith(projectId);
-      expect(result).toHaveLength(2);
-      expect(result[0].noteLabel).toBe('Home');
-      expect(result[0].tags).toEqual(['family']);
-      expect(result[0].color).toBe('#ff0000');
-      expect(result[1].noteLabel).toBe('Office');
-      expect(result[1].label).toBe('Work');
-    });
-
-    it('returns an empty array when the project has no locations', async () => {
-      mockNoteService.findAllLocations.mockResolvedValue([]);
-
-      const result = await controller.findAllLocations(1);
-
-      expect(result).toEqual([]);
     });
   });
 });

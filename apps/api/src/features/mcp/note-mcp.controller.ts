@@ -8,7 +8,6 @@ import type { NoteType } from '../note/entities/note.entity';
 import { toNoteResponseDto } from '../note/dto/note-response.dto';
 import { toNoteHistoryEntryResponseDto } from '../note/dto/note-history-entry-response.dto';
 import { toNoteLogEntryResponseDto } from '../note/dto/note-log-entry-response.dto';
-import { toNoteLocationResponseDto } from '../note/dto/note-location-response.dto';
 import { buildMcpPaginateQuery } from './mcp-paginate.util';
 import { textResult, McpToolTextResult } from './mcp-tool-result.util';
 
@@ -24,7 +23,7 @@ const createNoteParams = z.object({
     .enum(NOTE_TYPES as [NoteType, ...NoteType[]])
     .optional()
     .describe(
-      "The kind of note to create: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'address' (content is a physical address, automatically resolved to coordinates), 'url' (content must be a single well-formed URL), 'ip' (content must be a single well-formed IPv4 or IPv6 address), or 'file' (holds a single uploaded file, not settable via MCP). Defaults to 'standard'.",
+      "The kind of note to create: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'url' (content must be a single well-formed URL), 'ip' (content must be a single well-formed IPv4 or IPv6 address), or 'file' (holds a single uploaded file, not settable via MCP). Defaults to 'standard'.",
     ),
   title: z.string().optional().describe('The title of the note'),
   content: z.string().optional().describe('The markdown content of the note'),
@@ -103,7 +102,7 @@ const createLogEntryParams = z.object({
 });
 
 /**
- * Exposes note CRUD and relation/history/log/location operations as MCP
+ * Exposes note CRUD and relation/history/log operations as MCP
  * tools for AI agents, mirroring `NoteController`'s REST surface. File
  * upload/download tools are intentionally omitted — binary file transfer
  * doesn't map cleanly onto the MCP tool call/response shape.
@@ -304,50 +303,5 @@ export class NoteMcpController {
       throw new NotFoundException(`Note with ID ${id} not found`);
     }
     return textResult(entries.map(toNoteLogEntryResponseDto));
-  }
-
-  @Tool({
-    name: 'get_note_locations',
-    description:
-      "Get the geographic pins embedded in a note's content via [[geo:...]] tokens",
-    parameters: noteRefParams,
-  })
-  async getNoteLocations(
-    @Payload() { projectId, id }: z.infer<typeof noteRefParams>,
-  ): Promise<McpToolTextResult> {
-    const locations = await this.noteService.findLocations(projectId, id);
-    if (!locations) {
-      throw new NotFoundException(`Note with ID ${id} not found`);
-    }
-    return textResult(
-      locations.map((location) =>
-        toNoteLocationResponseDto(location, {
-          noteLabel: location.noteLabel,
-          tags: location.tags,
-          color: location.color,
-        }),
-      ),
-    );
-  }
-
-  @Tool({
-    name: 'list_all_project_note_locations',
-    description:
-      "Get every active note's geographic pins across the whole project, each with its owning note's derived label",
-    parameters: z.object({ projectId: projectIdField }),
-  })
-  async listAllProjectNoteLocations(
-    @Payload() { projectId }: { projectId: number },
-  ): Promise<McpToolTextResult> {
-    const locations = await this.noteService.findAllLocations(projectId);
-    return textResult(
-      locations.map((location) =>
-        toNoteLocationResponseDto(location, {
-          noteLabel: location.noteLabel,
-          tags: location.tags,
-          color: location.color,
-        }),
-      ),
-    );
   }
 }

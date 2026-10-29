@@ -85,25 +85,6 @@ describe('ProjectService', () => {
       expect(mockProjectFolderService.assertExists).toHaveBeenCalledWith(5);
     });
 
-    it('persists the selected mapTheme on the project', async () => {
-      const existingProject = {
-        id: 1,
-        name: 'Op Blue Horizon',
-        mapTheme: 'street',
-      };
-      mockProjectRepository.findOne.mockResolvedValue(existingProject);
-      mockProjectRepository.save.mockImplementation(
-        (project: unknown) => project,
-      );
-
-      const result = await service.update(1, { mapTheme: 'dark' });
-
-      expect(result).toMatchObject({ mapTheme: 'dark' });
-      expect(mockProjectRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining({ mapTheme: 'dark' }),
-      );
-    });
-
     it('persists the selected accent color on the project', async () => {
       const existingProject = {
         id: 1,
@@ -127,7 +108,6 @@ describe('ProjectService', () => {
       const existingProject = {
         id: 1,
         name: 'Op Blue Horizon',
-        mapTheme: 'street',
       };
       mockProjectRepository.findOne.mockResolvedValue(existingProject);
       mockProjectRepository.save.mockImplementation(

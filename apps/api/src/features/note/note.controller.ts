@@ -38,10 +38,6 @@ import {
   NoteLogEntryResponseDto,
   toNoteLogEntryResponseDto,
 } from './dto/note-log-entry-response.dto';
-import {
-  NoteLocationResponseDto,
-  toNoteLocationResponseDto,
-} from './dto/note-location-response.dto';
 
 @ApiTags('notes')
 @Controller('projects/:projectId/notes')
@@ -82,29 +78,6 @@ export class NoteController {
       ...paginated,
       data: paginated.data.map(toNoteResponseDto),
     } as unknown as Paginated<NoteResponseDto>;
-  }
-
-  @Get('locations')
-  @ApiOperation({
-    summary:
-      "Get every active note's geographic pins across the whole project, each with its owning note's derived label",
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'All derived note locations in the project.',
-    type: [NoteLocationResponseDto],
-  })
-  async findAllLocations(
-    @Param('projectId', ParseIntPipe) projectId: number,
-  ): Promise<NoteLocationResponseDto[]> {
-    const locations = await this.noteService.findAllLocations(projectId);
-    return locations.map((location) =>
-      toNoteLocationResponseDto(location, {
-        noteLabel: location.noteLabel,
-        tags: location.tags,
-        color: location.color,
-      }),
-    );
   }
 
   @Get(':id')
@@ -401,34 +374,6 @@ export class NoteController {
   ): Promise<NoteResponseDto> {
     const note = await this.noteService.removeFile(projectId, id);
     return toNoteResponseDto(note);
-  }
-
-  @Get(':id/locations')
-  @ApiOperation({
-    summary:
-      "Get the geographic pins embedded in a note's content via [[geo:...]] tokens",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "The note's derived locations.",
-    type: [NoteLocationResponseDto],
-  })
-  @ApiResponse({ status: 404, description: 'Note not found.' })
-  async findLocations(
-    @Param('projectId', ParseIntPipe) projectId: number,
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<NoteLocationResponseDto[]> {
-    const locations = await this.noteService.findLocations(projectId, id);
-    if (!locations) {
-      throw new NotFoundException(`Note with ID ${id} not found`);
-    }
-    return locations.map((location) =>
-      toNoteLocationResponseDto(location, {
-        noteLabel: location.noteLabel,
-        tags: location.tags,
-        color: location.color,
-      }),
-    );
   }
 
   @Delete(':id')

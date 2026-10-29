@@ -20,7 +20,6 @@ function useInvalidateAfterRelationChange(projectId: number) {
 		queryClient.invalidateQueries({
 			queryKey: ["notes", "canvas", projectId],
 		});
-		queryClient.invalidateQueries({ queryKey: ["notes", "map", projectId] });
 		queryClient.invalidateQueries({
 			queryKey: ["notes", "history", projectId, noteId],
 		});

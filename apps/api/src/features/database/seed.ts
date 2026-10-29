@@ -3,31 +3,24 @@ import { Project } from '../project/entities/project.entity';
 import { ProjectFolder } from '../project-folder/entities/project-folder.entity';
 import { Tag } from '../tag/entities/tag.entity';
 import { Note } from '../note/entities/note.entity';
-import { NoteLocation } from '../note/entities/note-location.entity';
 import { NoteLogEntry } from '../note/entities/note-log-entry.entity';
 import { NoteRelation } from '../note/entities/note-relation.entity';
 import { buildNoteRelations } from './note-relations.util';
 
 /**
  * Seeds a "Switzerland Field Ops" demo project (assigned to a demo project
- * folder, with a non-default map/color theme) with tags and ~200 notes,
- * geographically concentrated within Switzerland (with a small fraction of
- * notes spilling into neighbouring countries to simulate cross-border
- * activity). Exercises every note type except `'file'` (which requires a
- * reachable object storage instance to seed real bytes into, so is left out
- * of this offline-friendly script): most notes are `'standard'` notes with
- * an embedded `[[geo:...]]` map pin, plus a handful of `'log'` notes (each
- * with several append-only log entries) and `'address'` notes (with a
- * directly-set "resolved" geocode, rather than calling the live geocoding
- * API, to keep this script fast and deterministic). Notes are also nested
- * into a parent/child DAG and scattered across the canvas view.
+ * folder, with a non-default color theme) with tags and ~200 notes. Exercises
+ * every note type except `'file'` (which requires a reachable object storage
+ * instance to seed real bytes into, so is left out of this offline-friendly
+ * script): most notes are `'standard'` notes, plus a handful of `'log'` notes
+ * (each with several append-only log entries). Notes are also nested into a
+ * parent/child DAG and scattered across the canvas view.
  *
  * Run with: npm run seed --workspace=api
  */
 
-const TOTAL_STANDARD_NOTES = 170;
+const TOTAL_STANDARD_NOTES = 185;
 const TOTAL_LOG_NOTES = 15;
-const TOTAL_ADDRESS_NOTES = 15;
 
 const DEMO_PROJECT_FOLDER = {
   name: 'Field Operations',
@@ -39,7 +32,6 @@ const DEMO_PROJECT = {
   name: 'Switzerland Field Ops',
   description:
     'Demo project tracking field reports, checkpoints, and points of interest across Switzerland.',
-  mapTheme: 'dark' as const,
   color: 'crimson' as const,
 };
 
@@ -68,46 +60,40 @@ const CUSTOM_NOTE_COLORS = [
 ];
 const CUSTOM_COLOR_PROBABILITY = 0.18;
 
-// Swiss cities/towns with approximate coordinates, weighted so that larger
-// cities appear more frequently. A small pool of nearby cross-border cities
-// is included separately to represent the "mostly Switzerland" spillover.
-const SWISS_LOCATIONS: { name: string; lat: number; lng: number }[] = [
-  { name: 'Zurich', lat: 47.3769, lng: 8.5417 },
-  { name: 'Geneva', lat: 46.2044, lng: 6.1432 },
-  { name: 'Basel', lat: 47.5596, lng: 7.5886 },
-  { name: 'Bern', lat: 46.948, lng: 7.4474 },
-  { name: 'Lausanne', lat: 46.5197, lng: 6.6323 },
-  { name: 'Lucerne', lat: 47.0502, lng: 8.3093 },
-  { name: 'St. Gallen', lat: 47.4245, lng: 9.3767 },
-  { name: 'Lugano', lat: 46.0037, lng: 8.9511 },
-  { name: 'Winterthur', lat: 47.4996, lng: 8.7241 },
-  { name: 'Biel/Bienne', lat: 47.1368, lng: 7.2468 },
-  { name: 'Thun', lat: 46.7576, lng: 7.6281 },
-  { name: 'Fribourg', lat: 46.8065, lng: 7.1619 },
-  { name: 'Schaffhausen', lat: 47.6959, lng: 8.6304 },
-  { name: 'Chur', lat: 46.8499, lng: 9.5329 },
-  { name: 'Neuchatel', lat: 46.9895, lng: 6.9293 },
-  { name: 'Sion', lat: 46.2331, lng: 7.36 },
-  { name: 'Zug', lat: 47.1662, lng: 8.5155 },
-  { name: 'Solothurn', lat: 47.2088, lng: 7.5323 },
-  { name: 'Aarau', lat: 47.3915, lng: 8.0442 },
-  { name: 'Davos', lat: 46.7996, lng: 9.8388 },
-  { name: 'Interlaken', lat: 46.6863, lng: 7.8632 },
-  { name: 'Montreux', lat: 46.4312, lng: 6.9107 },
-  { name: 'Zermatt', lat: 46.0207, lng: 7.7491 },
-  { name: 'Bellinzona', lat: 46.1944, lng: 9.0175 },
-  { name: 'Locarno', lat: 46.1704, lng: 8.7995 },
-];
-
-// A handful of nearby cross-border cities to simulate the small fraction of
-// notes that fall outside Switzerland.
-const NEARBY_FOREIGN_LOCATIONS: { name: string; lat: number; lng: number }[] = [
-  { name: 'Milan, Italy', lat: 45.4642, lng: 9.19 },
-  { name: 'Lyon, France', lat: 45.764, lng: 4.8357 },
-  { name: 'Freiburg, Germany', lat: 47.999, lng: 7.8421 },
-  { name: 'Innsbruck, Austria', lat: 47.2692, lng: 11.4041 },
-  { name: 'Annecy, France', lat: 45.8992, lng: 6.1294 },
-  { name: 'Vaduz, Liechtenstein', lat: 47.141, lng: 9.5209 },
+// Swiss places (plus a few nearby cross-border cities) used to build
+// plausible-looking note titles for the demo data.
+const PLACE_NAMES: string[] = [
+  'Zurich',
+  'Geneva',
+  'Basel',
+  'Bern',
+  'Lausanne',
+  'Lucerne',
+  'St. Gallen',
+  'Lugano',
+  'Winterthur',
+  'Biel/Bienne',
+  'Thun',
+  'Fribourg',
+  'Schaffhausen',
+  'Chur',
+  'Neuchatel',
+  'Sion',
+  'Zug',
+  'Solothurn',
+  'Aarau',
+  'Davos',
+  'Interlaken',
+  'Montreux',
+  'Zermatt',
+  'Bellinzona',
+  'Locarno',
+  'Milan, Italy',
+  'Lyon, France',
+  'Freiburg, Germany',
+  'Innsbruck, Austria',
+  'Annecy, France',
+  'Vaduz, Liechtenstein',
 ];
 
 const REPORT_SUBJECTS = [
@@ -168,19 +154,6 @@ const LOG_ENTRY_LINES = [
   'Extended watch due to delayed relief, no incidents.',
 ];
 
-// Street names used to build plausible-looking street addresses for
-// 'address'-type demo notes.
-const STREET_NAMES = [
-  'Bahnhofstrasse',
-  'Rue du Rhône',
-  'Freie Strasse',
-  'Marktgasse',
-  'Via Nassa',
-  'Seestrasse',
-  'Poststrasse',
-  'Bundesplatz',
-];
-
 function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -216,7 +189,6 @@ async function seed(): Promise<void> {
   const projectRepo = AppDataSource.getRepository(Project);
   const tagRepo = AppDataSource.getRepository(Tag);
   const noteRepo = AppDataSource.getRepository(Note);
-  const noteLocationRepo = AppDataSource.getRepository(NoteLocation);
   const noteLogEntryRepo = AppDataSource.getRepository(NoteLogEntry);
   const noteRelationRepo = AppDataSource.getRepository(NoteRelation);
 
@@ -238,36 +210,17 @@ async function seed(): Promise<void> {
 
   const allNoteIds: number[] = [];
 
-  // --- 'standard' notes, each with an embedded [[geo:...]] map pin -------
+  // --- 'standard' notes ---------------------------------------------------
   console.log(`Creating ${TOTAL_STANDARD_NOTES} standard notes...`);
-  const locationsByNoteIndex: {
-    lat: number;
-    lng: number;
-    label: string;
-  }[] = [];
   const standardNotesToInsert: Note[] = [];
 
   for (let i = 0; i < TOTAL_STANDARD_NOTES; i++) {
-    // ~92% of notes land in Switzerland, the rest spill into neighbouring
-    // countries to keep things "mostly" Swiss.
-    const useForeign = Math.random() < 0.08;
-    const location = useForeign
-      ? pick(NEARBY_FOREIGN_LOCATIONS)
-      : pick(SWISS_LOCATIONS);
-
+    const placeName = pick(PLACE_NAMES);
     const subject = pick(REPORT_SUBJECTS);
     const body = pick(REPORT_BODIES);
 
-    const title = `${subject} — ${location.name}`;
-    const content =
-      `## ${subject} — ${location.name}\n\n${body}\n\n` +
-      `[[geo:${location.lat},${location.lng},${location.name}]]`;
-
-    locationsByNoteIndex.push({
-      lat: location.lat,
-      lng: location.lng,
-      label: location.name,
-    });
+    const title = `${subject} — ${placeName}`;
+    const content = `## ${subject} — ${placeName}\n\n${body}`;
 
     standardNotesToInsert.push(
       noteRepo.create({
@@ -282,10 +235,7 @@ async function seed(): Promise<void> {
     );
   }
 
-  // Insert in batches to avoid overly large single queries, keeping track of
-  // each batch's saved (ID-bearing) notes so matching `NoteLocation` rows can
-  // be created afterwards (raw repository saves don't go through
-  // `NoteService`, which is what normally keeps that table in sync).
+  // Insert in batches to avoid overly large single queries.
   const BATCH_SIZE = 50;
   const savedStandardNotes: Note[] = [];
   for (let i = 0; i < standardNotesToInsert.length; i += BATCH_SIZE) {
@@ -296,29 +246,17 @@ async function seed(): Promise<void> {
   }
   allNoteIds.push(...savedStandardNotes.map((note) => note.id));
 
-  console.log('Creating map pins for standard notes...');
-  await noteLocationRepo.save(
-    savedStandardNotes.map((note, index) =>
-      noteLocationRepo.create({
-        noteId: note.id,
-        lat: locationsByNoteIndex[index].lat,
-        lng: locationsByNoteIndex[index].lng,
-        label: locationsByNoteIndex[index].label,
-      }),
-    ),
-  );
-
   // --- 'log' notes, each with several append-only log entries ------------
   console.log(`Creating ${TOTAL_LOG_NOTES} log notes...`);
   const logNotesToInsert: Note[] = [];
   for (let i = 0; i < TOTAL_LOG_NOTES; i++) {
-    const location = pick(SWISS_LOCATIONS);
+    const placeName = pick(PLACE_NAMES);
     const subject = pick(LOG_SUBJECTS);
     logNotesToInsert.push(
       noteRepo.create({
         projectId: project.id,
         type: 'log',
-        title: `${subject} — ${location.name}`,
+        title: `${subject} — ${placeName}`,
         tags: pickSome(tagNames, randomInt(1, 2)),
         color: maybeCustomColor(),
         ...randomCanvasPosition(),
@@ -343,38 +281,6 @@ async function seed(): Promise<void> {
   }
   await noteLogEntryRepo.save(logEntriesToInsert);
 
-  // --- 'address' notes, with a directly-set "resolved" geocode ------------
-  console.log(`Creating ${TOTAL_ADDRESS_NOTES} address notes...`);
-  const addressNotesToInsert: Note[] = [];
-  for (let i = 0; i < TOTAL_ADDRESS_NOTES; i++) {
-    const location = pick(SWISS_LOCATIONS);
-    const street = pick(STREET_NAMES);
-    const streetNumber = randomInt(1, 120);
-    const address = `${street} ${streetNumber}, ${location.name}`;
-    // Small jitter so the pin isn't pinned to the exact city-center
-    // coordinate as every other note referencing the same city.
-    const jitteredLat = location.lat + (Math.random() - 0.5) * 0.02;
-    const jitteredLng = location.lng + (Math.random() - 0.5) * 0.02;
-
-    addressNotesToInsert.push(
-      noteRepo.create({
-        projectId: project.id,
-        type: 'address',
-        title: `Safehouse address — ${location.name}`,
-        content: address,
-        tags: pickSome(tagNames, randomInt(1, 2)),
-        color: maybeCustomColor(),
-        ...randomCanvasPosition(),
-        latitude: jitteredLat,
-        longitude: jitteredLng,
-        geocodeStatus: 'resolved',
-        geocodedLabel: `${address}, Switzerland`,
-      }),
-    );
-  }
-  const savedAddressNotes = await noteRepo.save(addressNotesToInsert);
-  allNoteIds.push(...savedAddressNotes.map((note) => note.id));
-
   // --- Nest all notes into a parent/child DAG -----------------------------
   console.log('Nesting notes into a parent/child hierarchy...');
   const { relations } = buildNoteRelations(allNoteIds);
@@ -387,11 +293,10 @@ async function seed(): Promise<void> {
   console.log(
     [
       `Done. Created project "${project.name}" (id=${project.id})`,
-      `in folder "${projectFolder.name}" (theme=${project.color}/${project.mapTheme})`,
+      `in folder "${projectFolder.name}" (theme=${project.color})`,
       `with ${tags.length} tags,`,
-      `${savedStandardNotes.length} standard notes (with map pins),`,
+      `${savedStandardNotes.length} standard notes,`,
       `${savedLogNotes.length} log notes (${logEntriesToInsert.length} log entries),`,
-      `${savedAddressNotes.length} address notes,`,
       `and ${relations.length} parent/child relations.`,
     ].join(' '),
   );

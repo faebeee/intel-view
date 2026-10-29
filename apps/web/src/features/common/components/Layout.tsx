@@ -1,11 +1,5 @@
 import { Link, useParams } from "@tanstack/react-router";
-import {
-	FolderKanban,
-	MapPin,
-	StickyNote,
-	Tag as TagIcon,
-	Waypoints,
-} from "lucide-react";
+import { FolderKanban, Tag as TagIcon, Waypoints } from "lucide-react";
 import type { JSX, ReactNode } from "react";
 import { useEffect } from "react";
 import ParaglideLocaleSwitcher from "../../../components/LocaleSwitcher";
@@ -64,25 +58,7 @@ export function Layout({ children }: LayoutProps): JSX.Element {
 					{projectIdParam ? (
 						<nav className="justify-self-center flex items-center gap-6">
 							<Link
-								to="/projects/$projectId/notes"
-								params={{ projectId: projectIdParam }}
-								className="nav-link text-sm font-bold flex items-center gap-1.5"
-								activeProps={{ className: "is-active" }}
-							>
-								<StickyNote className="w-4 h-4" />
-								<span>Notes</span>
-							</Link>
-							<Link
-								to="/projects/$projectId/map"
-								params={{ projectId: projectIdParam }}
-								className="nav-link text-sm font-bold flex items-center gap-1.5"
-								activeProps={{ className: "is-active" }}
-							>
-								<MapPin className="w-4 h-4" />
-								<span>Map</span>
-							</Link>
-							<Link
-								to="/projects/$projectId/canvas"
+								to="/projects/$projectId"
 								params={{ projectId: projectIdParam }}
 								className="nav-link text-sm font-bold flex items-center gap-1.5"
 								activeProps={{ className: "is-active" }}

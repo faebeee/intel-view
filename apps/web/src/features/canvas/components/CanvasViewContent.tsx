@@ -58,6 +58,14 @@ export type CanvasViewContentProps = {
 	onNoteDoubleClick?: (noteId: number) => void;
 	/** Called with a newly created note's id right after it's created on the canvas, so the caller can immediately open an in-place editor (e.g. a modal) for it. */
 	onNoteCreated?: (noteId: number) => void;
+	/**
+	 * Monotonically increasing counter bumped by the caller to request that
+	 * the viewport pan to `selectedNoteId`. Used when a note is selected from
+	 * outside the canvas (e.g. the notes sidebar), where the node may be far
+	 * off-screen; canvas-internal clicks deliberately don't bump it, so
+	 * clicking a visible node never yanks the viewport around.
+	 */
+	revealRequest?: number;
 };
 
 function CanvasInnerView({
@@ -66,6 +74,7 @@ function CanvasInnerView({
 	onSelectNote,
 	onNoteDoubleClick,
 	onNoteCreated,
+	revealRequest = 0,
 }: CanvasViewContentProps) {
 	const { resolvedMode } = useTheme();
 	const { data, isLoading, refetch } = useCanvasNotesQuery(projectId);
@@ -79,7 +88,7 @@ function CanvasInnerView({
 	const deleteNoteMutation = useDeleteNote(projectId);
 	const addNoteParentMutation = useAddNoteParent(projectId);
 	const removeNoteParentMutation = useRemoveNoteParent(projectId);
-	const { screenToFlowPosition } = useReactFlow();
+	const { screenToFlowPosition, setCenter, getNode, getZoom } = useReactFlow();
 
 	const [nodes, setNodes] = React.useState<Node[]>([]);
 	const [draft, setDraft] = React.useState<DraftNote | null>(null);
@@ -99,6 +108,25 @@ function CanvasInnerView({
 		},
 		[selectedNoteId, onSelectNote],
 	);
+
+	// Pan the viewport to the selected note when the caller bumps
+	// `revealRequest`. Guarded by a ref so this only fires on an actual
+	// reveal request, never on unrelated re-renders or selection changes
+	// originating from a click on the canvas itself.
+	const lastRevealRef = React.useRef(revealRequest);
+	React.useEffect(() => {
+		if (revealRequest === lastRevealRef.current) return;
+		lastRevealRef.current = revealRequest;
+		if (selectedNoteId === null) return;
+		const node = getNode(String(selectedNoteId));
+		if (!node) return;
+		const width = node.measured?.width ?? 240;
+		const height = node.measured?.height ?? 120;
+		setCenter(node.position.x + width / 2, node.position.y + height / 2, {
+			zoom: getZoom(),
+			duration: 400,
+		});
+	}, [revealRequest, selectedNoteId, getNode, setCenter, getZoom]);
 
 	// Keep React Flow nodes in sync with the notes fetched from the API,
 	// preserving in-flight drag positions by only replacing note-derived
