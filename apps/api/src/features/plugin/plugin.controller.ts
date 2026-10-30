@@ -19,7 +19,7 @@ export class PluginController {
   constructor(
     private readonly noteService: NoteService,
     private readonly pluginRegistryService: PluginRegistryService,
-  ) { }
+  ) {}
 
   @Get()
   @ApiOperation({

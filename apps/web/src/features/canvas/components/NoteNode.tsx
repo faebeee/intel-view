@@ -73,6 +73,9 @@ export function NoteNode({ data, selected }: NoteNodeProps) {
 
 					<div className="flex items-start justify-between gap-2">
 						<h3 className="font-sans text-xs font-bold text-sea-ink line-clamp-2">
+							<span className="font-mono font-normal text-muted-foreground/60">
+								#{note.id}{" "}
+							</span>
 							{label}
 						</h3>
 						{note.type === "log" ? (
@@ -101,12 +104,6 @@ export function NoteNode({ data, selected }: NoteNodeProps) {
 							className="mt-2"
 						/>
 					)}
-
-					<div className="mt-2 flex items-center justify-between">
-						<span className="text-[9px] font-mono text-muted-foreground/60">
-							#{note.id}
-						</span>
-					</div>
 				</div>
 			</ContextMenuTrigger>
 			<ContextMenuContent>

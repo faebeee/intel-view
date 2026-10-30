@@ -26,6 +26,12 @@ export function useNoteDraftAutosave(
 		queryClient.invalidateQueries({
 			queryKey: ["notes", "canvas", projectId],
 		});
+		// Broad (noteId-less) invalidation: any note's resolved content may
+		// have embedded this note's content via `[[ID]]`, so a content edit
+		// can affect resolved content far beyond just this note.
+		queryClient.invalidateQueries({
+			queryKey: ["notes", "resolved-content", projectId],
+		});
 	}, [queryClient, projectId]);
 
 	const invalidateNoteHistory = React.useCallback(

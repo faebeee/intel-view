@@ -20,6 +20,7 @@ describe('NoteController', () => {
     uploadFile: jest.fn(),
     downloadFile: jest.fn(),
     removeFile: jest.fn(),
+    resolveContent: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -170,6 +171,29 @@ describe('NoteController', () => {
       mockNoteService.findOne.mockResolvedValue(null);
 
       await expect(controller.addParent(1, 2, { parentId: 5 })).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('findResolvedContent', () => {
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it("returns the note's resolved content", async () => {
+      mockNoteService.resolveContent.mockResolvedValue('Resolved content');
+
+      const result = await controller.findResolvedContent(1, 1);
+
+      expect(mockNoteService.resolveContent).toHaveBeenCalledWith(1, 1);
+      expect(result).toEqual({ content: 'Resolved content' });
+    });
+
+    it('throws NotFoundException when the note does not exist', async () => {
+      mockNoteService.resolveContent.mockResolvedValue(null);
+
+      await expect(controller.findResolvedContent(1, 999)).rejects.toThrow(
         NotFoundException,
       );
     });

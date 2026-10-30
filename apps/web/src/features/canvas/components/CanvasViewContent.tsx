@@ -19,7 +19,6 @@ import {
 	useAddNoteParent,
 	useRemoveNoteParent,
 } from "#/features/notes/hooks/useNoteRelationMutations.ts";
-import { extractNoteReferenceIds } from "#/lib/note-references.ts";
 import type { NoteType } from "#/types/note.ts";
 import { useCanvasNotesQuery } from "../hooks/useCanvasNotesQuery";
 import { useCreateInlineNote } from "../hooks/useCreateInlineNote";
@@ -181,44 +180,11 @@ function CanvasInnerView({
 	}, [notes]);
 
 	/**
-	 * Dashed, read-only edges derived from `[[NOTE_ID]]` references found in
-	 * note content — in addition to the explicit parent/child hierarchy.
-	 * These aren't produced by user interaction on the canvas (no connect
-	 * handles drive them), so they're excluded from `onConnect`/
-	 * `onEdgesDelete` handling.
+	 * Edges shown on the canvas. Only the explicit parent/child hierarchy is
+	 * shown — `[[NOTE_ID]]` content references no longer produce edges here
+	 * (they're resolved/embedded inline in rendered note content instead).
 	 */
-	const referenceEdges: Edge[] = React.useMemo(() => {
-		const idsPresent = new Set(notes.map((n) => n.id));
-		const edges: Edge[] = [];
-		for (const note of notes) {
-			const referencedIds = extractNoteReferenceIds(note.content);
-			for (const referencedId of referencedIds) {
-				if (referencedId === note.id || !idsPresent.has(referencedId)) {
-					continue;
-				}
-				edges.push({
-					id: `reference-${note.id}-${referencedId}`,
-					source: String(note.id),
-					target: String(referencedId),
-					animated: false,
-					selectable: false,
-					reconnectable: false,
-					style: {
-						stroke: "var(--reference-link)",
-						strokeWidth: 1.5,
-						strokeDasharray: "4 4",
-					},
-					data: { edgeKind: "reference" },
-				});
-			}
-		}
-		return edges;
-	}, [notes]);
-
-	const edges = React.useMemo(
-		() => [...hierarchyEdges, ...referenceEdges],
-		[hierarchyEdges, referenceEdges],
-	);
+	const edges: Edge[] = hierarchyEdges;
 
 	const onNodesChange = React.useCallback((changes: NodeChange[]) => {
 		setNodes((nds) => applyNodeChanges(changes, nds));

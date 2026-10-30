@@ -23,6 +23,15 @@ import { CreateNoteLogEntryDto } from './dto/create-note-log-entry.dto';
 import { ProjectAccessService } from '../project/project-access.service';
 import { StorageService } from '../storage/storage.service';
 import type { Readable } from 'stream';
+import { NOTE_REFERENCE_PATTERN } from './note-reference.util';
+
+/**
+ * Hard safety cap on `[[NOTE_ID]]` transclusion nesting depth (independent
+ * of cycle detection), to bound resolution cost for pathologically deep,
+ * non-cyclic include chains. Once reached, further `[[NOTE_ID]]` references
+ * are left unexpanded rather than erroring.
+ */
+const MAX_NOTE_REFERENCE_DEPTH = 10;
 
 export const notePaginateConfig: PaginateConfig<Note> = {
   sortableColumns: ['id', 'createdAt', 'updatedAt'],
@@ -436,6 +445,109 @@ export class NoteService {
     if (!note) return null;
     await this.attachRelationIds([note]);
     return note;
+  }
+
+  /**
+   * Resolves a note's content by recursively replacing every `[[NOTE_ID]]`
+   * transclusion reference with the referenced note's own resolved content,
+   * restricted to notes within the same project. Returns `null` if the root
+   * note does not exist.
+   *
+   * References to a missing/out-of-project note, references that would
+   * create a cycle, and references beyond `MAX_NOTE_REFERENCE_DEPTH` are
+   * replaced with an inline error placeholder instead of being expanded, so
+   * a malformed or cyclic note never fails the whole request.
+   */
+  async resolveContent(projectId: number, id: number): Promise<string | null> {
+    const note = await this.noteRepository.findOne({
+      where: { id, projectId, deletedAt: IsNull() },
+    });
+    if (!note) {
+      return null;
+    }
+    return this.resolveContentRecursive(
+      projectId,
+      note.content ?? '',
+      new Set([id]),
+      1,
+    );
+  }
+
+  /**
+   * Worker for `resolveContent`. `activeChain` holds the IDs of all notes
+   * currently being resolved along the current path (the root note plus any
+   * ancestors in the include chain), used to detect cycles. `depth` is the
+   * current nesting depth, 1-based at the root note's own content.
+   */
+  private async resolveContentRecursive(
+    projectId: number,
+    content: string,
+    activeChain: Set<number>,
+    depth: number,
+  ): Promise<string> {
+    const matches = [...content.matchAll(NOTE_REFERENCE_PATTERN)];
+    if (matches.length === 0) {
+      return content;
+    }
+
+    const referencedIds = [...new Set(matches.map((m) => Number(m[1])))];
+    const referencedNotes = await this.noteRepository.find({
+      where: { id: In(referencedIds), projectId, deletedAt: IsNull() },
+    });
+    const noteById = new Map(referencedNotes.map((n) => [n.id, n]));
+
+    const resolvedById = new Map<number, string>();
+    for (const referencedId of referencedIds) {
+      resolvedById.set(
+        referencedId,
+        await this.resolveSingleReference(
+          projectId,
+          referencedId,
+          noteById.get(referencedId) ?? null,
+          activeChain,
+          depth,
+        ),
+      );
+    }
+
+    let result = '';
+    let lastIndex = 0;
+    for (const match of matches) {
+      const index = match.index ?? 0;
+      result += content.slice(lastIndex, index);
+      const referencedId = Number(match[1]);
+      result += resolvedById.get(referencedId) ?? match[0];
+      lastIndex = index + match[0].length;
+    }
+    result += content.slice(lastIndex);
+    return result;
+  }
+
+  private async resolveSingleReference(
+    projectId: number,
+    referencedId: number,
+    referencedNote: Note | null,
+    activeChain: Set<number>,
+    depth: number,
+  ): Promise<string> {
+    if (!referencedNote) {
+      return `[[missing or invalid note #${referencedId}]]`;
+    }
+    if (activeChain.has(referencedId)) {
+      return `[[circular reference: note #${referencedId}]]`;
+    }
+    if (depth >= MAX_NOTE_REFERENCE_DEPTH) {
+      return `[[${referencedId}]]`;
+    }
+
+    const nextChain = new Set(activeChain);
+    nextChain.add(referencedId);
+    return this.resolveContentRecursive(
+      projectId,
+      referencedNote.content ?? '',
+      nextChain,
+      depth + 1,
+    );
   }
 
   /**

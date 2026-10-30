@@ -30,6 +30,7 @@ import { AddNoteParentDto } from './dto/add-note-parent.dto';
 import { AddNoteChildDto } from './dto/add-note-child.dto';
 import { CreateNoteLogEntryDto } from './dto/create-note-log-entry.dto';
 import { NoteResponseDto, toNoteResponseDto } from './dto/note-response.dto';
+import { ResolvedNoteContentDto } from './dto/resolved-note-content.dto';
 import {
   NoteHistoryEntryResponseDto,
   toNoteHistoryEntryResponseDto,
@@ -97,6 +98,32 @@ export class NoteController {
       throw new NotFoundException(`Note with ID ${id} not found`);
     }
     return toNoteResponseDto(note);
+  }
+
+  @Get(':id/resolved-content')
+  @ApiOperation({
+    summary:
+      "Get a note's content with every `[[NOTE_ID]]` transclusion reference " +
+      "recursively replaced by the referenced note's own resolved content. " +
+      'Missing/out-of-project references, circular references, and ' +
+      'references beyond the maximum nesting depth are replaced with an ' +
+      'inline error placeholder instead of being expanded.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: "The note's resolved content.",
+    type: ResolvedNoteContentDto,
+  })
+  @ApiResponse({ status: 404, description: 'Note not found.' })
+  async findResolvedContent(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ResolvedNoteContentDto> {
+    const content = await this.noteService.resolveContent(projectId, id);
+    if (content === null) {
+      throw new NotFoundException(`Note with ID ${id} not found`);
+    }
+    return { content };
   }
 
   @Patch(':id')

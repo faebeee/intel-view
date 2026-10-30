@@ -12,7 +12,7 @@ import type { NoteResponseDto } from '../note/dto/note-response.dto';
  */
 @Injectable()
 export class PluginRegistryService {
-  constructor(@Inject(NOTE_PLUGIN) private readonly plugins: NotePlugin[]) { }
+  constructor(@Inject(NOTE_PLUGIN) private readonly plugins: NotePlugin[]) {}
 
   /** Returns the plugins applicable to the given note type. */
   listForNoteType(noteType: NoteType): NotePlugin[] {

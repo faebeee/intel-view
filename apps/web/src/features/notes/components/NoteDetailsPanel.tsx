@@ -18,6 +18,7 @@ import { useDeleteNote } from "#/features/notes/hooks/useDeleteNote.ts";
 import { useNoteHistoryQuery } from "#/features/notes/hooks/useNoteHistoryQuery.ts";
 import { useNoteLogEntriesQuery } from "#/features/notes/hooks/useNoteLogEntriesQuery.ts";
 import { getNoteLabel } from "#/features/notes/hooks/useNoteTree.ts";
+import { useResolvedNoteContentQuery } from "#/features/notes/hooks/useResolvedNoteContentQuery.ts";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 import { useTagColorMap } from "#/features/tags/hooks/useTagColorMap.ts";
 import { cn } from "#/lib/utils.ts";
@@ -70,6 +71,12 @@ export function NoteDetailsPanel({
 	);
 	const latestLogEntry = logEntries[0] ?? null;
 	const deleteNoteMutation = useDeleteNote(projectId);
+	const isStandardTypeContent =
+		note.type !== "log" && note.type !== "url" && note.type !== "ip";
+	const { data: resolvedContent } = useResolvedNoteContentQuery(
+		projectId,
+		isStandardTypeContent ? note.id : undefined,
+	);
 
 	const handleDelete = React.useCallback(() => {
 		deleteNoteMutation.mutate(note.id, { onSuccess: onDeleted });
@@ -173,7 +180,10 @@ export function NoteDetailsPanel({
 								</span>
 							)
 						) : note.content?.trim() ? (
-							<Markdown content={note.content} className="text-xs" />
+							<Markdown
+								content={resolvedContent ?? note.content}
+								className="text-xs"
+							/>
 						) : (
 							<span className="text-xs text-muted-foreground">No content</span>
 						)}

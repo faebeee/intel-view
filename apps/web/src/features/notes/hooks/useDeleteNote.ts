@@ -19,6 +19,12 @@ export function useDeleteNote(projectId: number) {
 				queryKey: ["notes", "canvas", projectId],
 			});
 			queryClient.invalidateQueries({ queryKey: ["notes", "all", projectId] });
+			// Broad (noteId-less) invalidation: other notes may have included
+			// this note's content via `[[ID]]`, which should now resolve to a
+			// "missing note" placeholder instead.
+			queryClient.invalidateQueries({
+				queryKey: ["notes", "resolved-content", projectId],
+			});
 		},
 		onError: (err) => {
 			console.error("Failed to delete note:", err);

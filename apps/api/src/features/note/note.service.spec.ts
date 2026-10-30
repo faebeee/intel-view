@@ -1135,4 +1135,161 @@ describe('NoteService', () => {
       expect(mockNoteRepository.update).not.toHaveBeenCalled();
     });
   });
+
+  describe('resolveContent', () => {
+    const projectId = 1;
+
+    /**
+     * Wires `mockNoteRepository.findOne`/`.find` to serve notes from an
+     * in-memory map keyed by id, scoped to `projectId`, mimicking the
+     * `{ id, projectId, deletedAt: IsNull() }` / `{ id: In([...]) , ... }`
+     * queries `resolveContent` issues.
+     */
+    function stubNotes(notes: Note[]): void {
+      const byId = new Map(notes.map((n) => [n.id, n]));
+      mockNoteRepository.findOne.mockImplementation(
+        ({ where }: { where: { id: number; projectId: number } }) =>
+          Promise.resolve(
+            where.projectId === projectId ? (byId.get(where.id) ?? null) : null,
+          ),
+      );
+      mockNoteRepository.find.mockImplementation(
+        ({
+          where,
+        }: {
+          where: { id: { _value: number[] }; projectId: number };
+        }) => {
+          if (where.projectId !== projectId) return Promise.resolve([]);
+          const ids: number[] = where.id._value;
+          return Promise.resolve(
+            ids.map((id) => byId.get(id)).filter((n): n is Note => !!n),
+          );
+        },
+      );
+    }
+
+    it('returns the raw content unchanged when there are no references', async () => {
+      stubNotes([{ id: 1, projectId, content: 'Hello world' } as Note]);
+
+      const result = await service.resolveContent(projectId, 1);
+
+      expect(result).toBe('Hello world');
+    });
+
+    it('returns null when the root note does not exist', async () => {
+      stubNotes([]);
+
+      const result = await service.resolveContent(projectId, 999);
+
+      expect(result).toBeNull();
+    });
+
+    it('inlines a single referenced note', async () => {
+      stubNotes([
+        { id: 1, projectId, content: 'See [[2]] for details' } as Note,
+        { id: 2, projectId, content: 'Inner content' } as Note,
+      ]);
+
+      const result = await service.resolveContent(projectId, 1);
+
+      expect(result).toBe('See Inner content for details');
+    });
+
+    it('recursively resolves nested references', async () => {
+      stubNotes([
+        { id: 1, projectId, content: 'A: [[2]]' } as Note,
+        { id: 2, projectId, content: 'B: [[3]]' } as Note,
+        { id: 3, projectId, content: 'C' } as Note,
+      ]);
+
+      const result = await service.resolveContent(projectId, 1);
+
+      expect(result).toBe('A: B: C');
+    });
+
+    it('replaces a reference to a missing note with an error placeholder', async () => {
+      stubNotes([{ id: 1, projectId, content: 'Missing: [[404]]' } as Note]);
+
+      const result = await service.resolveContent(projectId, 1);
+
+      expect(result).toBe('Missing: [[missing or invalid note #404]]');
+    });
+
+    it('replaces a reference to a note in another project with an error placeholder', async () => {
+      const otherProjectId = 2;
+      const byId = new Map<number, Note>([
+        [1, { id: 1, projectId, content: 'Cross: [[2]]' } as Note],
+        [
+          2,
+          {
+            id: 2,
+            projectId: otherProjectId,
+            content: 'Other project',
+          } as Note,
+        ],
+      ]);
+      mockNoteRepository.findOne.mockImplementation(
+        ({ where }: { where: { id: number; projectId: number } }) =>
+          Promise.resolve(
+            where.projectId === byId.get(where.id)?.projectId
+              ? (byId.get(where.id) ?? null)
+              : null,
+          ),
+      );
+      mockNoteRepository.find.mockImplementation(
+        ({
+          where,
+        }: {
+          where: { id: { _value: number[] }; projectId: number };
+        }) => {
+          const ids: number[] = where.id._value;
+          return Promise.resolve(
+            ids
+              .map((id) => byId.get(id))
+              .filter((n): n is Note => !!n && n.projectId === where.projectId),
+          );
+        },
+      );
+
+      const result = await service.resolveContent(projectId, 1);
+
+      expect(result).toBe('Cross: [[missing or invalid note #2]]');
+    });
+
+    it('replaces a direct circular self-reference with an error placeholder', async () => {
+      stubNotes([{ id: 1, projectId, content: 'Loop: [[1]]' } as Note]);
+
+      const result = await service.resolveContent(projectId, 1);
+
+      expect(result).toBe('Loop: [[circular reference: note #1]]');
+    });
+
+    it('replaces an indirect circular reference with an error placeholder', async () => {
+      stubNotes([
+        { id: 1, projectId, content: 'A: [[2]]' } as Note,
+        { id: 2, projectId, content: 'B: [[1]]' } as Note,
+      ]);
+
+      const result = await service.resolveContent(projectId, 1);
+
+      expect(result).toBe('A: B: [[circular reference: note #1]]');
+    });
+
+    it('stops expanding once the maximum nesting depth is reached', async () => {
+      // 12 notes chained 1 -> 2 -> 3 -> ... -> 12, exceeding the depth cap.
+      const notes = Array.from({ length: 12 }, (_, i) => {
+        const id = i + 1;
+        const content = id < 12 ? `n${id}:[[${id + 1}]]` : `n${id}`;
+        return { id, projectId, content } as Note;
+      });
+      stubNotes(notes);
+
+      const result = await service.resolveContent(projectId, 1);
+
+      // Expansion proceeds up to the depth cap, then leaves the remaining
+      // reference(s) unexpanded rather than erroring.
+      expect(result).toContain('[[');
+      expect(result.startsWith('n1:n2:n3:n4:n5:n6:n7:n8:n9:')).toBe(true);
+    });
+  });
 });
