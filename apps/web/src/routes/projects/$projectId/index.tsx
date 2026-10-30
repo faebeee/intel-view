@@ -71,7 +71,7 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 	}
 
 	return (
-		<div className="h-[calc(100vh-4rem)] w-full flex min-h-0 bg-background/50 animate-fade-in">
+		<div className="h-full w-full flex min-h-0 bg-background/50 animate-fade-in">
 			<NoteTree
 				notes={notes}
 				tags={tags}

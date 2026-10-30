@@ -2,7 +2,8 @@ import { healthControllerCheck } from "@repo/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import type { JSX, ReactNode } from "react";
-import { Button } from "#/components/ui/button.tsx";
+import { LoadingState, StatePanel } from "#/components/ui/loading-state.tsx";
+import { McButton } from "./McButton";
 
 const HEALTH_CHECK_INTERVAL_MS = 10_000;
 
@@ -32,39 +33,31 @@ export function ApiHealthGate({ children }: ApiHealthGateProps): JSX.Element {
 
 	if (isLoading) {
 		return (
-			<div className="flex min-h-screen w-full flex-col items-center justify-center gap-2 bg-background font-mono text-xs text-[#00f2ff]">
-				<div className="animate-pulse flex flex-col items-center gap-2">
-					<span>Connecting to API...</span>
-				</div>
+			<div className="flex min-h-screen w-full bg-mc-bg">
+				<LoadingState label="Connecting to API..." />
 			</div>
 		);
 	}
 
 	if (isError) {
 		return (
-			<div className="flex min-h-screen w-full flex-col items-center justify-center gap-4 bg-background p-6 text-center">
-				<AlertTriangle className="h-10 w-10 text-red-400" />
-				<div className="flex flex-col gap-1">
-					<h1 className="font-mono text-sm font-bold uppercase tracking-wider text-red-400">
-						API Unreachable
-					</h1>
-					<p className="max-w-sm font-mono text-xs text-muted-foreground">
-						Intel View can't reach the API right now. Retrying
-						automatically in the background&mdash;you can also retry
-						manually below.
-					</p>
-				</div>
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => refetch()}
-					disabled={isRefetching}
-				>
-					<RefreshCw
-						className={`h-3 w-3 ${isRefetching ? "animate-spin" : ""}`}
-					/>
-					<span>{isRefetching ? "Retrying..." : "Retry Now"}</span>
-				</Button>
+			<div className="bg-blueprint flex min-h-screen w-full items-center justify-center">
+				<StatePanel
+					tone="danger"
+					icon={<AlertTriangle className="size-6 text-mc-danger-text" />}
+					title="API unreachable"
+					description="Intel View can't reach the API right now. Retrying automatically in the background. You can also retry manually."
+					action={
+						<McButton
+							onClick={() => refetch()}
+							disabled={isRefetching}
+							size="lg"
+						>
+							<RefreshCw className={isRefetching ? "animate-spin" : ""} />
+							{isRefetching ? "Retrying..." : "Retry now"}
+						</McButton>
+					}
+				/>
 			</div>
 		);
 	}
