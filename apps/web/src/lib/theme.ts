@@ -1,14 +1,10 @@
 /**
  * Shared theme constants and helpers.
  *
- * Two independent axes are supported:
  * - `mode`: light / dark / system — toggles the `.dark` class on <html>.
- * - `colorTheme`: which color palette to use — toggles a `data-theme`
- *   attribute on <html> (see the `[data-theme="..."]` blocks in styles.css).
- *   Unlike `mode`, this is not a global user preference: it's driven by the
- *   currently open project's `color` field (see
- *   `apps/web/src/features/common/components/Layout.tsx`), so opening a
- *   project applies its chosen accent color for the duration of the visit.
+ * - `ColorTheme`: a project's `color` field. It no longer recolors the app
+ *   (the design has a single global accent); it's shown as the project's
+ *   status chip, mapped onto the design's signal colors below.
  */
 
 export type ThemeMode = "light" | "dark" | "system";
@@ -47,14 +43,24 @@ export const COLOR_THEME_LABELS: Record<ColorTheme, string> = {
 	amber: "Amber",
 };
 
+/** Design token (CSS variable) each project color maps onto. */
+export const COLOR_THEME_TOKEN: Record<ColorTheme, string> = {
+	ocean: "var(--mc-data)",
+	emerald: "var(--mc-accent)",
+	violet: "var(--mc-service)",
+	monochrome: "var(--mc-text-muted)",
+	crimson: "var(--mc-danger)",
+	amber: "var(--mc-warning)",
+};
+
 /** Tailwind background classes used to render a small preview swatch for each palette. */
 export const COLOR_THEME_SWATCH: Record<ColorTheme, string> = {
-	ocean: "bg-[oklch(0.68_0.18_200)]",
-	emerald: "bg-[oklch(0.65_0.19_155)]",
-	violet: "bg-[oklch(0.62_0.22_300)]",
-	monochrome: "bg-[oklch(0.2_0_0)]",
-	crimson: "bg-[oklch(0.6_0.22_20)]",
-	amber: "bg-[oklch(0.7_0.18_80)]",
+	ocean: "bg-mc-data",
+	emerald: "bg-mc-accent",
+	violet: "bg-mc-service",
+	monochrome: "bg-mc-text-muted",
+	crimson: "bg-mc-danger",
+	amber: "bg-mc-warning",
 };
 
 export function isThemeMode(value: string | undefined): value is ThemeMode {
@@ -63,16 +69,6 @@ export function isThemeMode(value: string | undefined): value is ThemeMode {
 
 export function isColorTheme(value: string | undefined): value is ColorTheme {
 	return !!value && (COLOR_THEMES as string[]).includes(value);
-}
-
-/**
- * Applies a color palette to the document by setting the `data-theme`
- * attribute on <html>. Used to reflect the currently open project's chosen
- * accent color; falls back to a no-op during SSR.
- */
-export function applyColorTheme(theme: ColorTheme): void {
-	if (typeof document === "undefined") return;
-	document.documentElement.setAttribute("data-theme", theme);
 }
 
 /**

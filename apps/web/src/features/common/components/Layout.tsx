@@ -1,14 +1,8 @@
 import { Link, useParams } from "@tanstack/react-router";
 import { FolderKanban, Tag as TagIcon, Waypoints } from "lucide-react";
 import type { JSX, ReactNode } from "react";
-import { useEffect } from "react";
 import ParaglideLocaleSwitcher from "../../../components/LocaleSwitcher";
 import { ThemeSwitcher } from "../../../components/theme-switcher";
-import {
-	applyColorTheme,
-	DEFAULT_COLOR_THEME,
-	isColorTheme,
-} from "../../../lib/theme";
 import { useProjectQuery } from "../../projects/hooks/useProjectQuery";
 
 type LayoutProps = {
@@ -19,18 +13,6 @@ export function Layout({ children }: LayoutProps): JSX.Element {
 	const { projectId: projectIdParam } = useParams({ strict: false });
 	const projectId = projectIdParam ? parseInt(projectIdParam, 10) : NaN;
 	const { data: project } = useProjectQuery(projectId);
-
-	// Apply the open project's accent color palette while it's open, and
-	// reset to the default palette once no project is active (e.g. back on
-	// the projects overview). This replaces the old global, user-level color
-	// theme switcher.
-	useEffect(() => {
-		if (projectIdParam && project && isColorTheme(project.color)) {
-			applyColorTheme(project.color);
-		} else if (!projectIdParam) {
-			applyColorTheme(DEFAULT_COLOR_THEME);
-		}
-	}, [projectIdParam, project]);
 
 	return (
 		<div className="flex flex-col min-h-screen w-full bg-background text-foreground overflow-hidden">

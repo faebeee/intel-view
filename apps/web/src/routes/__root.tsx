@@ -10,7 +10,6 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { ThemeProvider } from "#/components/theme-provider";
 import { TooltipProvider } from "#/components/ui/tooltip";
 import { ApiHealthGate } from "#/features/common/components/ApiHealthGate.tsx";
-import { DEFAULT_COLOR_THEME } from "#/lib/theme";
 import { getThemeCookies } from "#/lib/theme-cookies";
 import { getLocale } from "#/paraglide/runtime";
 import { Layout } from "../features/common/components/Layout";
@@ -68,14 +67,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 	// dark class (the site's original look) and let ThemeProvider correct it
 	// client-side after hydration if the OS preference is actually light.
 	const htmlClassName = config.mode === "light" ? "" : "dark";
-	// The accent color palette is chosen per-project (see `Layout`), so we
-	// render the default palette here and let a client effect apply the open
-	// project's color once its data has loaded.
 	return (
 		<html
 			lang={getLocale()}
 			className={htmlClassName}
-			data-theme={DEFAULT_COLOR_THEME}
 			suppressHydrationWarning
 		>
 			<head>
