@@ -4,18 +4,23 @@ import {
 	projectFolderControllerRemove,
 } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Edit2, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import type { JSX } from "react";
 import * as React from "react";
 import { toast } from "sonner";
-import { Button } from "#/components/ui/button";
 import { LoadingState, NotFoundState } from "#/components/ui/loading-state.tsx";
 import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
+import { McButton } from "#/features/common/components/McButton.tsx";
+import {
+	PageHeader,
+	PageShell,
+	StatusBar,
+} from "#/features/common/components/PageShell.tsx";
 import { ProjectFolderModal } from "#/features/project-folders/components/ProjectFolderModal.tsx";
 import { useProjectFolderQuery } from "#/features/project-folders/hooks/useProjectFolderQuery.ts";
-import { ProjectGrid } from "#/features/projects/components/ProjectGrid.tsx";
 import { ProjectModal } from "#/features/projects/components/ProjectModal.tsx";
+import { ProjectTable } from "#/features/projects/components/ProjectTable.tsx";
 import { useProjectsByFolderQuery } from "#/features/projects/hooks/useProjectsByFolderQuery.ts";
 import { toastApiError } from "#/lib/api-error.ts";
 
@@ -85,83 +90,83 @@ function FolderProjectsPage(): JSX.Element {
 		);
 	}
 
+	const isBusy = isProjectsLoading || isRefetching;
+	const countLabel = `${projects.length} ${projects.length === 1 ? "project" : "projects"}`;
+
 	return (
-		<div className="min-h-full w-full bg-background/50 p-6 flex flex-col gap-6 max-w-7xl mx-auto animate-fade-in">
-			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-line pb-6">
-				<div className="flex flex-col gap-1">
-					<Link to="/" className="w-fit">
-						<Button variant="outline" size="xs">
-							<ArrowLeft className="h-3 w-3" />
-							<span>Back to Folders</span>
-						</Button>
-					</Link>
-					<div className="flex items-center gap-2 mt-1">
+		<PageShell
+			contentClassName="px-8 pt-7 pb-10"
+			header={
+				<PageHeader
+					crumbs={[{ label: "Folders", to: "/" }, { label: folder.name }]}
+					title={folder.name}
+					titlePrefix={
 						<span
-							className="size-3 rounded-full shrink-0 border border-black/30"
-							style={{ backgroundColor: folder.color }}
+							aria-hidden="true"
+							className="size-[9px] shrink-0"
+							style={{
+								background: folder.color,
+								boxShadow: `0 0 10px ${folder.color}`,
+							}}
 						/>
-						<h1 className="text-xl font-bold text-sea-ink uppercase tracking-wider">
-							{folder.name}
-						</h1>
-					</div>
-					{folder.description && (
-						<p className="text-xs text-muted-foreground">
-							{folder.description}
-						</p>
-					)}
-				</div>
-				<div className="flex items-center gap-2">
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => setIsEditFolderOpen(true)}
-					>
-						<Edit2 className="h-3 w-3" />
-						<span>Edit Folder</span>
-					</Button>
-
-					<ConfirmationButton
-						variant="outline"
-						size="sm"
-						onClick={() => removeFolderMutation.mutate()}
-						disabled={removeFolderMutation.isPending}
-						title="Delete Folder"
-						description={`Are you sure you want to delete "${folder.name}"? Its projects will become ungrouped.`}
-						confirmText="Delete"
-					>
-						<Trash2 className="h-3 w-3" />
-						<span>Delete Folder</span>
-					</ConfirmationButton>
-
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => refetch()}
-						disabled={isProjectsLoading || isRefetching}
-					>
-						<RefreshCw
-							className={`h-3 w-3 ${isProjectsLoading || isRefetching ? "animate-spin" : ""}`}
-						/>
-						<span>
-							{isProjectsLoading || isRefetching ? "REFRESHING..." : "REFRESH"}
-						</span>
-					</Button>
-
-					<Button
-						variant="default"
-						size="sm"
-						onClick={() => setIsCreateOpen(true)}
-					>
-						<Plus className="h-4 w-4" />
-						<span>New Project</span>
-					</Button>
-				</div>
-			</div>
-
+					}
+					titleSuffix={
+						<>
+							<span className="font-mono text-[11px] tracking-[0.1em] text-mc-text-2 uppercase">
+								{countLabel}
+							</span>
+							<McButton
+								variant="ghost"
+								size="icon"
+								aria-label="Edit folder"
+								title="Edit folder"
+								onClick={() => setIsEditFolderOpen(true)}
+							>
+								<Pencil className="size-4" strokeWidth={1.75} />
+							</McButton>
+						</>
+					}
+					actions={
+						<>
+							<ConfirmationButton
+								onClick={() => removeFolderMutation.mutate()}
+								title={`Delete folder "${folder.name}"?`}
+								description={`Its ${countLabel} will move to Ungrouped. The projects themselves are not deleted.`}
+								confirmText="Delete folder"
+								trigger={
+									<McButton
+										variant="danger"
+										disabled={removeFolderMutation.isPending}
+									>
+										<Trash2 strokeWidth={1.75} />
+										Delete folder
+									</McButton>
+								}
+							/>
+							<McButton
+								variant="icon"
+								size="icon-md"
+								onClick={() => refetch()}
+								disabled={isBusy}
+								aria-label="Refresh"
+								title="Refresh"
+							>
+								<RefreshCw className={isBusy ? "animate-spin" : ""} />
+							</McButton>
+							<McButton variant="primary" onClick={() => setIsCreateOpen(true)}>
+								<Plus strokeWidth={2.2} />
+								New project
+							</McButton>
+						</>
+					}
+				/>
+			}
+			status={<StatusBar items={[`Folder ${folder.name}`, countLabel]} />}
+		>
 			{isProjectsLoading && !isRefetching ? (
 				<LoadingState label="Loading projects..." compact />
 			) : (
-				<ProjectGrid
+				<ProjectTable
 					projects={projects}
 					emptyTitle="No projects in this folder"
 					emptyDescription="Create a project to start adding notes and tags."
@@ -194,6 +199,6 @@ function FolderProjectsPage(): JSX.Element {
 				open={isEditFolderOpen}
 				onOpenChange={setIsEditFolderOpen}
 			/>
-		</div>
+		</PageShell>
 	);
 }

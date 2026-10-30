@@ -1,21 +1,12 @@
 import { useParams } from "@tanstack/react-router";
 import type { JSX, ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { readLastProjectId, writeLastProjectId } from "#/lib/last-project.ts";
 import { AppRail } from "./AppRail";
 
 type LayoutProps = {
 	children: ReactNode;
 };
-
-const LAST_PROJECT_KEY = "intel-view:last-project";
-
-function readLastProject(): string | null {
-	try {
-		return window.localStorage.getItem(LAST_PROJECT_KEY);
-	} catch {
-		return null;
-	}
-}
 
 /**
  * App shell: the icon rail plus a full-height content column. Each screen
@@ -31,13 +22,9 @@ export function Layout({ children }: LayoutProps): JSX.Element {
 	useEffect(() => {
 		if (projectIdParam) {
 			setLastProjectId(projectIdParam);
-			try {
-				window.localStorage.setItem(LAST_PROJECT_KEY, projectIdParam);
-			} catch {
-				// Storage unavailable (private mode etc.) — in-memory is enough.
-			}
+			writeLastProjectId(projectIdParam);
 		} else {
-			setLastProjectId((current) => current ?? readLastProject());
+			setLastProjectId((current) => current ?? readLastProjectId());
 		}
 	}, [projectIdParam]);
 
