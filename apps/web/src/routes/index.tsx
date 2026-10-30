@@ -2,12 +2,17 @@ import type { ProjectFolderResponseDto } from "@repo/sdk";
 import { projectFolderControllerRemove } from "@repo/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { FolderKanban, FolderPlus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import type { JSX } from "react";
 import * as React from "react";
 import { toast } from "sonner";
-import { Button } from "#/components/ui/button";
 import { LoadingState } from "#/components/ui/loading-state.tsx";
+import { McButton } from "#/features/common/components/McButton.tsx";
+import {
+	PageHeader,
+	PageShell,
+	StatusBar,
+} from "#/features/common/components/PageShell.tsx";
 import { FolderCard } from "#/features/project-folders/components/FolderCard.tsx";
 import { ProjectFolderModal } from "#/features/project-folders/components/ProjectFolderModal.tsx";
 import { useAllProjectFoldersQuery } from "#/features/project-folders/hooks/useAllProjectFoldersQuery.ts";
@@ -55,52 +60,51 @@ function FoldersOverview(): JSX.Element {
 		setIsEditOpen(true);
 	};
 
+	const isBusy = isLoading || isRefetching;
+	const totalProjects =
+		folders.reduce((sum, folder) => sum + folder.projectsCount, 0) +
+		ungroupedCount;
+	const busiestCount = Math.max(0, ...folders.map((f) => f.projectsCount));
+
 	return (
-		<div className="min-h-full w-full bg-background/50 p-6 flex flex-col gap-6 max-w-7xl mx-auto animate-fade-in">
-			{/* Header Section */}
-			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-line pb-6">
-				<div className="flex flex-col gap-1">
-					<div className="flex items-center gap-2">
-						<FolderKanban className="h-5 w-5 text-palm" />
-						<h1 className="text-xl font-bold text-sea-ink uppercase tracking-wider">
-							Folders
-						</h1>
-					</div>
-					<p className="text-xs text-muted-foreground">
-						Select a folder to see the projects inside it.
-					</p>
-				</div>
-				<div className="flex items-center gap-2">
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => refetch()}
-						disabled={isLoading || isRefetching}
-					>
-						<RefreshCw
-							className={`h-3 w-3 ${isLoading || isRefetching ? "animate-spin" : ""}`}
-						/>
-						<span>
-							{isLoading || isRefetching ? "REFRESHING..." : "REFRESH"}
-						</span>
-					</Button>
-
-					<Button
-						variant="default"
-						size="sm"
-						onClick={() => setIsCreateOpen(true)}
-					>
-						<FolderPlus className="h-4 w-4" />
-						<span>New Folder</span>
-					</Button>
-				</div>
-			</div>
-
-			{/* Main Content Area */}
+		<PageShell
+			header={
+				<PageHeader
+					kicker="Workspace"
+					title="Folders"
+					actions={
+						<>
+							<McButton
+								variant="icon"
+								size="icon-md"
+								onClick={() => refetch()}
+								disabled={isBusy}
+								aria-label="Refresh"
+								title="Refresh"
+							>
+								<RefreshCw className={isBusy ? "animate-spin" : ""} />
+							</McButton>
+							<McButton variant="primary" onClick={() => setIsCreateOpen(true)}>
+								<Plus strokeWidth={2.2} />
+								New folder
+							</McButton>
+						</>
+					}
+				/>
+			}
+			status={
+				<StatusBar
+					items={[
+						`${folders.length} ${folders.length === 1 ? "folder" : "folders"}`,
+						`${totalProjects} ${totalProjects === 1 ? "project" : "projects"}`,
+					]}
+				/>
+			}
+		>
 			{isLoading && !isRefetching ? (
 				<LoadingState label="Loading folders..." compact />
 			) : (
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+				<div className="grid max-w-[1320px] grid-cols-[repeat(auto-fill,minmax(min(300px,100%),1fr))] gap-5">
 					{folders.map((folder) => (
 						<FolderCard
 							key={folder.id}
@@ -109,6 +113,9 @@ function FoldersOverview(): JSX.Element {
 							description={folder.description}
 							color={folder.color}
 							projectsCount={folder.projectsCount}
+							highlighted={
+								busiestCount > 0 && folder.projectsCount === busiestCount
+							}
 							onEdit={() => handleEditClick(folder)}
 							onDelete={() => removeFolderMutation.mutate(folder.id)}
 							isDeleting={removeFolderMutation.isPending}
@@ -118,10 +125,18 @@ function FoldersOverview(): JSX.Element {
 						to="/folders/ungrouped"
 						name="Ungrouped"
 						description="Projects not assigned to any folder."
-						color="#64748b"
+						color="var(--mc-text-muted)"
 						projectsCount={ungroupedCount}
 						isVirtual
 					/>
+					<button
+						type="button"
+						onClick={() => setIsCreateOpen(true)}
+						className="flex min-h-[222px] cursor-pointer flex-col items-center justify-center gap-2.5 border border-dashed border-mc-border-strong bg-mc-panel/50 font-mono text-xs tracking-[0.12em] text-mc-text-2 uppercase transition-colors hover:border-mc-edge-idle hover:text-mc-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mc-accent"
+					>
+						<Plus className="size-5" strokeWidth={1.6} />
+						New folder
+					</button>
 				</div>
 			)}
 
@@ -134,6 +149,6 @@ function FoldersOverview(): JSX.Element {
 				open={isEditOpen}
 				onOpenChange={setIsEditOpen}
 			/>
-		</div>
+		</PageShell>
 	);
 }

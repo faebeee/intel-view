@@ -92,7 +92,8 @@ function LinkChangeDescription({ entry }: { entry: NoteHistoryEntry }) {
 	const role = entry.direction === "parent" ? "parent" : "child";
 	return (
 		<p className="text-[10px] leading-snug text-muted-foreground">
-			{verb} note <span className="font-mono text-palm">#{entry.relatedNoteId}</span> as{" "}
+			{verb} note{" "}
+			<span className="font-mono text-palm">#{entry.relatedNoteId}</span> as{" "}
 			{role}
 		</p>
 	);

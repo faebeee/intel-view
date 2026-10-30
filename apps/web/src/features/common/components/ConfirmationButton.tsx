@@ -21,6 +21,8 @@ type ConfirmationButtonProps = Omit<
 	description?: string;
 	confirmText?: string;
 	cancelText?: string;
+	/** Custom trigger element (e.g. an `McButton`); replaces the default `Button`. */
+	trigger?: React.ReactElement;
 };
 
 export function ConfirmationButton({
@@ -29,6 +31,7 @@ export function ConfirmationButton({
 	description = "This action cannot be undone.",
 	confirmText = "Confirm",
 	cancelText = "Cancel",
+	trigger,
 	children,
 	...buttonProps
 }: ConfirmationButtonProps) {
@@ -41,7 +44,7 @@ export function ConfirmationButton({
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
-				<Button {...buttonProps}>{children}</Button>
+				{trigger ?? <Button {...buttonProps}>{children}</Button>}
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
@@ -50,7 +53,7 @@ export function ConfirmationButton({
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel>{cancelText}</AlertDialogCancel>
-					<AlertDialogAction onClick={handleConfirm}>
+					<AlertDialogAction variant="destructive" onClick={handleConfirm}>
 						{confirmText}
 					</AlertDialogAction>
 				</AlertDialogFooter>

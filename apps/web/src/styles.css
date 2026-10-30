@@ -338,6 +338,25 @@ body {
   clip-path: polygon(0 0, calc(100% - var(--cut-lg) + 0.5px) 0, 100% calc(var(--cut-lg) - 0.5px), 100% 100%, 0 100%);
 }
 
+/*
+ * Panel with an 18px top-right cut and a 1px border; the diagonal edge
+ * (which a CSS border can't follow) is drawn as a gradient line.
+ * Stopgap for dialogs (handoff §05).
+ */
+@utility cut-tr-lg-frame {
+  clip-path: polygon(0 0, calc(100% - var(--cut-lg)) 0, 100% var(--cut-lg), 100% 100%, 0 100%);
+  background-image: linear-gradient(
+    to bottom left,
+    transparent calc(50% - 1px),
+    var(--mc-border-strong) calc(50% - 1px),
+    var(--mc-border-strong) calc(50% + 0.5px),
+    transparent calc(50% + 0.5px)
+  );
+  background-size: var(--cut-lg) var(--cut-lg);
+  background-position: top right;
+  background-repeat: no-repeat;
+}
+
 @utility focus-wrap {
   &:has(:focus-visible) {
     outline: 2px solid var(--mc-accent);
