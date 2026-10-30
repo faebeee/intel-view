@@ -81,7 +81,7 @@ export function NoteDetailsPanel({
 	onDeleted,
 	className,
 }: NoteDetailsPanelProps) {
-	const [tab, setTab] = React.useState<InspectorTab>("details");
+	const [tab, setTab] = React.useState<InspectorTab>("output");
 	const tabIds = React.useId();
 	const tabRefs = React.useRef<Record<InspectorTab, HTMLButtonElement | null>>({
 		details: null,
