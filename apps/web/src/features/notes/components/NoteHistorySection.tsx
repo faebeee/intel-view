@@ -13,6 +13,7 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "#/components/ui/collapsible.tsx";
+import { formatIsoDateTime } from "#/lib/format.ts";
 import { cn } from "#/lib/utils.ts";
 
 type NoteHistorySectionProps = {
@@ -109,8 +110,8 @@ function HistoryEntryRow({ entry }: { entry: NoteHistoryEntry }) {
 				<span className="text-[10px] font-bold uppercase tracking-wider text-sea-ink-soft">
 					{changeTypeLabel(entry.changeType)}
 				</span>
-				<span className="text-[9px] text-muted-foreground ml-auto whitespace-nowrap">
-					{new Date(entry.createdAt).toLocaleString()}
+				<span className="text-[9px] font-mono text-muted-foreground ml-auto whitespace-nowrap">
+					{formatIsoDateTime(entry.createdAt)}
 				</span>
 			</div>
 
@@ -133,6 +134,29 @@ function HistoryEntryRow({ entry }: { entry: NoteHistoryEntry }) {
 						</li>
 					))}
 				</ul>
+			)}
+		</div>
+	);
+}
+
+/**
+ * Plain, always-visible list of history entries (most recent first). Used
+ * directly by the canvas inspector's HISTORY tab, and inside the
+ * collapsible `NoteHistorySection` elsewhere.
+ */
+export function NoteHistoryList({
+	entries,
+	isLoading = false,
+	className,
+}: NoteHistorySectionProps) {
+	return (
+		<div className={cn("flex flex-col gap-2.5", className)}>
+			{isLoading ? (
+				<p className="text-[10px] text-muted-foreground">Loading history...</p>
+			) : entries.length === 0 ? (
+				<p className="text-[10px] text-muted-foreground">No history yet.</p>
+			) : (
+				entries.map((entry) => <HistoryEntryRow key={entry.id} entry={entry} />)
 			)}
 		</div>
 	);
@@ -176,19 +200,11 @@ export function NoteHistorySection({
 			</CollapsibleTrigger>
 
 			<CollapsibleContent>
-				<div className="flex flex-col gap-2.5 pt-3 pl-1">
-					{isLoading ? (
-						<p className="text-[10px] text-muted-foreground">
-							Loading history...
-						</p>
-					) : entries.length === 0 ? (
-						<p className="text-[10px] text-muted-foreground">No history yet.</p>
-					) : (
-						entries.map((entry) => (
-							<HistoryEntryRow key={entry.id} entry={entry} />
-						))
-					)}
-				</div>
+				<NoteHistoryList
+					entries={entries}
+					isLoading={isLoading}
+					className="pt-3 pl-1"
+				/>
 			</CollapsibleContent>
 		</Collapsible>
 	);

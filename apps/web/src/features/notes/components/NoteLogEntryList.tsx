@@ -1,6 +1,7 @@
 import type { NoteLogEntryResponseDto as NoteLogEntry } from "@repo/sdk";
 import { ScrollText } from "lucide-react";
 import { Markdown } from "#/components/ui/markdown.tsx";
+import { formatIsoDateTime } from "#/lib/format.ts";
 import { cn } from "#/lib/utils.ts";
 
 type NoteLogEntryListProps = {
@@ -12,8 +13,8 @@ type NoteLogEntryListProps = {
 function LogEntryRow({ entry }: { entry: NoteLogEntry }) {
 	return (
 		<div className="flex flex-col gap-1.5 border-l-2 border-line/60 pl-3 py-1">
-			<span className="text-[9px] text-muted-foreground uppercase tracking-wider whitespace-nowrap">
-				{new Date(entry.createdAt).toLocaleString()}
+			<span className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+				{formatIsoDateTime(entry.createdAt)}
 			</span>
 			<Markdown content={entry.content} className="text-xs" />
 		</div>

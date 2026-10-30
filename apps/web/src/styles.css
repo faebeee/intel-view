@@ -387,6 +387,15 @@ body {
   }
 }
 
+/*
+ * Canvas nodes: React Flow's node wrapper is unclipped, so it carries the
+ * focus ring for the clipped note card inside it.
+ */
+.react-flow .react-flow__node:focus-visible {
+  outline: 2px solid var(--mc-accent);
+  outline-offset: 3px;
+}
+
 @keyframes mc-flow {
   to {
     stroke-dashoffset: -24;

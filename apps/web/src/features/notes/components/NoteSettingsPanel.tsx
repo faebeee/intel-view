@@ -25,6 +25,7 @@ import {
 	useInvalidParentIds,
 } from "#/features/notes/hooks/useNoteTree.ts";
 import { useTagColorMap } from "#/features/tags/hooks/useTagColorMap.ts";
+import { formatIsoDateTime } from "#/lib/format.ts";
 
 type NoteSettingsPanelProps = {
 	projectId: number;
@@ -345,7 +346,7 @@ export function NoteSettingsPanel({
 						Created
 					</span>
 					<span className="text-xs font-mono text-sea-ink-soft">
-						{new Date(note.createdAt).toLocaleString()}
+						{formatIsoDateTime(note.createdAt)}
 					</span>
 				</div>
 				<div className="flex flex-col gap-1 px-1">
@@ -353,7 +354,7 @@ export function NoteSettingsPanel({
 						Updated
 					</span>
 					<span className="text-xs font-mono text-sea-ink-soft">
-						{new Date(note.updatedAt).toLocaleString()}
+						{formatIsoDateTime(note.updatedAt)}
 					</span>
 				</div>
 

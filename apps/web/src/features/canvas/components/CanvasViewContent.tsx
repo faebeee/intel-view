@@ -3,16 +3,13 @@ import {
 	applyNodeChanges,
 	Background,
 	BackgroundVariant,
-	Controls,
-	MiniMap,
 	ReactFlow,
 	ReactFlowProvider,
 	useReactFlow,
 } from "@xyflow/react";
-import { PlusCircle, RefreshCw } from "lucide-react";
 import * as React from "react";
 import { useTheme } from "#/components/theme-provider.tsx";
-import { Button } from "#/components/ui/button.tsx";
+import { LoadingState } from "#/components/ui/loading-state.tsx";
 import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal.tsx";
 import { useDeleteNote } from "#/features/notes/hooks/useDeleteNote.ts";
 import {
@@ -29,11 +26,25 @@ import {
 	CANVAS_GRID_COLUMNS,
 	type NoteNodeData,
 } from "../types";
+import { LinkEdge, type LinkEdgeData } from "./LinkEdge";
 import { NoteNode } from "./NoteNode";
+import { ZoomControls } from "./ZoomControls";
 
 const nodeTypes = {
 	noteNode: NoteNode,
 };
+
+const edgeTypes = {
+	link: LinkEdge,
+};
+
+const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
+
+function focusNode(id: number): void {
+	document
+		.querySelector<HTMLElement>(`.react-flow__node[data-id="${id}"]`)
+		?.focus();
+}
 
 type DraftNote = {
 	x: number;
@@ -65,6 +76,8 @@ export type CanvasViewContentProps = {
 	 * clicking a visible node never yanks the viewport around.
 	 */
 	revealRequest?: number;
+	/** Counter bumped by the caller (e.g. the page header's "New note" button) to start a new note at the centre of the canvas. */
+	addNoteRequest?: number;
 };
 
 function CanvasInnerView({
@@ -74,9 +87,11 @@ function CanvasInnerView({
 	onNoteDoubleClick,
 	onNoteCreated,
 	revealRequest = 0,
+	addNoteRequest = 0,
 }: CanvasViewContentProps) {
 	const { resolvedMode } = useTheme();
-	const { data, isLoading, refetch } = useCanvasNotesQuery(projectId);
+	const { data, isLoading } = useCanvasNotesQuery(projectId);
+	const containerRef = React.useRef<HTMLDivElement>(null);
 	// Stabilize the notes reference: `data` only changes identity when the
 	// query result actually changes, whereas a `data = []` default parameter
 	// would create a new array on every render and cause effects/memos keyed
@@ -147,13 +162,17 @@ function CanvasInnerView({
 
 				const nodeData: NoteNodeData = { note, onDelete: handleDeleteNote };
 
+				const selected = selectedNoteId === note.id;
 				return {
 					id,
 					type: "noteNode",
 					position,
 					data: nodeData,
-					selected: selectedNoteId === note.id,
+					selected,
 					deletable: false,
+					ariaRole: "button",
+					ariaLabel: `${note.type} note #${note.id}: ${note.title || "untitled"}`,
+					domAttributes: { "aria-pressed": selected },
 				};
 			});
 		});
@@ -166,18 +185,21 @@ function CanvasInnerView({
 		for (const note of notes) {
 			for (const childId of note.childIds ?? []) {
 				if (!idsPresent.has(childId)) continue;
+				const data: LinkEdgeData = {
+					edgeKind: "hierarchy",
+					active: selectedNoteId === note.id || selectedNoteId === childId,
+				};
 				edges.push({
 					id: `hierarchy-${note.id}-${childId}`,
+					type: "link",
 					source: String(note.id),
 					target: String(childId),
-					animated: true,
-					style: { stroke: "var(--palm)", strokeWidth: 1.5 },
-					data: { edgeKind: "hierarchy" },
+					data,
 				});
 			}
 		}
 		return edges;
-	}, [notes]);
+	}, [notes, selectedNoteId]);
 
 	/**
 	 * Edges shown on the canvas. Only the explicit parent/child hierarchy is
@@ -264,12 +286,61 @@ function CanvasInnerView({
 	}, [onSelectNote]);
 
 	const handleAddNoteButton = React.useCallback(() => {
+		const rect = containerRef.current?.getBoundingClientRect();
 		const position = screenToFlowPosition({
-			x: window.innerWidth / 2,
-			y: window.innerHeight / 2,
+			x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2,
+			y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2,
 		});
 		handleCreateDraftAt(position.x, position.y);
 	}, [screenToFlowPosition, handleCreateDraftAt]);
+
+	// Start a new note when the caller bumps `addNoteRequest` (same
+	// ref-guard pattern as `revealRequest` above).
+	const lastAddNoteRef = React.useRef(addNoteRequest);
+	React.useEffect(() => {
+		if (addNoteRequest === lastAddNoteRef.current) return;
+		lastAddNoteRef.current = addNoteRequest;
+		handleAddNoteButton();
+	}, [addNoteRequest, handleAddNoteButton]);
+
+	/**
+	 * Keyboard support on focused nodes (handoff §06): Enter/Space selects,
+	 * arrows move focus along links — Up to a parent, Down to a child,
+	 * Left/Right between siblings. Handled in the capture phase so React
+	 * Flow's own arrow-key node nudging doesn't also move the node.
+	 */
+	const onKeyDownCapture = React.useCallback(
+		(event: React.KeyboardEvent) => {
+			const target = event.target as HTMLElement;
+			if (!target.classList.contains("react-flow__node")) return;
+			const id = Number(target.dataset.id);
+			const note = notes.find((n) => n.id === id);
+			if (!note) return;
+
+			if (event.key === "Enter" || event.key === " ") {
+				event.preventDefault();
+				event.stopPropagation();
+				onSelectNote(selectedNoteId === id ? null : id);
+				return;
+			}
+			if (!ARROW_KEYS.has(event.key)) return;
+			event.preventDefault();
+			event.stopPropagation();
+
+			let next: number | undefined;
+			if (event.key === "ArrowUp") next = note.parentIds?.[0];
+			else if (event.key === "ArrowDown") next = note.childIds?.[0];
+			else {
+				const parent = notes.find((n) => n.id === note.parentIds?.[0]);
+				const siblings = parent?.childIds ?? [];
+				const index = siblings.indexOf(id);
+				const step = event.key === "ArrowRight" ? 1 : -1;
+				next = index >= 0 ? siblings[index + step] : undefined;
+			}
+			if (next !== undefined) focusNode(next);
+		},
+		[notes, selectedNoteId, onSelectNote],
+	);
 
 	const handleCreateNote = React.useCallback(
 		(type: NoteType) => {
@@ -293,69 +364,58 @@ function CanvasInnerView({
 	);
 
 	return (
-		<div className="flex flex-col h-full w-full min-h-0 bg-background">
-			<div className="flex items-center justify-between gap-3 p-3 border-b border-line bg-surface-strong/95 backdrop-blur-md shrink-0">
-				<div>
-					<h1 className="text-lg font-bold text-sea-ink">Canvas</h1>
-					<p className="text-xs text-muted-foreground">
-						Drag notes to arrange them, connect nodes to link notes, and
-						double-click an empty area to add a note.
-					</p>
-				</div>
-				<div className="flex items-center gap-2">
-					<Button
-						variant="ghost"
-						size="icon-xs"
-						onClick={() => refetch()}
-						title="Refresh notes"
-					>
-						<RefreshCw className="h-3 w-3" />
-					</Button>
-					<Button variant="outline" size="sm" onClick={handleAddNoteButton}>
-						<PlusCircle className="h-4 w-4" />
-						<span>Add Note</span>
-					</Button>
-				</div>
-			</div>
-
-			<div className="flex-1 min-h-0 relative">
-				{isLoading ? (
-					<div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground font-mono">
-						Loading notes...
-					</div>
-				) : (
-					// biome-ignore lint/a11y/noStaticElementInteractions: react-flow pane handles its own interaction model
-					<div
-						className="h-full w-full"
-						onDoubleClick={(e) => {
-							const target = e.target as HTMLElement;
-							if (target.closest(".react-flow__node")) return;
-							onPaneDoubleClick(e);
+		<div ref={containerRef} className="relative h-full w-full min-h-0 bg-mc-bg">
+			{isLoading ? (
+				<LoadingState label="Loading notes..." compact />
+			) : (
+				// biome-ignore lint/a11y/noStaticElementInteractions: react-flow pane handles its own interaction model; key handling only augments focused nodes
+				<div
+					className="h-full w-full"
+					onKeyDownCapture={onKeyDownCapture}
+					onDoubleClick={(e) => {
+						const target = e.target as HTMLElement;
+						if (target.closest(".react-flow__node")) return;
+						onPaneDoubleClick(e);
+					}}
+				>
+					<ReactFlow
+						nodes={nodes}
+						edges={edges}
+						nodeTypes={nodeTypes}
+						edgeTypes={edgeTypes}
+						onNodesChange={onNodesChange}
+						onNodeDragStop={onNodeDragStop}
+						onNodeClick={onNodeClick}
+						onNodeDoubleClick={onNodeDoubleClick}
+						onPaneClick={onPaneClick}
+						onConnect={onConnect}
+						onEdgesDelete={onEdgesDelete}
+						zoomOnDoubleClick={false}
+						fitView
+						fitViewOptions={{ maxZoom: 1 }}
+						colorMode={resolvedMode}
+						connectionLineStyle={{
+							stroke: "var(--mc-accent)",
+							strokeWidth: 2,
+							strokeDasharray: "6 6",
 						}}
+						proOptions={{ hideAttribution: true }}
 					>
-						<ReactFlow
-							nodes={nodes}
-							edges={edges}
-							nodeTypes={nodeTypes}
-							onNodesChange={onNodesChange}
-							onNodeDragStop={onNodeDragStop}
-							onNodeClick={onNodeClick}
-							onNodeDoubleClick={onNodeDoubleClick}
-							onPaneClick={onPaneClick}
-							onConnect={onConnect}
-							onEdgesDelete={onEdgesDelete}
-							zoomOnDoubleClick={false}
-							fitView
-							colorMode={resolvedMode}
-							proOptions={{ hideAttribution: true }}
-						>
-							<Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-							<Controls />
-							<MiniMap pannable zoomable />
-						</ReactFlow>
+						<Background
+							variant={BackgroundVariant.Lines}
+							gap={32}
+							lineWidth={1}
+							color="var(--mc-grid-line)"
+							bgColor="var(--mc-bg)"
+						/>
+					</ReactFlow>
+					<div className="pointer-events-none absolute right-6 bottom-5 left-6 flex flex-wrap items-center justify-end gap-3">
+						<div className="pointer-events-auto">
+							<ZoomControls />
+						</div>
 					</div>
-				)}
-			</div>
+				</div>
+			)}
 
 			<CreateNoteModal
 				open={draft !== null}

@@ -1,20 +1,12 @@
 import type { NodeProps } from "@xyflow/react";
 import { Handle, Position } from "@xyflow/react";
-import {
-	Link,
-	Network,
-	Paperclip,
-	ScrollText,
-	StickyNote,
-	Trash2,
-} from "lucide-react";
+import { Trash2 } from "lucide-react";
 import {
 	ContextMenu,
 	ContextMenuContent,
 	ContextMenuItem,
 	ContextMenuTrigger,
 } from "#/components/ui/context-menu.tsx";
-import { TagChipList } from "#/components/ui/tag-chip.tsx";
 import {
 	getNoteLabel,
 	resolveNoteColor,
@@ -22,88 +14,89 @@ import {
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 import { useTagColorMap } from "#/features/tags/hooks/useTagColorMap.ts";
 import { cn } from "#/lib/utils.ts";
+import { noteKind, noteSubtitle } from "../note-kind";
 import type { NoteNodeData } from "../types";
 
 type NoteNodeProps = NodeProps & {
 	data: NoteNodeData;
 };
 
+const HANDLE_CLASS =
+	"!size-2 !rounded-none !border !border-mc-border-strong !bg-mc-panel opacity-0 transition-opacity group-hover/node:opacity-100";
+
 /**
- * Custom React Flow node rendering a note as a draggable card. Clicking
- * selects the note (surfaced via React Flow's own `selected` state, read by
- * the canvas route to open the details side panel); right-click opens a
- * context menu to delete the note. The handles allow dragging a connection
- * to/from another node to (re)parent notes, which draws the "hierarchy"
- * edge between them.
+ * A note on the canvas (handoff §03 "Note node"): 160px wide, 14px cut
+ * corner, kind label + #id + status square, Chakra title, mono subtitle.
+ *
+ * The 1px edge is the outer element's background showing through its
+ * padding (a border can't follow the cut). Handles and the selection glow
+ * sit on an unclipped wrapper so the clip-path doesn't cut them off. The
+ * React Flow node wrapper around this is focusable and carries the focus
+ * ring (see `.react-flow__node:focus-visible` in styles.css). Clicking selects
+ * (the inspector opens), double-click edits, right-click offers delete,
+ * and the handles drag out a new parent/child link.
  */
 export function NoteNode({ data, selected }: NoteNodeProps) {
 	const { note } = data;
 	const { data: tags = [] } = useAllTagsQuery();
 	const tagColorMap = useTagColorMap(tags);
-	const label = getNoteLabel(note);
-	const snippet = (note.content || "").trim().replace(/\s+/g, " ");
-	const resolvedColor = resolveNoteColor(note, tagColorMap);
+	const kind = noteKind(note);
+	const statusColor = resolveNoteColor(note, tagColorMap) ?? "var(--mc-accent)";
 
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>
 				<div
 					className={cn(
-						"w-60 rounded-lg border bg-surface-strong/90 backdrop-blur-sm p-3 shadow-lg transition-colors cursor-pointer",
-						selected
-							? "border-primary shadow-[0_0_12px_color-mix(in_oklab,var(--primary)_25%,transparent)]"
-							: "border-line/60 hover:border-primary/50",
+						"group/node relative w-40 cursor-pointer",
+						selected &&
+							"drop-shadow-[0_0_14px_color-mix(in_srgb,var(--mc-accent)_35%,transparent)]",
 					)}
-					style={
-						resolvedColor
-							? { borderLeftColor: resolvedColor, borderLeftWidth: 3 }
-							: undefined
-					}
 				>
 					<Handle
 						type="target"
 						position={Position.Top}
-						className="!bg-primary !w-2 !h-2 !border-none"
+						className={cn(HANDLE_CLASS, selected && "opacity-100")}
 					/>
+					<div
+						className={cn(
+							"cut-tr-md p-px transition-colors",
+							selected
+								? "bg-mc-accent"
+								: "bg-mc-border-strong group-hover/node:bg-mc-edge-idle",
+						)}
+					>
+						<div className="cut-tr-md-inner flex min-h-[94px] flex-col gap-1.5 bg-mc-panel px-3 py-2.5">
+							<div className="flex items-center gap-1.5">
+								<span
+									className="font-mono text-[9.5px] font-semibold tracking-[0.12em]"
+									style={{ color: kind.color }}
+								>
+									{kind.label}
+								</span>
+								<span className="flex-1" />
+								<span className="font-mono text-[10px] text-mc-text-muted">
+									#{note.id}
+								</span>
+								<span
+									aria-hidden="true"
+									className="size-1.5 shrink-0"
+									style={{ backgroundColor: statusColor }}
+								/>
+							</div>
+							<span className="line-clamp-2 font-display text-[14.5px] leading-[1.2] font-semibold break-words text-mc-text">
+								{getNoteLabel(note)}
+							</span>
+							<span className="truncate font-mono text-[10.5px] leading-[1.4] text-mc-text-2">
+								{noteSubtitle(note)}
+							</span>
+						</div>
+					</div>
 					<Handle
 						type="source"
 						position={Position.Bottom}
-						className="!bg-primary !w-2 !h-2 !border-none"
+						className={cn(HANDLE_CLASS, selected && "opacity-100")}
 					/>
-
-					<div className="flex items-start justify-between gap-2">
-						<h3 className="font-sans text-xs font-bold text-sea-ink line-clamp-2">
-							<span className="font-mono font-normal text-muted-foreground/60">
-								#{note.id}{" "}
-							</span>
-							{label}
-						</h3>
-						{note.type === "log" ? (
-							<ScrollText className="h-3.5 w-3.5 text-primary shrink-0" />
-						) : note.type === "file" ? (
-							<Paperclip className="h-3.5 w-3.5 text-primary shrink-0" />
-						) : note.type === "url" ? (
-							<Link className="h-3.5 w-3.5 text-primary shrink-0" />
-						) : note.type === "ip" ? (
-							<Network className="h-3.5 w-3.5 text-primary shrink-0" />
-						) : (
-							<StickyNote className="h-3.5 w-3.5 text-primary shrink-0" />
-						)}
-					</div>
-
-					{snippet && (
-						<p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed line-clamp-3">
-							{snippet}
-						</p>
-					)}
-
-					{note.tags && note.tags.length > 0 && (
-						<TagChipList
-							tags={note.tags}
-							tagColorMap={tagColorMap}
-							className="mt-2"
-						/>
-					)}
 				</div>
 			</ContextMenuTrigger>
 			<ContextMenuContent>

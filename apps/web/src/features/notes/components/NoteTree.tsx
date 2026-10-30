@@ -29,6 +29,8 @@ type NoteTreeProps = {
 	onDelete: (id: number) => void;
 	isMutating?: boolean;
 	className?: string;
+	/** DOM id, so a toggle button can reference the list via aria-controls. */
+	id?: string;
 };
 
 /**
@@ -51,6 +53,7 @@ export function NoteTree({
 	onDelete,
 	isMutating = false,
 	className,
+	id,
 }: NoteTreeProps) {
 	const [search, setSearch] = React.useState("");
 	const childrenMap = React.useMemo(() => buildNoteChildrenMap(notes), [notes]);
@@ -85,9 +88,12 @@ export function NoteTree({
 	}, [childrenMap, trimmedQuery]);
 
 	return (
-		<div className={cn("flex flex-col gap-2 h-full min-h-0", className)}>
+		<div
+			id={id}
+			className={cn("flex flex-col gap-2 h-full min-h-0", className)}
+		>
 			<div className="flex items-center justify-between px-1">
-				<span className="text-[10px] uppercase font-bold tracking-wider text-sea-ink-soft">
+				<span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-mc-text-muted">
 					Notes
 					<span className="ml-1.5 font-mono text-muted-foreground">
 						{trimmedQuery
