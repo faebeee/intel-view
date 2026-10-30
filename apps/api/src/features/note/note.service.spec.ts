@@ -1289,7 +1289,7 @@ describe('NoteService', () => {
       // Expansion proceeds up to the depth cap, then leaves the remaining
       // reference(s) unexpanded rather than erroring.
       expect(result).toContain('[[');
-      expect(result.startsWith('n1:n2:n3:n4:n5:n6:n7:n8:n9:')).toBe(true);
+      expect(result?.startsWith('n1:n2:n3:n4:n5:n6:n7:n8:n9:')).toBe(true);
     });
   });
 });

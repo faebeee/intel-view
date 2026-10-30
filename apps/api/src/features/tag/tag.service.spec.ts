@@ -4,6 +4,7 @@ import { ConflictException } from '@nestjs/common';
 import { QueryFailedError } from 'typeorm';
 import { TagService } from './tag.service';
 import { Tag } from './entities/tag.entity';
+import { DEFAULT_TAGS } from './default-tags';
 
 describe('TagService', () => {
   let service: TagService;
@@ -123,6 +124,55 @@ describe('TagService', () => {
       ];
       expect(criteria).toEqual({ id: 1 });
       expect(update.deletedAt).toBeInstanceOf(Date);
+    });
+  });
+
+  describe('ensureDefaultTagsExist', () => {
+    it('inserts every default tag into an empty table', async () => {
+      mockTagRepository.find.mockResolvedValue([]);
+      mockTagRepository.create.mockImplementation(
+        (tag: { name: string; color: string }) => tag,
+      );
+      mockTagRepository.save.mockResolvedValue(undefined);
+
+      await service.ensureDefaultTagsExist();
+
+      expect(mockTagRepository.save).toHaveBeenCalledWith(
+        DEFAULT_TAGS.map((tag) => ({ name: tag.name, color: tag.color })),
+      );
+    });
+
+    it('skips default tags that already exist, matched case-insensitively', async () => {
+      const [firstDefault, secondDefault] = DEFAULT_TAGS;
+      mockTagRepository.find.mockResolvedValue([
+        { name: firstDefault.name.toUpperCase() },
+      ]);
+      mockTagRepository.create.mockImplementation(
+        (tag: { name: string; color: string }) => tag,
+      );
+      mockTagRepository.save.mockResolvedValue(undefined);
+
+      await service.ensureDefaultTagsExist();
+
+      const savedTags = (
+        mockTagRepository.save.mock.calls[0] as [{ name: string }[]]
+      )[0];
+      expect(savedTags).not.toContainEqual(
+        expect.objectContaining({ name: firstDefault.name }),
+      );
+      expect(savedTags).toContainEqual(
+        expect.objectContaining({ name: secondDefault.name }),
+      );
+    });
+
+    it('does nothing when every default tag already exists', async () => {
+      mockTagRepository.find.mockResolvedValue(
+        DEFAULT_TAGS.map((tag) => ({ name: tag.name })),
+      );
+
+      await service.ensureDefaultTagsExist();
+
+      expect(mockTagRepository.save).not.toHaveBeenCalled();
     });
   });
 });

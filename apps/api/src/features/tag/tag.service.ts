@@ -10,6 +10,7 @@ import {
 import { Tag } from './entities/tag.entity';
 import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
+import { DEFAULT_TAGS } from './default-tags';
 
 export const tagPaginateConfig: PaginateConfig<Tag> = {
   sortableColumns: ['id', 'name', 'color', 'createdAt', 'updatedAt'],
@@ -101,5 +102,34 @@ export class TagService {
       { deletedAt: new Date() },
     );
     return (result.affected ?? 0) > 0;
+  }
+
+  /**
+   * Ensures every tag in `DEFAULT_TAGS` (the standard penetration test
+   * stages) exists, inserting only the ones that don't already exist yet
+   * (matched case-insensitively by name, including soft-deleted tags, since
+   * `tag.name` is uniquely indexed regardless of `deletedAt`). Never
+   * modifies an existing tag, so a user's edits to a default tag's color
+   * (or a soft-deleted default tag) are preserved across restarts. Safe to
+   * call on every application startup.
+   */
+  async ensureDefaultTagsExist(): Promise<void> {
+    const existingTags = await this.tagRepository.find({
+      select: { name: true },
+    });
+    const existingNames = new Set(
+      existingTags.map((tag) => tag.name.toLowerCase()),
+    );
+
+    const missingTags = DEFAULT_TAGS.filter(
+      (tag) => !existingNames.has(tag.name.toLowerCase()),
+    );
+    if (missingTags.length === 0) {
+      return;
+    }
+
+    await this.tagRepository.save(
+      missingTags.map((tag) => this.tagRepository.create(tag)),
+    );
   }
 }

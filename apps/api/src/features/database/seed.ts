@@ -2,6 +2,7 @@ import { AppDataSource } from './datasource';
 import { Project } from '../project/entities/project.entity';
 import { ProjectFolder } from '../project-folder/entities/project-folder.entity';
 import { Tag } from '../tag/entities/tag.entity';
+import { DEFAULT_TAGS } from '../tag/default-tags';
 import { Note } from '../note/entities/note.entity';
 import { NoteLogEntry } from '../note/entities/note-log-entry.entity';
 import { NoteRelation } from '../note/entities/note-relation.entity';
@@ -35,18 +36,7 @@ const DEMO_PROJECT = {
   color: 'crimson' as const,
 };
 
-const TAG_DEFINITIONS: { name: string; color: string }[] = [
-  { name: 'Checkpoint', color: '#ef4444' },
-  { name: 'Safehouse', color: '#8b5cf6' },
-  { name: 'Logistics', color: '#f59e0b' },
-  { name: 'Surveillance', color: '#3b82f6' },
-  { name: 'Contact Meeting', color: '#10b981' },
-  { name: 'Infrastructure', color: '#6366f1' },
-  { name: 'Financial', color: '#eab308' },
-  { name: 'Communications', color: '#14b8a6' },
-  { name: 'Border Activity', color: '#f43f5e' },
-  { name: 'Transport Hub', color: '#0ea5e9' },
-];
+const TAG_DEFINITIONS: { name: string; color: string }[] = [...DEFAULT_TAGS];
 
 // A small palette of custom note colors, distinct from the tag palette
 // above, used to exercise a note's optional custom color override.

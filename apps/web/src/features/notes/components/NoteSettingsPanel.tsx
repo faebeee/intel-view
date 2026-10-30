@@ -46,8 +46,8 @@ type NoteSettingsPanelProps = {
  * Right-column panel exposing metadata/settings for the currently open
  * note: which notes it's linked under/over (parent/child pickers, excluding
  * self and any relation that would create a cycle), its tags (multi-select
- * sourced from the global tag registry, with free-text entries allowed
- * for tags not yet in the registry), timestamps, and delete.
+ * dropdown restricted to the global tag registry — create new tags from
+ * the tags management page instead), timestamps, and delete.
  */
 export function NoteSettingsPanel({
 	projectId,
@@ -123,23 +123,18 @@ export function NoteSettingsPanel({
 
 	const tagColorMap = useTagColorMap(tags);
 	const tagAnchor = useComboboxAnchor();
-	const [tagQuery, setTagQuery] = React.useState("");
 
 	const noteTags = note.tags ?? [];
 	const registryTagNames = React.useMemo(() => tags.map((t) => t.name), [tags]);
 
-	const trimmedQuery = tagQuery.trim();
-	const canCreateTag =
-		trimmedQuery !== "" &&
-		!registryTagNames.some(
-			(t) => t.toLowerCase() === trimmedQuery.toLowerCase(),
-		) &&
-		!noteTags.some((t) => t.toLowerCase() === trimmedQuery.toLowerCase());
-
-	const tagItems = React.useMemo(() => {
-		const names = Array.from(new Set([...registryTagNames, ...noteTags]));
-		return canCreateTag ? [...names, trimmedQuery] : names;
-	}, [registryTagNames, noteTags, canCreateTag, trimmedQuery]);
+	// Dropdown options: every registered tag, plus any legacy tag names
+	// already on this note that aren't (or are no longer) in the registry,
+	// so they still show up as selected/removable even though new ones of
+	// that name can no longer be picked.
+	const tagItems = React.useMemo(
+		() => Array.from(new Set([...registryTagNames, ...noteTags])),
+		[registryTagNames, noteTags],
+	);
 
 	const { data: historyEntries = [], isLoading: isHistoryLoading } =
 		useNoteHistoryQuery(projectId, note.id);
@@ -272,7 +267,6 @@ export function NoteSettingsPanel({
 						autoHighlight
 						value={noteTags}
 						onValueChange={(value) => onTagsChange(value as string[])}
-						onInputValueChange={(value) => setTagQuery(value)}
 					>
 						{/* Must not be `display: contents` (e.g. Tailwind's `contents` class) — that
 						collapses this element to a zero-size box, which Base UI's floating
@@ -301,7 +295,7 @@ export function NoteSettingsPanel({
 											})}
 											<ComboboxChipsInput
 												id="note-tags"
-												placeholder={value.length ? "" : "Add tags..."}
+												placeholder={value.length ? "" : "Select tags..."}
 												disabled={isMutating}
 											/>
 										</>
@@ -310,27 +304,16 @@ export function NoteSettingsPanel({
 							</ComboboxChips>
 						</div>
 						<ComboboxContent anchor={tagAnchor}>
-							<ComboboxEmpty>
-								{trimmedQuery
-									? "Press enter to create this tag."
-									: "No tags found."}
-							</ComboboxEmpty>
+							<ComboboxEmpty>No tags found.</ComboboxEmpty>
 							<ComboboxList>
 								{(tag: string) => (
 									<ComboboxItem key={tag} value={tag}>
-										{canCreateTag && tag === trimmedQuery ? (
-											<span>
-												Create tag{" "}
-												<span className="font-bold">&ldquo;{tag}&rdquo;</span>
-											</span>
-										) : (
-											<span
-												className="truncate"
-												style={{ color: tagColorMap.get(tag.toLowerCase()) }}
-											>
-												{tag}
-											</span>
-										)}
+										<span
+											className="truncate"
+											style={{ color: tagColorMap.get(tag.toLowerCase()) }}
+										>
+											{tag}
+										</span>
 									</ComboboxItem>
 								)}
 							</ComboboxList>
