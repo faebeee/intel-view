@@ -3,7 +3,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ListTree, Plus, RefreshCw } from "lucide-react";
 import type { JSX } from "react";
 import * as React from "react";
+import { useDefaultLayout } from "react-resizable-panels";
 import { LoadingState, NotFoundState } from "#/components/ui/loading-state.tsx";
+import {
+	ResizableHandle,
+	ResizablePanel,
+	ResizablePanelGroup,
+} from "#/components/ui/resizable.tsx";
 import { CanvasView } from "#/features/canvas/components/CanvasView.tsx";
 import { McButton } from "#/features/common/components/McButton.tsx";
 import {
@@ -56,6 +62,14 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 	const [isTreeOpen, setIsTreeOpen] = React.useState(false);
 	const [addNoteRequest, setAddNoteRequest] = React.useState(0);
 	const isFetchingNotes = useIsFetching({ queryKey: ["notes"] }) > 0;
+
+	const { defaultLayout, onLayoutChanged } = useDefaultLayout({
+		id: "project-canvas-panels",
+		panelIds: selectedNote
+			? ["canvas-panel", "inspector-panel"]
+			: ["canvas-panel"],
+		storage: typeof window === "undefined" ? undefined : window.localStorage,
+	});
 
 	const handleSelectFromSidebar = React.useCallback((noteId: number) => {
 		setSelectedNoteId(noteId);
@@ -179,38 +193,57 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 				/>
 			)}
 
-			<section
-				aria-label="Note graph"
-				className="relative h-full min-h-[480px] min-w-0 flex-[999_1_600px] overflow-hidden"
+			<ResizablePanelGroup
+				orientation="horizontal"
+				defaultLayout={defaultLayout}
+				onLayoutChanged={onLayoutChanged}
+				className="min-h-[480px] min-w-0 flex-[999_1_600px] max-sm:flex-col"
 			>
-				<CanvasView
-					projectId={projectId}
-					selectedNoteId={selectedNoteId}
-					onSelectNote={setSelectedNoteId}
-					revealRequest={revealRequest}
-					addNoteRequest={addNoteRequest}
-					onNoteDoubleClick={(noteId) => {
-						setSelectedNoteId(noteId);
-						setIsEditModalOpen(true);
-					}}
-					onNoteCreated={(noteId) => {
-						setSelectedNoteId(noteId);
-						setIsEditModalOpen(true);
-					}}
-				/>
-			</section>
+				<ResizablePanel id="canvas-panel" defaultSize="75" minSize="30">
+					<section
+						aria-label="Note graph"
+						className="relative h-full min-h-[480px] overflow-hidden"
+					>
+						<CanvasView
+							projectId={projectId}
+							selectedNoteId={selectedNoteId}
+							onSelectNote={setSelectedNoteId}
+							revealRequest={revealRequest}
+							addNoteRequest={addNoteRequest}
+							onNoteDoubleClick={(noteId) => {
+								setSelectedNoteId(noteId);
+								setIsEditModalOpen(true);
+							}}
+							onNoteCreated={(noteId) => {
+								setSelectedNoteId(noteId);
+								setIsEditModalOpen(true);
+							}}
+						/>
+					</section>
+				</ResizablePanel>
 
-			{selectedNote && (
-				<NoteDetailsPanel
-					projectId={projectId}
-					note={selectedNote}
-					notes={notes}
-					onClose={() => setSelectedNoteId(null)}
-					onEdit={() => setIsEditModalOpen(true)}
-					onDeleted={() => setSelectedNoteId(null)}
-					className="h-full min-w-[300px] max-w-[380px] flex-[1_1_340px] border-l border-mc-border max-sm:h-auto max-sm:max-w-none max-sm:border-t max-sm:border-l-0"
-				/>
-			)}
+				{selectedNote && (
+					<>
+						<ResizableHandle withHandle />
+						<ResizablePanel
+							id="inspector-panel"
+							defaultSize="25"
+							minSize="18"
+							maxSize="40"
+						>
+							<NoteDetailsPanel
+								projectId={projectId}
+								note={selectedNote}
+								notes={notes}
+								onClose={() => setSelectedNoteId(null)}
+								onEdit={() => setIsEditModalOpen(true)}
+								onDeleted={() => setSelectedNoteId(null)}
+								className="h-full min-w-[300px] border-l border-mc-border max-sm:h-auto max-sm:border-t max-sm:border-l-0"
+							/>
+						</ResizablePanel>
+					</>
+				)}
+			</ResizablePanelGroup>
 
 			<NoteEditModal
 				projectId={projectId}

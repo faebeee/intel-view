@@ -14,6 +14,7 @@ import {
 	useComboboxAnchor,
 } from "#/components/ui/combobox.tsx";
 import { FormField } from "#/components/ui/form-field.tsx";
+import { noteTypeLabel } from "#/features/canvas/note-kind.ts";
 import { ColorPickerField } from "#/features/common/components/ColorPickerField.tsx";
 import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
 import { NoteHistorySection } from "#/features/notes/components/NoteHistorySection.tsx";
@@ -157,15 +158,7 @@ export function NoteSettingsPanel({
 						Type
 					</span>
 					<span className="text-xs font-mono text-sea-ink-soft">
-						{note.type === "log"
-							? "Log"
-							: note.type === "file"
-								? "File"
-								: note.type === "url"
-									? "Link"
-									: note.type === "ip"
-										? "IP Address"
-										: "Standard"}
+						{noteTypeLabel(note.type)}
 					</span>
 				</div>
 

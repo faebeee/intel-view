@@ -3,8 +3,6 @@ import { Payload } from '@nestjs/microservices';
 import { NotFoundException } from '@nestjs/common';
 import { z } from 'zod';
 import { NoteService } from '../note/note.service';
-import { NOTE_TYPES } from '../note/entities/note.entity';
-import type { NoteType } from '../note/entities/note.entity';
 import { toNoteResponseDto } from '../note/dto/note-response.dto';
 import { toNoteHistoryEntryResponseDto } from '../note/dto/note-history-entry-response.dto';
 import { toNoteLogEntryResponseDto } from '../note/dto/note-log-entry-response.dto';
@@ -20,10 +18,14 @@ const noteIdField = z.number().int().describe('ID of the note');
 const createNoteParams = z.object({
   projectId: projectIdField,
   type: z
-    .enum(NOTE_TYPES as [NoteType, ...NoteType[]])
+    .string()
+    .regex(
+      /^[a-z][a-z0-9-]{0,39}$/,
+      'type must be a lowercase slug (letters, digits, hyphens; starting with a letter)',
+    )
     .optional()
     .describe(
-      "The kind of note to create: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'url' (content must be a single well-formed URL), 'ip' (content must be a single well-formed IPv4 or IPv6 address), or 'file' (holds a single uploaded file, not settable via MCP). Defaults to 'standard'.",
+      "The kind of note to create. Built-in: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'url' (content must be a single well-formed URL), 'ip' (content must be a single well-formed IPv4 or IPv6 address), or 'file' (holds a single uploaded file, not settable via MCP). Any other lowercase slug (e.g. 'ftp', 'ssh', 'http') creates a custom software/service note. Defaults to 'standard'.",
     ),
   title: z.string().optional().describe('The title of the note'),
   content: z.string().optional().describe('The markdown content of the note'),

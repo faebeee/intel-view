@@ -13,11 +13,32 @@ import { NoteLogEntry } from './note-log-entry.entity';
  * described by the `file*` columns. `'url'` notes store a single URL in
  * `content`, which must be a well-formed `http(s)://` URL; unlike other
  * type-specific columns, no extra fetching/unfurling is performed. `'ip'`
- * notes store a single IPv4 or IPv6 address in `content`. The `type` itself
- * is set once at creation and never changed afterwards.
+ * notes store a single IPv4 or IPv6 address in `content`.
+ *
+ * Beyond these five built-ins (`BUILTIN_NOTE_TYPES`), `type` is an
+ * open-ended lowercase slug: any other value (e.g. `'ftp'`, `'ssh'`,
+ * `'http'`) represents a piece of software/service discovered running on a
+ * host during recon, and behaves exactly like a `'standard'` note content-
+ * wise (freely-editable rich text, no extra validation) — the distinct
+ * `type` value exists purely so a note can be labeled by its specific
+ * service and so `NotePlugin`s can target that service directly (e.g. a
+ * plugin with `noteTypes: ['ftp']`). The `type` itself is set once at
+ * creation and never changed afterwards.
  */
-export type NoteType = 'standard' | 'log' | 'file' | 'url' | 'ip';
-export const NOTE_TYPES: NoteType[] = ['standard', 'log', 'file', 'url', 'ip'];
+export type NoteType = string;
+
+/**
+ * The fixed set of note types with special built-in behavior (own editor,
+ * content validation, etc.). Every other `NoteType` value is an open-ended
+ * custom software/service type (see the `NoteType` doc comment above).
+ */
+export const BUILTIN_NOTE_TYPES = [
+  'standard',
+  'log',
+  'file',
+  'url',
+  'ip',
+] as const;
 
 @Entity()
 export class Note extends BaseEntity {
@@ -29,11 +50,11 @@ export class Note extends BaseEntity {
   @JoinColumn({ name: 'projectId' })
   project: Project;
 
-  @Column({ type: 'varchar', length: 20, default: 'standard' })
+  @Column({ type: 'varchar', length: 40, default: 'standard' })
   @ApiProperty({
     description:
-      "The kind of note: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'file' (holds a single uploaded file stored in object storage), 'url' (content is a single well-formed URL), or 'ip' (content is a single well-formed IPv4 or IPv6 address). Set at creation and immutable afterwards.",
-    enum: NOTE_TYPES,
+      "The kind of note. Built-in: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'file' (holds a single uploaded file stored in object storage), 'url' (content is a single well-formed URL), or 'ip' (content is a single well-formed IPv4 or IPv6 address). Any other lowercase slug (e.g. 'ftp', 'ssh', 'http') names a custom software/service note — behaves like 'standard' content-wise, but can be targeted by its own plugins. Set at creation and immutable afterwards.",
+    example: 'standard',
     default: 'standard',
   })
   type: NoteType;

@@ -55,8 +55,11 @@ export function NoteContentEditor({
 			<NoteFileEditorPane
 				projectId={projectId}
 				note={note}
+				notes={notes}
 				title={title}
+				content={content}
 				onTitleChange={onTitleChange}
+				onContentChange={onContentChange}
 				saveStatus={saveStatus}
 				className={className}
 			/>

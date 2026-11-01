@@ -9,16 +9,21 @@ import { Download, Paperclip, Trash2, Upload } from "lucide-react";
 import * as React from "react";
 import { Button } from "#/components/ui/button.tsx";
 import { Input } from "#/components/ui/input.tsx";
+import { MarkdownEditor } from "#/components/ui/markdown-editor.tsx";
 import type { NoteSaveStatus } from "#/features/notes/components/NoteEditorPane.tsx";
 import { SaveStatusIndicator } from "#/features/notes/components/NoteEditorPane.tsx";
+import { getNoteLabel } from "#/features/notes/hooks/useNoteTree.ts";
 import { toastApiError } from "#/lib/api-error.ts";
 import { cn } from "#/lib/utils.ts";
 
 type NoteFileEditorPaneProps = {
 	projectId: number;
 	note: Note;
+	notes: Note[];
 	title: string;
+	content: string;
 	onTitleChange: (title: string) => void;
+	onContentChange: (content: string) => void;
 	saveStatus: NoteSaveStatus;
 	disabled?: boolean;
 	className?: string;
@@ -40,9 +45,12 @@ export function formatFileSize(size: number | null | undefined): string {
 
 /**
  * Center-column pane for `'file'`-type notes: the title input (same
- * autosave-driven control shared with the other panes) plus a single
- * attachment slot. Bytes never travel to the object store directly from the
- * browser — uploads and downloads are proxied by the API
+ * autosave-driven control shared with the other panes), a single attachment
+ * slot, and — below it — the same freeform markdown editor used by
+ * `'standard'` notes, so a file note can still carry its own written-out
+ * notes (e.g. what the file is, findings from it) alongside the attachment.
+ * Bytes never travel to the object store directly from the browser —
+ * uploads and downloads are proxied by the API
  * (`/projects/:projectId/notes/:id/file`), which is also why the download
  * link is built from the SDK client's configured base URL rather than a
  * presigned storage URL. Uploading while a file is already attached replaces
@@ -51,14 +59,18 @@ export function formatFileSize(size: number | null | undefined): string {
 export function NoteFileEditorPane({
 	projectId,
 	note,
+	notes,
 	title,
+	content,
 	onTitleChange,
+	onContentChange,
 	saveStatus,
 	disabled = false,
 	className,
 }: NoteFileEditorPaneProps) {
 	const queryClient = useQueryClient();
 	const inputRef = React.useRef<HTMLInputElement>(null);
+	const noteOptions = notes.map((n) => ({ id: n.id, label: getNoteLabel(n) }));
 
 	const invalidateNote = React.useCallback(() => {
 		queryClient.invalidateQueries({ queryKey: ["notes", "all", projectId] });
@@ -104,12 +116,7 @@ export function NoteFileEditorPane({
 	const isImage = note.fileMimeType?.startsWith("image/") ?? false;
 
 	return (
-		<div
-			className={cn(
-				"flex flex-col gap-4 h-full min-h-0 p-4 overflow-y-auto",
-				className,
-			)}
-		>
+		<div className={cn("flex flex-col gap-4 h-full min-h-0 p-4", className)}>
 			<div className="flex items-center justify-between gap-3 shrink-0">
 				<Input
 					value={title}
@@ -175,7 +182,7 @@ export function NoteFileEditorPane({
 						<img
 							src={fileUrl}
 							alt={note.fileName}
-							className="max-h-[28rem] w-fit max-w-full rounded-lg border border-line/50 object-contain"
+							className="max-h-[28rem] w-fit max-w-full rounded-lg border border-line/50 object-contain shrink-0"
 						/>
 					)}
 				</div>
@@ -195,6 +202,16 @@ export function NoteFileEditorPane({
 					</span>
 				</button>
 			)}
+
+			<MarkdownEditor
+				value={content}
+				onChange={onContentChange}
+				disabled={disabled}
+				notes={noteOptions}
+				placeholder="Add notes about this file..."
+				className="flex-1 min-h-0"
+				minHeight="min-h-0 flex-1"
+			/>
 		</div>
 	);
 }

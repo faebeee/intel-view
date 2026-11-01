@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Note, NOTE_TYPES } from '../entities/note.entity';
+import { Note } from '../entities/note.entity';
 import type { NoteType } from '../entities/note.entity';
 
 export class NoteResponseDto {
@@ -11,8 +11,8 @@ export class NoteResponseDto {
 
   @ApiProperty({
     description:
-      "The kind of note: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'file' (holds a single uploaded file stored in object storage), 'url' (content is a single well-formed URL), or 'ip' (content is a single well-formed IPv4 or IPv6 address)",
-    enum: NOTE_TYPES,
+      "The kind of note. Built-in: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'file' (holds a single uploaded file stored in object storage), 'url' (content is a single well-formed URL), or 'ip' (content is a single well-formed IPv4 or IPv6 address). Any other lowercase slug (e.g. 'ftp', 'ssh', 'http') names a custom software/service note.",
+    example: 'standard',
   })
   type: NoteType;
 
