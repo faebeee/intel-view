@@ -27,6 +27,10 @@ const HANDLE_CLASS =
 /**
  * A note on the canvas (handoff §03 "Note node"): 160px wide, 14px cut
  * corner, kind label + #id + status square, Chakra title, mono subtitle.
+ * The card surface is subtly tinted with the note's resolved color (its
+ * own custom color, or its first tag's color) via `color-mix` against the
+ * base panel token, so colorized notes stand out at a glance while staying
+ * legible in both themes; uncolored notes render as a plain panel.
  *
  * The 1px edge is the outer element's background showing through its
  * padding (a border can't follow the cut). Handles and the selection glow
@@ -41,7 +45,8 @@ export function NoteNode({ data, selected }: NoteNodeProps) {
 	const { data: tags = [] } = useAllTagsQuery();
 	const tagColorMap = useTagColorMap(tags);
 	const kind = noteKind(note);
-	const statusColor = resolveNoteColor(note, tagColorMap) ?? "var(--mc-accent)";
+	const noteColor = resolveNoteColor(note, tagColorMap);
+	const statusColor = noteColor ?? "var(--mc-accent)";
 
 	return (
 		<ContextMenu>
@@ -66,7 +71,14 @@ export function NoteNode({ data, selected }: NoteNodeProps) {
 								: "bg-mc-border-strong group-hover/node:bg-mc-edge-idle",
 						)}
 					>
-						<div className="cut-tr-md-inner flex min-h-[94px] flex-col gap-1.5 bg-mc-panel px-3 py-2.5">
+						<div
+							className="cut-tr-md-inner flex min-h-[94px] flex-col gap-1.5 px-3 py-2.5"
+							style={{
+								backgroundColor: noteColor
+									? `color-mix(in srgb, ${noteColor} 12%, var(--mc-panel))`
+									: "var(--mc-panel)",
+							}}
+						>
 							<div className="flex items-center gap-1.5">
 								<span
 									className="font-mono text-[9.5px] font-semibold tracking-[0.12em]"
