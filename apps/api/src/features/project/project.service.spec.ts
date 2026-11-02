@@ -104,6 +104,40 @@ describe('ProjectService', () => {
       );
     });
 
+    it('persists the current penetration-test phase', async () => {
+      mockProjectRepository.findOne.mockResolvedValue({
+        id: 1,
+        name: 'Op Blue Horizon',
+        phase: 'recon',
+      });
+      mockProjectRepository.save.mockImplementation(
+        (project: unknown) => project,
+      );
+
+      await service.update(1, { phase: 'exploitation' });
+
+      expect(mockProjectRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ phase: 'exploitation' }),
+      );
+    });
+
+    it('resets the phase when null is passed', async () => {
+      mockProjectRepository.findOne.mockResolvedValue({
+        id: 1,
+        name: 'Op Blue Horizon',
+        phase: 'reporting',
+      });
+      mockProjectRepository.save.mockImplementation(
+        (project: unknown) => project,
+      );
+
+      await service.update(1, { phase: null });
+
+      expect(mockProjectRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ phase: null }),
+      );
+    });
+
     it('replaces project tags when tags are provided', async () => {
       const existingProject = {
         id: 1,

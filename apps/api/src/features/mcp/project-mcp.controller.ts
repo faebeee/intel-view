@@ -3,8 +3,14 @@ import { Payload } from '@nestjs/microservices';
 import { NotFoundException } from '@nestjs/common';
 import { z } from 'zod';
 import { ProjectService } from '../project/project.service';
-import { PROJECT_COLOR_THEMES } from '../project/entities/project.entity';
-import type { ProjectColorTheme } from '../project/entities/project.entity';
+import {
+  PROJECT_COLOR_THEMES,
+  PROJECT_PHASES,
+} from '../project/entities/project.entity';
+import type {
+  ProjectColorTheme,
+  ProjectPhase,
+} from '../project/entities/project.entity';
 import { toProjectResponseDto } from '../project/dto/project-response.dto';
 import { buildMcpPaginateQuery } from './mcp-paginate.util';
 import { textResult, McpToolTextResult } from './mcp-tool-result.util';
@@ -16,6 +22,13 @@ const colorThemeEnum = z
     "The accent color palette applied app-wide while this project is open. Defaults to 'ocean'.",
   );
 
+const phaseEnum = z
+  .enum(PROJECT_PHASES as [ProjectPhase, ...ProjectPhase[]])
+  .nullish()
+  .describe(
+    'The penetration-test phase currently in progress; earlier phases count as done. Pass null for not started.',
+  );
+
 const createProjectParams = z.object({
   name: z.string().min(1).describe('The name of the project'),
   description: z.string().optional().describe('A description of the project'),
@@ -25,6 +38,7 @@ const createProjectParams = z.object({
     .nullish()
     .describe('ID of the folder this project belongs to'),
   color: colorThemeEnum,
+  phase: phaseEnum,
 });
 
 const updateProjectParams = z.object({
@@ -39,6 +53,7 @@ const updateProjectParams = z.object({
       'ID of the folder this project belongs to. Pass null to unassign.',
     ),
   color: colorThemeEnum,
+  phase: phaseEnum,
 });
 
 const listProjectsParams = z.object({

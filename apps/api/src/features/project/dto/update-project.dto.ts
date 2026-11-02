@@ -1,7 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsIn, IsInt, IsOptional, IsString } from 'class-validator';
-import { PROJECT_COLOR_THEMES } from '../entities/project.entity';
-import type { ProjectColorTheme } from '../entities/project.entity';
+import { IsIn, IsInt, IsOptional, IsString, ValidateIf } from 'class-validator';
+import {
+  PROJECT_COLOR_THEMES,
+  PROJECT_PHASES,
+} from '../entities/project.entity';
+import type {
+  ProjectColorTheme,
+  ProjectPhase,
+} from '../entities/project.entity';
 
 export class UpdateProjectDto {
   @IsString()
@@ -37,4 +43,16 @@ export class UpdateProjectDto {
     required: false,
   })
   color?: ProjectColorTheme;
+
+  @IsIn(PROJECT_PHASES)
+  @ValidateIf((_, value) => value !== null)
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'The penetration-test phase currently in progress. Pass null to reset the engagement to not started.',
+    enum: PROJECT_PHASES,
+    required: false,
+    nullable: true,
+  })
+  phase?: ProjectPhase | null;
 }

@@ -10,6 +10,7 @@ describe('toProjectResponseDto', () => {
       folderId: null,
       folder: null,
       color: 'ocean',
+      phase: null,
       notes: [],
       createdAt: new Date('2024-01-01T00:00:00.000Z'),
       updatedAt: new Date('2024-01-02T00:00:00.000Z'),
@@ -30,6 +31,7 @@ describe('toProjectResponseDto', () => {
       folderId: null,
       folder: null,
       color: 'ocean',
+      phase: null,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
     });
@@ -44,5 +46,13 @@ describe('toProjectResponseDto', () => {
     const result = toProjectResponseDto(project);
 
     expect(result.folder).toEqual({ id: 5, name: 'Ops', color: '#00f2ff' });
+  });
+
+  it('maps the current penetration-test phase', () => {
+    const result = toProjectResponseDto(
+      buildProject({ phase: 'exploitation' }),
+    );
+
+    expect(result.phase).toBe('exploitation');
   });
 });

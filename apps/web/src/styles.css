@@ -421,6 +421,30 @@ body {
   animation: mc-pulse 1.6s ease-in-out infinite;
 }
 
+.mc-phase-bar {
+  display: block;
+  background: var(--mc-border-strong);
+  transition: box-shadow 0.2s;
+}
+
+.mc-phase-bar[data-status="done"] {
+  background: var(--mc-accent);
+}
+
+/* Reduced motion is handled by the global rule below, which ends the pulse at full opacity. */
+.mc-phase-bar[data-status="current"] {
+  background: linear-gradient(
+    90deg,
+    var(--mc-accent) 0 30%,
+    var(--mc-border-strong) 30% 100%
+  );
+  animation: mc-pulse 1.6s ease-in-out infinite;
+}
+
+button:hover > .mc-phase-bar[data-status="todo"] {
+  background: var(--mc-edge-idle);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

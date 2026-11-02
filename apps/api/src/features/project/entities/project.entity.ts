@@ -22,6 +22,32 @@ export const PROJECT_COLOR_THEMES: ProjectColorTheme[] = [
 ];
 export const DEFAULT_PROJECT_COLOR_THEME: ProjectColorTheme = 'ocean';
 
+/**
+ * The phases of a penetration test, in engagement order. A project's
+ * `phase` names the one currently in progress: every phase before it counts
+ * as done and every phase after it as not started (shown as the progress
+ * bar on the project canvas).
+ */
+export type ProjectPhase =
+  | 'planning'
+  | 'recon'
+  | 'scanning'
+  | 'vuln_assessment'
+  | 'exploitation'
+  | 'post_exploitation'
+  | 'cleanup'
+  | 'reporting';
+export const PROJECT_PHASES: ProjectPhase[] = [
+  'planning',
+  'recon',
+  'scanning',
+  'vuln_assessment',
+  'exploitation',
+  'post_exploitation',
+  'cleanup',
+  'reporting',
+];
+
 @Entity()
 export class Project extends BaseEntity {
   @Column({ type: 'varchar', length: 150 })
@@ -62,6 +88,16 @@ export class Project extends BaseEntity {
     default: DEFAULT_PROJECT_COLOR_THEME,
   })
   color: ProjectColorTheme;
+
+  @Column({ type: 'varchar', length: 24, nullable: true })
+  @ApiProperty({
+    description:
+      'The penetration-test phase currently in progress. Earlier phases count as done, later ones as not started; null means the engagement has not started.',
+    enum: PROJECT_PHASES,
+    required: false,
+    nullable: true,
+  })
+  phase: ProjectPhase | null;
 
   @OneToMany(() => Note, (note) => note.project)
   notes: Note[];

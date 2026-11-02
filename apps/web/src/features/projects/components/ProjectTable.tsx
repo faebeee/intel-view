@@ -7,19 +7,22 @@ import { StatePanel } from "#/components/ui/loading-state.tsx";
 import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
 import { McButton } from "#/features/common/components/McButton.tsx";
 import { StatusChip } from "#/features/common/components/StatusChip.tsx";
+import {
+	findPhase,
+	NO_PHASE_TOKEN,
+	PHASE_TOKEN,
+	PROJECT_PHASES,
+	type ProjectPhase,
+} from "#/features/projects/phases.ts";
 import { formatIsoDate } from "#/lib/format.ts";
 import { readLastProjectId } from "#/lib/last-project.ts";
-import {
-	COLOR_THEME_LABELS,
-	COLOR_THEME_TOKEN,
-	COLOR_THEMES,
-	type ColorTheme,
-	DEFAULT_COLOR_THEME,
-	isColorTheme,
-} from "#/lib/theme.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 type SortOrder = "newest" | "oldest" | "name";
+
+/** Filter value: a concrete phase, projects with no phase yet, or everything. */
+type PhaseFilter = ProjectPhase | "none" | "all";
 
 const SORT_LABELS: Record<SortOrder, string> = {
 	newest: "newest first",
@@ -38,8 +41,28 @@ type ProjectTableProps = {
 	isDeleting?: boolean;
 };
 
-function themeOf(project: ProjectResponseDto): ColorTheme {
-	return isColorTheme(project.color) ? project.color : DEFAULT_COLOR_THEME;
+/** The project's engagement phase, rendered as its status chip. */
+function statusOf(project: ProjectResponseDto): {
+	key: PhaseFilter;
+	token: string;
+	short: string;
+	name: string;
+} {
+	const definition = project.phase ? findPhase(project.phase) : undefined;
+	if (!definition) {
+		return {
+			key: "none",
+			token: NO_PHASE_TOKEN,
+			short: m.phase_none_short(),
+			name: m.phase_none_name(),
+		};
+	}
+	return {
+		key: definition.id,
+		token: PHASE_TOKEN[definition.id],
+		short: definition.short(),
+		name: definition.name(),
+	};
 }
 
 const TH_CLASS =
@@ -48,7 +71,7 @@ const TD_CLASS = "border-b border-mc-row-divider px-5";
 
 /**
  * Filter bar + project table shared by every folder-detail route (a real
- * folder, or the synthetic "Ungrouped" folder). Filtering, the colour
+ * folder, or the synthetic "Ungrouped" folder). Filtering, the phase
  * ("status") filter, sorting and paging all happen client-side on the
  * already-loaded list. Scrolls horizontally under 860px.
  */
@@ -61,7 +84,7 @@ export function ProjectTable({
 	isDeleting = false,
 }: ProjectTableProps): JSX.Element {
 	const [query, setQuery] = React.useState("");
-	const [theme, setTheme] = React.useState<ColorTheme | "all">("all");
+	const [phase, setPhase] = React.useState<PhaseFilter>("all");
 	const [sort, setSort] = React.useState<SortOrder>("newest");
 	const [visible, setVisible] = React.useState(PAGE_SIZE);
 	const filterId = React.useId();
@@ -71,10 +94,10 @@ export function ProjectTable({
 	const [lastProjectId, setLastProjectId] = React.useState<string | null>(null);
 	React.useEffect(() => setLastProjectId(readLastProjectId()), []);
 
-	const themeCounts = React.useMemo(() => {
-		const counts = new Map<ColorTheme, number>();
+	const phaseCounts = React.useMemo(() => {
+		const counts = new Map<PhaseFilter, number>();
 		for (const project of projects) {
-			const key = themeOf(project);
+			const key = statusOf(project).key;
 			counts.set(key, (counts.get(key) ?? 0) + 1);
 		}
 		return counts;
@@ -84,7 +107,7 @@ export function ProjectTable({
 		const needle = query.trim().toLowerCase();
 		const filtered = projects.filter(
 			(project) =>
-				(theme === "all" || themeOf(project) === theme) &&
+				(phase === "all" || statusOf(project).key === phase) &&
 				(!needle ||
 					project.name.toLowerCase().includes(needle) ||
 					(project.description ?? "").toLowerCase().includes(needle)),
@@ -95,7 +118,7 @@ export function ProjectTable({
 				new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
 			return sort === "oldest" ? diff : -diff || b.id - a.id;
 		});
-	}, [projects, query, theme, sort]);
+	}, [projects, query, phase, sort]);
 
 	if (projects.length === 0) {
 		return (
@@ -142,23 +165,38 @@ export function ProjectTable({
 					className="flex flex-wrap border border-mc-border-strong"
 				>
 					<FilterToggle
-						pressed={theme === "all"}
-						onClick={() => setTheme("all")}
+						pressed={phase === "all"}
+						onClick={() => setPhase("all")}
 					>
 						All <span className="text-mc-text-2">{projects.length}</span>
 					</FilterToggle>
-					{COLOR_THEMES.filter((key) => themeCounts.has(key)).map((key) => (
+					{phaseCounts.has("none") && (
 						<FilterToggle
-							key={key}
-							pressed={theme === key}
-							onClick={() => setTheme(key)}
+							pressed={phase === "none"}
+							onClick={() => setPhase("none")}
 						>
 							<span
 								aria-hidden="true"
 								className="size-1.5"
-								style={{ backgroundColor: COLOR_THEME_TOKEN[key] }}
+								style={{ backgroundColor: NO_PHASE_TOKEN }}
 							/>
-							{COLOR_THEME_LABELS[key]}
+							{m.phase_none_short()}
+						</FilterToggle>
+					)}
+					{PROJECT_PHASES.filter((definition) =>
+						phaseCounts.has(definition.id),
+					).map((definition) => (
+						<FilterToggle
+							key={definition.id}
+							pressed={phase === definition.id}
+							onClick={() => setPhase(definition.id)}
+						>
+							<span
+								aria-hidden="true"
+								className="size-1.5"
+								style={{ backgroundColor: PHASE_TOKEN[definition.id] }}
+							/>
+							{definition.short()}
 						</FilterToggle>
 					))}
 				</div>
@@ -211,7 +249,7 @@ export function ProjectTable({
 					</thead>
 					<tbody>
 						{shown.map((project) => {
-							const key = themeOf(project);
+							const status = statusOf(project);
 							const isLast = String(project.id) === lastProjectId;
 							const params = { projectId: String(project.id) };
 							return (
@@ -252,10 +290,8 @@ export function ProjectTable({
 									>
 										{project.description || "—"}
 									</td>
-									<td className={TD_CLASS}>
-										<StatusChip color={COLOR_THEME_TOKEN[key]}>
-											{COLOR_THEME_LABELS[key]}
-										</StatusChip>
+									<td className={TD_CLASS} title={status.name}>
+										<StatusChip color={status.token}>{status.short}</StatusChip>
 									</td>
 									<td
 										className={cn(

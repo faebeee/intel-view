@@ -21,6 +21,8 @@ type PageHeaderProps = {
 	/** Rendered after the title (e.g. project count, edit button). */
 	titleSuffix?: ReactNode;
 	actions?: ReactNode;
+	/** Full-width second row under the title row (e.g. the canvas phase bar). */
+	children?: ReactNode;
 	className?: string;
 };
 
@@ -32,6 +34,7 @@ export function PageHeader({
 	titlePrefix,
 	titleSuffix,
 	actions,
+	children,
 	className,
 }: PageHeaderProps): JSX.Element {
 	return (
@@ -85,6 +88,7 @@ export function PageHeader({
 					<div className="flex flex-wrap items-center gap-3">{actions}</div>
 				)}
 			</div>
+			{children && <div className="mt-3.5">{children}</div>}
 		</header>
 	);
 }

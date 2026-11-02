@@ -1,3 +1,4 @@
+import type { ProjectResponseDto } from "@repo/sdk";
 import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { ListTree, Plus, RefreshCw } from "lucide-react";
@@ -22,7 +23,10 @@ import { NoteEditModal } from "#/features/notes/components/NoteEditModal.tsx";
 import { NoteTree } from "#/features/notes/components/NoteTree.tsx";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 import { useDeleteNote } from "#/features/notes/hooks/useDeleteNote.ts";
+import { PhaseProgressBar } from "#/features/projects/components/PhaseProgressBar.tsx";
 import { useProjectQuery } from "#/features/projects/hooks/useProjectQuery.ts";
+import { useUpdateProject } from "#/features/projects/hooks/useUpdateProject.ts";
+import type { ProjectPhase } from "#/features/projects/phases.ts";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 import { formatIsoDateTime } from "#/lib/format.ts";
 import { cn } from "#/lib/utils.ts";
@@ -56,6 +60,25 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 
 	const deleteNoteMutation = useDeleteNote(projectId);
 	const queryClient = useQueryClient();
+	const updateProjectMutation = useUpdateProject(projectId);
+
+	// Optimistic: the bar moves at once and rolls back if the save fails.
+	const handleSelectPhase = React.useCallback(
+		(phase: ProjectPhase) => {
+			const queryKey = ["projects", projectId];
+			const previous = queryClient.getQueryData<ProjectResponseDto>(queryKey);
+			if (previous) queryClient.setQueryData(queryKey, { ...previous, phase });
+			updateProjectMutation.mutate(
+				{ phase },
+				{
+					onError: () => {
+						if (previous) queryClient.setQueryData(queryKey, previous);
+					},
+				},
+			);
+		},
+		[projectId, queryClient, updateProjectMutation],
+	);
 
 	// The notes list is optional chrome here (the design has no sidebar), so
 	// it starts collapsed and is toggled from the header.
@@ -164,7 +187,12 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 							</McButton>
 						</>
 					}
-				/>
+				>
+					<PhaseProgressBar
+						phase={project.phase}
+						onSelectPhase={handleSelectPhase}
+					/>
+				</PageHeader>
 			}
 			status={
 				<StatusBar
