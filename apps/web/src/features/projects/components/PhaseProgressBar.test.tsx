@@ -9,16 +9,16 @@ function phaseButtons(): HTMLElement[] {
 }
 
 describe("PhaseProgressBar", () => {
-	it("renders all 8 phases in order as not started when there is no phase", () => {
+	it("renders all 9 phases in order as not started when there is no phase", () => {
 		render(<PhaseProgressBar phase={null} onSelectPhase={vi.fn()} />);
 
 		const buttons = phaseButtons();
-		expect(buttons).toHaveLength(8);
-		expect(buttons.map((b) => b.dataset.status)).toEqual(Array(8).fill("todo"));
+		expect(buttons).toHaveLength(9);
+		expect(buttons.map((b) => b.dataset.status)).toEqual(Array(9).fill("todo"));
 		expect(buttons[0]).toHaveAccessibleName(
 			"01 Planning & Scoping, not started",
 		);
-		expect(buttons[7]).toHaveAttribute("title", "Reporting & Remediation");
+		expect(buttons[8]).toHaveAttribute("title", "Completed");
 		expect(screen.getByText("0")).toHaveClass("text-mc-accent");
 	});
 
@@ -32,6 +32,7 @@ describe("PhaseProgressBar", () => {
 			"done",
 			"done",
 			"current",
+			"todo",
 			"todo",
 			"todo",
 			"todo",

@@ -9,7 +9,7 @@ import {
 describe("phaseStatus", () => {
 	it("treats every phase as todo before the engagement starts", () => {
 		expect(PROJECT_PHASES.map((p) => phaseStatus(p.id, null))).toEqual(
-			Array(8).fill("todo"),
+			Array(9).fill("todo"),
 		);
 	});
 

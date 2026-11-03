@@ -48,6 +48,11 @@ export const PROJECT_PHASES: PhaseDefinition[] = [
 		short: m.phase_reporting_short,
 		name: m.phase_reporting_name,
 	},
+	{
+		id: "completed",
+		short: m.phase_completed_short,
+		name: m.phase_completed_name,
+	},
 ];
 
 /**
@@ -64,6 +69,7 @@ export const PHASE_TOKEN: Record<ProjectPhase, string> = {
 	post_exploitation: "var(--mc-danger)",
 	cleanup: "var(--mc-service)",
 	reporting: "var(--mc-accent)",
+	completed: "var(--mc-accent)",
 };
 
 /** Token used when a project has no phase yet (the engagement hasn't started). */

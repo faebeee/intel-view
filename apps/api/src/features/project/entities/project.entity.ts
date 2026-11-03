@@ -36,7 +36,8 @@ export type ProjectPhase =
   | 'exploitation'
   | 'post_exploitation'
   | 'cleanup'
-  | 'reporting';
+  | 'reporting'
+  | 'completed';
 export const PROJECT_PHASES: ProjectPhase[] = [
   'planning',
   'recon',
@@ -46,6 +47,7 @@ export const PROJECT_PHASES: ProjectPhase[] = [
   'post_exploitation',
   'cleanup',
   'reporting',
+  'completed',
 ];
 
 @Entity()

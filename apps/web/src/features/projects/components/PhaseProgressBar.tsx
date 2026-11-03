@@ -56,7 +56,7 @@ export function PhaseProgressBar({
 			</div>
 			<ol
 				aria-label={m.phase_bar_label()}
-				className="m-0 grid min-w-0 flex-[1_1_760px] list-none grid-cols-8 gap-1.5 p-0 max-[900px]:grid-cols-4"
+				className="m-0 grid min-w-0 flex-[1_1_760px] list-none grid-cols-9 gap-1.5 p-0 max-[900px]:grid-cols-4"
 			>
 				{PROJECT_PHASES.map((definition, index) => {
 					const status = statuses[index];

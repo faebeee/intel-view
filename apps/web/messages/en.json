@@ -32,5 +32,7 @@
   "phase_cleanup_short": "CLEANUP",
   "phase_cleanup_name": "Cleanup & Validation",
   "phase_reporting_short": "REPORTING",
-  "phase_reporting_name": "Reporting & Remediation"
+  "phase_reporting_name": "Reporting & Remediation",
+  "phase_completed_short": "COMPLETED",
+  "phase_completed_name": "Completed"
 }

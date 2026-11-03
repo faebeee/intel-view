@@ -32,5 +32,7 @@
   "phase_cleanup_short": "BEREINIGUNG",
   "phase_cleanup_name": "Bereinigung & Validierung",
   "phase_reporting_short": "BERICHT",
-  "phase_reporting_name": "Bericht & Behebung"
+  "phase_reporting_name": "Bericht & Behebung",
+  "phase_completed_short": "ABGESCHLOSSEN",
+  "phase_completed_name": "Abgeschlossen"
 }
