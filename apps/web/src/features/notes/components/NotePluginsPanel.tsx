@@ -54,10 +54,14 @@ export function NotePluginsPanel({
 	const [selectedPlugin, setSelectedPlugin] = React.useState<Plugin | null>(
 		null,
 	);
+	const [previewContent, setPreviewContent] = React.useState<string | null>(
+		null,
+	);
 	const [isLoading, setIsLoading] = React.useState(false);
 
 	const resetState = React.useCallback(() => {
 		setSelectedPlugin(null);
+		setPreviewContent(null);
 	}, []);
 
 	const handleOpenChange = React.useCallback(
@@ -68,21 +72,28 @@ export function NotePluginsPanel({
 		[resetState],
 	);
 
-	const handleCopyCommand = React.useCallback(async () => {
-		if (noteId === undefined || selectedPlugin === null) return;
-		try {
-			const response = await fetch(
-				`/api/projects/${projectId}/notes/${noteId}/plugins/${selectedPlugin.id}/command`,
+	const handleSelectPlugin = React.useCallback(
+		(plugin: Plugin) => {
+			if (noteId === undefined) return;
+			setSelectedPlugin(plugin);
+			setPreviewContent(null);
+			previewPluginMutation.mutate(
+				{ noteId, pluginId: plugin.id },
+				{
+					onSuccess: (data) => setPreviewContent(data),
+				},
 			);
-			const data = await response.json();
-			const copied = await copyToClipboard(data.command);
-			if (copied) {
-				toast.success("Command copied to clipboard");
-			}
-		} catch (err) {
-			toast.error("Failed to fetch command");
+		},
+		[previewPluginMutation, noteId],
+	);
+
+	const handleCopyPreview = React.useCallback(async () => {
+		if (previewContent === null) return;
+		const copied = await copyToClipboard(previewContent);
+		if (copied) {
+			toast.success("Preview copied to clipboard");
 		}
-	}, [projectId, noteId, selectedPlugin]);
+	}, [previewContent]);
 
 	const handleExecuteAndCreate = React.useCallback(
 		async () => {
@@ -148,7 +159,7 @@ export function NotePluginsPanel({
 										key={plugin.id}
 										variant="outline"
 										className="h-auto min-h-16 whitespace-normal text-center justify-center py-2 px-3"
-										onClick={() => setSelectedPlugin(plugin)}
+										onClick={() => handleSelectPlugin(plugin)}
 									>
 										{plugin.label}
 									</Button>
@@ -171,37 +182,48 @@ export function NotePluginsPanel({
 									{selectedPlugin.label}
 								</DialogTitle>
 								<DialogDescription className="text-xs text-muted-foreground leading-relaxed">
-									Select an action to perform with this plugin.
+									Plugin preview content.
 								</DialogDescription>
 							</DialogHeader>
 
-							<div className="flex flex-col gap-3 py-4">
+							<div className="min-h-32 max-h-96 overflow-y-auto rounded-md border border-line/50 bg-surface-strong/60 p-3 mb-4">
+								{previewPluginMutation.isPending ? (
+									<div className="flex items-center justify-center h-32">
+										<Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+									</div>
+								) : (
+									<pre className="whitespace-pre-wrap break-words text-sm text-sea-ink font-mono">
+										{previewContent || "No preview available."}
+									</pre>
+								)}
+							</div>
+
+							<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
 								<Button
 									type="button"
 									variant="outline"
-									size="lg"
-									className="justify-start gap-3"
-									onClick={handleCopyCommand}
+									size="sm"
+									disabled={previewPluginMutation.isPending || previewContent === null}
+									onClick={handleCopyPreview}
 								>
-									<ClipboardCopy className="h-4 w-4" />
-									Copy command to clipboard
+									<ClipboardCopy className="h-3.5 w-3.5" />
+									Copy preview
 								</Button>
 								<Button
 									type="button"
 									variant="default"
-									size="lg"
-									className="justify-start gap-3"
-									disabled={isLoading}
+									size="sm"
+									disabled={previewPluginMutation.isPending || isLoading}
 									onClick={handleExecuteAndCreate}
 								>
 									{isLoading ? (
-										<Loader2 className="h-4 w-4 animate-spin" />
+										<Loader2 className="h-3.5 w-3.5 animate-spin" />
 									) : (
-										<FilePlus2 className="h-4 w-4" />
+										<FilePlus2 className="h-3.5 w-3.5" />
 									)}
 									{isLoading
-										? "Executing and creating..."
-										: "Execute plugin and create note"}
+										? "Executing..."
+										: "Execute & Create Note"}
 								</Button>
 							</div>
 						</>

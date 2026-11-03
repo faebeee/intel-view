@@ -101,4 +101,25 @@ export class PluginController {
     );
     return { result };
   }
+
+  @Post(':pluginId/execute-and-create')
+  @ApiOperation({
+    summary: 'Execute a plugin and create a new child note with the result',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'The newly created note.',
+  })
+  @ApiResponse({ status: 404, description: 'Note or plugin not found.' })
+  async executeAndCreate(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Param('noteId', ParseIntPipe) noteId: number,
+    @Param('pluginId') pluginId: string,
+  ) {
+    return this.pluginRegistryService.executeAndCreate(
+      projectId,
+      noteId,
+      pluginId,
+    );
+  }
 }
