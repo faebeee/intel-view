@@ -4,6 +4,7 @@ import { PluginController } from './plugin.controller';
 import { PluginRegistryService } from './plugin-registry.service';
 import { NOTE_PLUGIN } from './plugin.interface';
 import { NmapServiceScanPlugin } from './plugins/nmap-service-scan/nmap-service-scan.plugin';
+import { CommandContainer } from './command-container.service';
 
 /**
  * Registers all `NotePlugin` implementations as a multi-provider under the
@@ -14,6 +15,7 @@ import { NmapServiceScanPlugin } from './plugins/nmap-service-scan/nmap-service-
   imports: [NoteModule],
   controllers: [PluginController],
   providers: [
+    CommandContainer,
     PluginRegistryService,
     NmapServiceScanPlugin,
     {
@@ -23,4 +25,4 @@ import { NmapServiceScanPlugin } from './plugins/nmap-service-scan/nmap-service-
     },
   ],
 })
-export class PluginModule {}
+export class PluginModule { }

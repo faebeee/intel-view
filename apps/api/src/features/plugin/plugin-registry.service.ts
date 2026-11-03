@@ -17,7 +17,7 @@ export class PluginRegistryService {
   constructor(
     @Inject(NOTE_PLUGIN) private readonly plugins: NotePlugin[],
     private readonly noteService: NoteService,
-  ) {}
+  ) { }
 
   /** Returns the plugins applicable to the given note type. */
   listForNoteType(noteType: NoteType): NotePlugin[] {
@@ -78,7 +78,7 @@ export class PluginRegistryService {
         const result = await plugin.execute(cmd);
         return result;
       } catch (error) {
-        return `Failed\n\n${(error as Error).message}`;
+        return `Command '${cmd}' failed\n\n${(error as Error).message}`;
       }
     };
     const content = await runCommand(command);
