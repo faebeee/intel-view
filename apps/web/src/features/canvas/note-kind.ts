@@ -23,6 +23,7 @@ export const NOTE_KINDS: Record<string, NoteKind> = {
 	file: { label: "FILE", color: "var(--mc-warning)" },
 	url: { label: "URL", color: "var(--mc-service)" },
 	ip: { label: "IP", color: "var(--mc-text)" },
+	email: { label: "EMAIL", color: "var(--mc-service)" },
 	...Object.fromEntries(
 		SOFTWARE_TYPE_SUGGESTIONS.map((type) => [
 			type,
@@ -53,6 +54,8 @@ export function noteTypeLabel(type: Note["type"]): string {
 			return "Link";
 		case "ip":
 			return "IP Address";
+		case "email":
+			return "Email";
 		default:
 			return type.toUpperCase();
 	}

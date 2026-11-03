@@ -19,7 +19,7 @@ export class CreateNoteDto {
   @IsOptional()
   @ApiProperty({
     description:
-      "The kind of note to create. Built-in: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'file' (holds a single uploaded file stored in object storage), 'url' (content must be a single well-formed URL), or 'ip' (content must be a single well-formed IPv4 or IPv6 address). Any other lowercase slug (e.g. 'ftp', 'ssh', 'http') creates a custom software/service note — behaves like 'standard' content-wise, but can be targeted by its own plugins. Defaults to 'standard'. Immutable after creation.",
+      "The kind of note to create. Built-in: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'file' (holds a single uploaded file stored in object storage), 'url' (content must be a single well-formed URL), 'ip' (content must be a single well-formed IPv4 or IPv6 address), or 'email' (content must be a single well-formed email address). Any other lowercase slug (e.g. 'ftp', 'ssh', 'http') creates a custom software/service note — behaves like 'standard' content-wise, but can be targeted by its own plugins. Defaults to 'standard'. Immutable after creation.",
     required: false,
     example: 'standard',
     default: 'standard',

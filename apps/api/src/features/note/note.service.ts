@@ -366,6 +366,25 @@ export class NoteService {
     }
   }
 
+  /**
+   * Validates that `content` is a well-formed email address, throwing a
+   * `BadRequestException` if not. Only applicable to `'email'`-type notes.
+   * Empty/null content is allowed and is simply skipped.
+   */
+  private assertValidEmailContent(content: string | null | undefined): void {
+    const trimmed = content?.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmed)) {
+      throw new BadRequestException(
+        `'${trimmed}' is not a valid email address`,
+      );
+    }
+  }
+
   async create(projectId: number, createNoteDto: CreateNoteDto): Promise<Note> {
     await this.assertProjectExists(projectId);
 
@@ -375,6 +394,10 @@ export class NoteService {
 
     if (createNoteDto.type === 'ip') {
       this.assertValidIpContent(createNoteDto.content);
+    }
+
+    if (createNoteDto.type === 'email') {
+      this.assertValidEmailContent(createNoteDto.content);
     }
 
     const parentIds = createNoteDto.parentIds ?? [];
@@ -679,6 +702,14 @@ export class NoteService {
       !valuesAreEqual(note.content, updateNoteDto.content)
     ) {
       this.assertValidIpContent(updateNoteDto.content);
+    }
+
+    if (
+      note.type === 'email' &&
+      updateNoteDto.content !== undefined &&
+      !valuesAreEqual(note.content, updateNoteDto.content)
+    ) {
+      this.assertValidEmailContent(updateNoteDto.content);
     }
 
     // Compute field-level diffs for tracked fields before applying the

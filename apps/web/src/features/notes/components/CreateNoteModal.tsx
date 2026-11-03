@@ -5,6 +5,7 @@ import {
 	Paperclip,
 	ScrollText,
 	Server,
+	Mail,
 } from "lucide-react";
 import * as React from "react";
 import { Button } from "#/components/ui/button.tsx";
@@ -75,6 +76,12 @@ const NOTE_TYPE_OPTIONS: NoteTypeOption[] = [
 		label: "IP Address",
 		description: "A note holding a single IPv4 or IPv6 address.",
 		icon: Network,
+	},
+	{
+		value: "email",
+		label: "Email",
+		description: "A note holding a single email address for OSINT purposes.",
+		icon: Mail,
 	},
 	{
 		value: "software",
