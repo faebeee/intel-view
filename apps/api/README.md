@@ -20,7 +20,6 @@ This is the primary REST API for Intel View, built with [NestJS](https://github.
 | `ProjectGroup`     | Optional color-coded folder for organizing projects (`name`, `description`, `color`). A `Project` belongs to at most one group via nullable `groupId`.                                                        |
 | `Project`          | Top-level container for notes and tags (`name`, `description`, optional `groupId`, `mapTheme`, `color`).                                                                                                       |
 | `Note`             | The core content unit. Has a `type` (`standard`/`log`/`address`/`file`, immutable after creation), free-text `tags: string[]`, optional canvas position (`canvasX`/`canvasY`), and can be linked to one or more parent/child notes (`NoteRelation` join table, forming a DAG). |
-| `NoteLocation`     | A geo-pin attached to a `Note`. Fully derived (deleted + recreated) by parsing `[[geo:LAT,LNG,LABEL]]` tokens out of the note's markdown `content` — never written to directly.                                |
 | `NoteLogEntry`     | A single append-only, user-authored entry on a `log`-type note. Never edited or replaced once created.                                                                                                         |
 | `NoteHistoryEntry` | Immutable audit-trail record of changes to a `Note` (`created` or `updated`, the latter with field-level diffs). Created automatically by `NoteService`.                                                       |
 | `Tag`              | A color-coded label registry (`name`, `color`) scoped to a `Project`. A note's own `tags: string[]` can reuse these names for consistent coloring, or contain arbitrary free-text strings not in the registry. |
@@ -35,14 +34,12 @@ Base path: `projects/:projectId/notes`
 
 | Method | Path               | Description                                                                                                                                                                                                                                  |
 | ------ | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| POST   | `/`                | Create a note. Auto-writes a `created` `NoteHistoryEntry` and resyncs `NoteLocation` rows from `content`.                                                                                                                                    |
+| POST   | `/`                | Create a note. Auto-writes a `created` `NoteHistoryEntry`.                                                                                                                                    |
 | GET    | `/`                | Paginated (`nestjs-paginate`) list; sortable by `id`/`createdAt`/`updatedAt`, searchable on `title`/`content`, filterable on `title`/`content`/`parentId`.                                                                                   |
-| GET    | `/locations`       | Every active note's geo-pins for the whole project, each enriched with the owning note's label and tags.                                                                                                                                     |
 | GET    | `/:id`             | Fetch a single note.                                                                                                                                                                                                                         |
-| PATCH  | `/:id`             | Partial update. Diffs changed fields into one `updated` `NoteHistoryEntry`; resyncs `NoteLocation` rows if `content` changed. Validates `parentId` (must exist, same project, not self, no cycles). `type` cannot be changed after creation. |
+| PATCH  | `/:id`             | Partial update. Diffs changed fields into one `updated` `NoteHistoryEntry`. Validates `parentId` (must exist, same project, not self, no cycles). `type` cannot be changed after creation. |
 | DELETE | `/:id`             | Soft delete, cascading to all descendant notes (via `parentId`).                                                                                                                                                                             |
 | GET    | `/:id/history`     | This note's `NoteHistoryEntry[]`, most recent first.                                                                                                                                                                                         |
-| GET    | `/:id/locations`   | This note's own `NoteLocation[]`, enriched with its label/tags.                                                                                                                                                                              |
 | POST   | `/:id/log-entries` | Append a `NoteLogEntry`. 400 if the note's `type` is not `log`.                                                                                                                                                                              |
 | GET    | `/:id/log-entries` | This note's `NoteLogEntry[]`, most recent first.                                                                                                                                                                                             |
 
@@ -54,7 +51,7 @@ Alongside the REST API, this service exposes a [Model Context Protocol](https://
 
 It exposes 27 tools across four controllers, mirroring the REST surface (file upload/download excluded, since binary transfer doesn't map to a tool call):
 
-- `NoteMcpController` — CRUD for notes, parent/child relation management, history, log entries, and location lookups.
+- `NoteMcpController` — CRUD for notes, parent/child relation management, history, and log entries.
 - `ProjectMcpController` — CRUD for projects.
 - `ProjectGroupMcpController` — CRUD for project groups.
 - `TagMcpController` — CRUD for tags.

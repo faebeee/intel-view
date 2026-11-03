@@ -12,7 +12,4 @@ export const CANVAS_GRID_COLUMNS = 4;
 export const CANVAS_GRID_CELL_WIDTH = 280;
 export const CANVAS_GRID_CELL_HEIGHT = 200;
 
-/** Distinguishes the two kinds of connections drawn between notes on the canvas. */
-export type CanvasEdgeKind = "hierarchy" | "reference";
-
 export type { Note };

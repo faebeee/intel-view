@@ -45,7 +45,6 @@ A quick glossary before diving into the handbook:
   - `log` — an append-only note: instead of editing shared content, you append timestamped entries that are never edited or removed (good for running status updates / incident logs).
   - `file` — a note holding a single uploaded file (image, PDF, etc.), previewed inline where possible.
 - **Nesting (parent/child)** — any note can be linked under one or more parent notes and can have one or more children, forming a graph (not just a strict tree) of related notes.
-- **`[[NOTE_ID]]` references** — typing `[[123]]` inside a note's content links it to note `#123` without making it a parent/child — a lightweight, inline cross-reference, shown as a dashed connection on the Canvas view.
 - **Tags** — a per-project color-coded palette (name + color) plus a free-text `tags` field on each note, which can reuse a palette name for consistent coloring or be any arbitrary word.
 - **Note History** — every note automatically records `created`/`updated` entries with field-level diffs, so you can see exactly what changed and when.
 
@@ -70,7 +69,7 @@ The dashboard (home page) is where you land after opening Intel View. From here 
 The **Notes** tab is where content lives. On the left is a tree of every note in the project (respecting parent/child nesting); on the right is the editor for whichever note is selected.
 
 - **Create a note** — pick a type (`standard`, `log`, `url`, `ip`, or `file`) from the "New Note" dialog. Optionally create it as a child of the currently-selected note.
-- **Edit content** — `standard` notes use a rich markdown editor with a toolbar (headings, lists, links, and note-reference autocomplete for `[[NOTE_ID]]` links). Changes autosave a moment after you stop typing.
+- **Edit content** — `standard` notes use a rich markdown editor with a toolbar (headings, lists, links). Changes autosave a moment after you stop typing.
 - **Log entries** — on a `log` note, instead of editing shared content you append new timestamped entries; older entries stay immutable.
 - **Files** — on a `file` note, upload a single file (stored privately in MinIO and proxied by the API); images preview inline.
 - **Nest notes** — drag a note onto another in the tree (or set its parent when creating it) to nest it; a note can have multiple parents. Cycles and self-parenting are rejected automatically.
@@ -85,7 +84,7 @@ The **Canvas** tab is a free-form, node-based workspace (via [`@xyflow/react`](h
 
 - Every note is a draggable node; its position is saved per-note (`canvasX`/`canvasY`), so your layout persists.
 - **Drag from one node's handle to another** to create a parent/child connection between them.
-- Delete a connection by selecting its edge and pressing delete (only hierarchy connections are deletable this way — `[[NOTE_ID]]` reference edges are read-only here, shown dashed).
+- Delete a connection by selecting its edge and pressing delete.
 - Click a node to select it and open its details panel; click empty canvas space to deselect.
 
 ### Tags

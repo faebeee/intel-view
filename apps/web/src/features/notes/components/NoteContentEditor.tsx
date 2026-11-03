@@ -10,7 +10,6 @@ import { NoteUrlEditorPane } from "#/features/notes/components/NoteUrlEditorPane
 export type NoteContentEditorProps = {
 	projectId: number;
 	note: Note;
-	notes: Note[];
 	title: string;
 	content: string;
 	onTitleChange: (title: string) => void;
@@ -28,7 +27,6 @@ export type NoteContentEditorProps = {
 export function NoteContentEditor({
 	projectId,
 	note,
-	notes,
 	title,
 	content,
 	onTitleChange,
@@ -44,7 +42,6 @@ export function NoteContentEditor({
 				title={title}
 				onTitleChange={onTitleChange}
 				saveStatus={saveStatus}
-				notes={notes}
 				className={className}
 			/>
 		);
@@ -55,7 +52,6 @@ export function NoteContentEditor({
 			<NoteFileEditorPane
 				projectId={projectId}
 				note={note}
-				notes={notes}
 				title={title}
 				content={content}
 				onTitleChange={onTitleChange}
@@ -98,7 +94,6 @@ export function NoteContentEditor({
 			content={content}
 			onTitleChange={onTitleChange}
 			onContentChange={onContentChange}
-			notes={notes}
 			saveStatus={saveStatus}
 			className={className}
 		/>

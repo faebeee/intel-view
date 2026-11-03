@@ -201,11 +201,7 @@ function CanvasInnerView({
 		return edges;
 	}, [notes, selectedNoteId]);
 
-	/**
-	 * Edges shown on the canvas. Only the explicit parent/child hierarchy is
-	 * shown — `[[NOTE_ID]]` content references no longer produce edges here
-	 * (they're resolved/embedded inline in rendered note content instead).
-	 */
+	/** Edges shown on the canvas: the explicit parent/child hierarchy. */
 	const edges: Edge[] = hierarchyEdges;
 
 	const onNodesChange = React.useCallback((changes: NodeChange[]) => {

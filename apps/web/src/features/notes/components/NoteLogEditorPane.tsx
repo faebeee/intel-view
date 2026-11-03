@@ -9,7 +9,6 @@ import { MarkdownEditor } from "#/components/ui/markdown-editor.tsx";
 import type { NoteSaveStatus } from "#/features/notes/components/NoteEditorPane.tsx";
 import { NoteLogEntryList } from "#/features/notes/components/NoteLogEntryList.tsx";
 import { useNoteLogEntriesQuery } from "#/features/notes/hooks/useNoteLogEntriesQuery.ts";
-import { getNoteLabel } from "#/features/notes/hooks/useNoteTree.ts";
 import { toastApiError } from "#/lib/api-error.ts";
 import { cn } from "#/lib/utils.ts";
 
@@ -32,7 +31,6 @@ type NoteLogEditorPaneProps = {
 	title: string;
 	onTitleChange: (title: string) => void;
 	saveStatus: NoteSaveStatus;
-	notes: Note[];
 	disabled?: boolean;
 	className?: string;
 };
@@ -49,7 +47,6 @@ export function NoteLogEditorPane({
 	title,
 	onTitleChange,
 	saveStatus,
-	notes,
 	disabled = false,
 	className,
 }: NoteLogEditorPaneProps) {
@@ -76,7 +73,6 @@ export function NoteLogEditorPane({
 		onError: toastApiError("save log entry"),
 	});
 
-	const noteOptions = notes.map((n) => ({ id: n.id, label: getNoteLabel(n) }));
 	const trimmedDraft = draftEntry.trim();
 
 	const handleSave = () => {
@@ -108,7 +104,6 @@ export function NoteLogEditorPane({
 					onChange={setDraftEntry}
 					placeholder="Write a new log entry..."
 					disabled={disabled || createLogEntryMutation.isPending}
-					notes={noteOptions}
 					minHeight="min-h-24"
 				/>
 				<Button

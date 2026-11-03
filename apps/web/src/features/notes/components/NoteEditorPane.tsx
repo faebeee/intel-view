@@ -1,9 +1,7 @@
-import type { NoteResponseDto as Note } from "@repo/sdk";
 import { Check, Loader2 } from "lucide-react";
 import type { JSX } from "react";
 import { Input } from "#/components/ui/input.tsx";
 import { MarkdownEditor } from "#/components/ui/markdown-editor.tsx";
-import { getNoteLabel } from "#/features/notes/hooks/useNoteTree.ts";
 import { cn } from "#/lib/utils.ts";
 
 export type NoteSaveStatus = "idle" | "saving" | "saved" | "error";
@@ -13,7 +11,6 @@ type NoteEditorPaneProps = {
 	content: string;
 	onTitleChange: (title: string) => void;
 	onContentChange: (content: string) => void;
-	notes: Note[];
 	saveStatus: NoteSaveStatus;
 	disabled?: boolean;
 	className?: string;
@@ -56,13 +53,10 @@ export function NoteEditorPane({
 	content,
 	onTitleChange,
 	onContentChange,
-	notes,
 	saveStatus,
 	disabled = false,
 	className,
 }: NoteEditorPaneProps) {
-	const noteOptions = notes.map((n) => ({ id: n.id, label: getNoteLabel(n) }));
-
 	return (
 		<div className={cn("flex flex-col gap-3 h-full min-h-0 p-4", className)}>
 			<div className="flex items-center justify-between gap-3">
@@ -80,7 +74,6 @@ export function NoteEditorPane({
 				value={content}
 				onChange={onContentChange}
 				disabled={disabled}
-				notes={noteOptions}
 				className="flex-1 min-h-0"
 				minHeight="min-h-0 flex-1"
 			/>

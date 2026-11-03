@@ -13,7 +13,6 @@ import { useDeleteNote } from "#/features/notes/hooks/useDeleteNote.ts";
 import { useNoteHistoryQuery } from "#/features/notes/hooks/useNoteHistoryQuery.ts";
 import { useNoteLogEntriesQuery } from "#/features/notes/hooks/useNoteLogEntriesQuery.ts";
 import { getNoteLabel } from "#/features/notes/hooks/useNoteTree.ts";
-import { useResolvedNoteContentQuery } from "#/features/notes/hooks/useResolvedNoteContentQuery.ts";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 import { useTagColorMap } from "#/features/tags/hooks/useTagColorMap.ts";
 import { formatIsoDateTime } from "#/lib/format.ts";
@@ -108,10 +107,6 @@ export function NoteDetailsPanel({
 	const deleteNoteMutation = useDeleteNote(projectId);
 	const isStandardTypeContent =
 		note.type !== "log" && note.type !== "url" && note.type !== "ip";
-	const { data: resolvedContent } = useResolvedNoteContentQuery(
-		projectId,
-		isStandardTypeContent ? note.id : undefined,
-	);
 	const kind = noteKind(note);
 
 	const handleDelete = React.useCallback(() => {
@@ -287,7 +282,7 @@ export function NoteDetailsPanel({
 							{content ? (
 								isStandardTypeContent ? (
 									<Markdown
-										content={resolvedContent ?? note.content}
+										content={note.content}
 										className="text-xs [&_code]:text-inherit [&_pre]:m-0 [&_pre]:border-0 [&_pre]:bg-transparent [&_pre]:p-0 [&_pre]:text-inherit [&_pre]:whitespace-pre-wrap [&_pre]:[overflow-wrap:anywhere]"
 									/>
 								) : (

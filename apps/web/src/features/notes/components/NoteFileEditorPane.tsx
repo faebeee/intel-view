@@ -12,14 +12,12 @@ import { Input } from "#/components/ui/input.tsx";
 import { MarkdownEditor } from "#/components/ui/markdown-editor.tsx";
 import type { NoteSaveStatus } from "#/features/notes/components/NoteEditorPane.tsx";
 import { SaveStatusIndicator } from "#/features/notes/components/NoteEditorPane.tsx";
-import { getNoteLabel } from "#/features/notes/hooks/useNoteTree.ts";
 import { toastApiError } from "#/lib/api-error.ts";
 import { cn } from "#/lib/utils.ts";
 
 type NoteFileEditorPaneProps = {
 	projectId: number;
 	note: Note;
-	notes: Note[];
 	title: string;
 	content: string;
 	onTitleChange: (title: string) => void;
@@ -59,7 +57,6 @@ export function formatFileSize(size: number | null | undefined): string {
 export function NoteFileEditorPane({
 	projectId,
 	note,
-	notes,
 	title,
 	content,
 	onTitleChange,
@@ -70,7 +67,6 @@ export function NoteFileEditorPane({
 }: NoteFileEditorPaneProps) {
 	const queryClient = useQueryClient();
 	const inputRef = React.useRef<HTMLInputElement>(null);
-	const noteOptions = notes.map((n) => ({ id: n.id, label: getNoteLabel(n) }));
 
 	const invalidateNote = React.useCallback(() => {
 		queryClient.invalidateQueries({ queryKey: ["notes", "all", projectId] });
@@ -207,7 +203,6 @@ export function NoteFileEditorPane({
 				value={content}
 				onChange={onContentChange}
 				disabled={disabled}
-				notes={noteOptions}
 				placeholder="Add notes about this file..."
 				className="flex-1 min-h-0"
 				minHeight="min-h-0 flex-1"

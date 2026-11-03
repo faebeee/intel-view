@@ -141,7 +141,6 @@ export function NoteEditModal({
 							<NoteContentEditor
 								projectId={projectId}
 								note={note}
-								notes={notes}
 								title={draftTitle}
 								content={draftContent}
 								onTitleChange={setDraftTitle}
