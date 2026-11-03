@@ -54,11 +54,10 @@ export function NotePluginsPanel({
 	const [selectedPlugin, setSelectedPlugin] = React.useState<Plugin | null>(
 		null,
 	);
-	const [result, setResult] = React.useState<string | null>(null);
+	const [isLoading, setIsLoading] = React.useState(false);
 
 	const resetState = React.useCallback(() => {
 		setSelectedPlugin(null);
-		setResult(null);
 	}, []);
 
 	const handleOpenChange = React.useCallback(
@@ -69,51 +68,56 @@ export function NotePluginsPanel({
 		[resetState],
 	);
 
-	const handleRunPlugin = React.useCallback(
-		(plugin: Plugin) => {
-			if (noteId === undefined) return;
-			setSelectedPlugin(plugin);
-			setResult(null);
-			previewPluginMutation.mutate(
-				{ noteId, pluginId: plugin.id },
-				{
-					onSuccess: (data) => setResult(data),
-				},
-			);
-		},
-		[previewPluginMutation, noteId],
-	);
-
-	const handleCopy = React.useCallback(async () => {
-		if (result === null) return;
-		const copied = await copyToClipboard(result);
-		if (copied) {
-			toast.success("Copied to clipboard");
-		}
-	}, [result]);
-
-	const handleCreateNote = React.useCallback(async () => {
-		if (noteId === undefined || selectedPlugin === null || result === null)
-			return;
+	const handleCopyCommand = React.useCallback(async () => {
+		if (noteId === undefined || selectedPlugin === null) return;
 		try {
-			await createNoteMutation.mutateAsync({
-				parentId: noteId,
-				type: "standard",
-				title: selectedPlugin.label,
-				content: result,
-			});
-			toast.success("Note created");
-			handleOpenChange(false);
-		} catch {
-			// The mutation already surfaces a standardized error toast.
+			const response = await fetch(
+				`/api/projects/${projectId}/notes/${noteId}/plugins/${selectedPlugin.id}/command`,
+			);
+			const data = await response.json();
+			const copied = await copyToClipboard(data.command);
+			if (copied) {
+				toast.success("Command copied to clipboard");
+			}
+		} catch (err) {
+			toast.error("Failed to fetch command");
 		}
-	}, [createNoteMutation, noteId, selectedPlugin, result, handleOpenChange]);
+	}, [projectId, noteId, selectedPlugin]);
+
+	const handleExecuteAndCreate = React.useCallback(
+		async () => {
+			if (noteId === undefined || selectedPlugin === null) return;
+
+			setIsLoading(true);
+			try {
+				// 1. Execute plugin
+				const result = await previewPluginMutation.mutateAsync({
+					noteId,
+					pluginId: selectedPlugin.id,
+				});
+
+				// 2. Create child note automatically
+				await createNoteMutation.mutateAsync({
+					parentId: noteId,
+					type: "standard",
+					title: selectedPlugin.label,
+					content: result,
+				});
+
+				toast.success("Note created from plugin output");
+				handleOpenChange(false);
+			} catch (err) {
+				// Error handled by mutations' onError
+			} finally {
+				setIsLoading(false);
+			}
+		},
+		[previewPluginMutation, createNoteMutation, noteId, selectedPlugin, handleOpenChange],
+	);
 
 	if (plugins.length === 0) {
 		return null;
 	}
-
-	const isLoading = previewPluginMutation.isPending;
 
 	return (
 		<div className={cn("flex flex-col gap-1.5", className)}>
@@ -144,7 +148,7 @@ export function NotePluginsPanel({
 										key={plugin.id}
 										variant="outline"
 										className="h-auto min-h-16 whitespace-normal text-center justify-center py-2 px-3"
-										onClick={() => handleRunPlugin(plugin)}
+										onClick={() => setSelectedPlugin(plugin)}
 									>
 										{plugin.label}
 									</Button>
@@ -167,48 +171,37 @@ export function NotePluginsPanel({
 									{selectedPlugin.label}
 								</DialogTitle>
 								<DialogDescription className="text-xs text-muted-foreground leading-relaxed">
-									{isLoading
-										? "Running plugin..."
-										: "Plugin result — not saved automatically."}
+									Select an action to perform with this plugin.
 								</DialogDescription>
 							</DialogHeader>
 
-							<div className="min-h-32 max-h-96 overflow-y-auto rounded-md border border-line/50 bg-surface-strong/60 p-3">
-								{isLoading ? (
-									<div className="flex items-center justify-center h-32">
-										<Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-									</div>
-								) : (
-									<pre className="whitespace-pre-wrap break-words text-sm text-sea-ink font-mono">
-										{result}
-									</pre>
-								)}
-							</div>
-
-							<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end pt-2">
+							<div className="flex flex-col gap-3 py-4">
 								<Button
 									type="button"
 									variant="outline"
-									size="sm"
-									disabled={isLoading || result === null}
-									onClick={handleCopy}
+									size="lg"
+									className="justify-start gap-3"
+									onClick={handleCopyCommand}
 								>
-									<ClipboardCopy className="h-3.5 w-3.5" />
-									Copy to clipboard
+									<ClipboardCopy className="h-4 w-4" />
+									Copy command to clipboard
 								</Button>
 								<Button
 									type="button"
 									variant="default"
-									size="sm"
-									disabled={
-										isLoading || result === null || createNoteMutation.isPending
-									}
-									onClick={handleCreateNote}
+									size="lg"
+									className="justify-start gap-3"
+									disabled={isLoading}
+									onClick={handleExecuteAndCreate}
 								>
-									<FilePlus2 className="h-3.5 w-3.5" />
-									{createNoteMutation.isPending
-										? "Creating..."
-										: "Create note with this content"}
+									{isLoading ? (
+										<Loader2 className="h-4 w-4 animate-spin" />
+									) : (
+										<FilePlus2 className="h-4 w-4" />
+									)}
+									{isLoading
+										? "Executing and creating..."
+										: "Execute plugin and create note"}
 								</Button>
 							</div>
 						</>

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { NoteModule } from '../note/note.module';
 import { PluginController } from './plugin.controller';
+import { GlobalPluginController } from './global-plugin.controller';
 import { PluginRegistryService } from './plugin-registry.service';
 import { NOTE_PLUGIN } from './plugin.interface';
 
@@ -11,7 +12,7 @@ import { NOTE_PLUGIN } from './plugin.interface';
  */
 @Module({
   imports: [NoteModule],
-  controllers: [PluginController],
+  controllers: [PluginController, GlobalPluginController],
   providers: [
     PluginRegistryService,
     {

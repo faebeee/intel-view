@@ -339,11 +339,13 @@ function CanvasInnerView({
 	);
 
 	const handleCreateNote = React.useCallback(
-		(type: NoteType) => {
+		({ type, title, content }: { type: NoteType; title?: string; content?: string }) => {
 			if (!draft) return;
 			createInlineNoteMutation.mutate(
 				{
 					type,
+					title,
+					content,
 					canvasX: draft.x,
 					canvasY: draft.y,
 				},

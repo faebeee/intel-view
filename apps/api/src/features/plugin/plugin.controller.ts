@@ -12,6 +12,7 @@ import { toNoteResponseDto } from '../note/dto/note-response.dto';
 import { PluginRegistryService } from './plugin-registry.service';
 import { PluginResponseDto } from './dto/plugin-response.dto';
 import { PluginExecuteResponseDto } from './dto/plugin-execute-response.dto';
+import { PluginCommandResponseDto } from './dto/plugin-command-response.dto';
 
 @ApiTags('plugins')
 @Controller('projects/:projectId/notes/:noteId/plugins')
@@ -42,6 +43,32 @@ export class PluginController {
     return this.pluginRegistryService
       .listForNoteType(note.type)
       .map((plugin) => ({ id: plugin.id, label: plugin.label }));
+  }
+
+  @Get(':pluginId/command')
+  @ApiOperation({
+    summary: 'Get the command that a plugin would execute for a note',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'The command string.',
+    type: PluginCommandResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Note or plugin not found.' })
+  async getCommand(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Param('noteId', ParseIntPipe) noteId: number,
+    @Param('pluginId') pluginId: string,
+  ): Promise<PluginCommandResponseDto> {
+    const note = await this.noteService.findOne(projectId, noteId);
+    if (!note) {
+      throw new NotFoundException(`Note with ID ${noteId} not found`);
+    }
+    const command = this.pluginRegistryService.getCommand(
+      pluginId,
+      toNoteResponseDto(note),
+    );
+    return { command };
   }
 
   @Post(':pluginId/execute')

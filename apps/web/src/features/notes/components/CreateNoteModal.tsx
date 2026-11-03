@@ -30,7 +30,7 @@ export type CreateNoteModalProps = {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	/** Called with the chosen note type when the user confirms creation. The caller owns which parent (if any) the note is created under. */
-	onCreate: (type: NoteType) => void;
+	onCreate: (params: { type: NoteType; title?: string; content?: string }) => void;
 	isCreating?: boolean;
 };
 
@@ -129,7 +129,7 @@ export function CreateNoteModal({
 			setStep("software-subtype");
 			return;
 		}
-		onCreate(type);
+		onCreate({ type });
 	};
 
 	const resolvedCustomSubtype = slugifyNoteType(customSubtype);
@@ -138,7 +138,7 @@ export function CreateNoteModal({
 	const handleSoftwareStepSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!finalSubtype) return;
-		onCreate(finalSubtype);
+		onCreate({ type: finalSubtype });
 	};
 
 	return (
@@ -258,7 +258,6 @@ export function CreateNoteModal({
 									);
 								})}
 							</div>
-
 							<div className="flex flex-col gap-1.5">
 								<label
 									htmlFor="note-software-custom-type"
@@ -276,7 +275,6 @@ export function CreateNoteModal({
 									placeholder="e.g. rdp, mssql, custom-proto"
 								/>
 							</div>
-
 							<DialogFooter className="pt-2">
 								<Button
 									type="button"
@@ -303,3 +301,4 @@ export function CreateNoteModal({
 		</Dialog>
 	);
 }
+

@@ -19,6 +19,35 @@ export class PluginRegistryService {
     return this.plugins.filter((plugin) => plugin.noteTypes.includes(noteType));
   }
 
+  /** Returns all registered plugins. */
+  listAllPlugins(): NotePlugin[] {
+    return this.plugins;
+  }
+
+  /**
+   * Returns the command that would be executed by the plugin for the given note.
+   * Throws `NotFoundException` if no such plugin exists.
+   */
+  getCommand(pluginId: string, note: NoteResponseDto): string {
+    const plugin = this.plugins.find((p) => p.id === pluginId);
+    if (!plugin) {
+      throw new NotFoundException(`Plugin '${pluginId}' not found`);
+    }
+    return plugin.getCommand(note);
+  }
+
+  /**
+   * Finds the plugin with the given `id` and executes it with the provided command.
+   * Throws `NotFoundException` if no such plugin exists.
+   */
+  async execute(pluginId: string, command: string): Promise<string> {
+    const plugin = this.plugins.find((p) => p.id === pluginId);
+    if (!plugin) {
+      throw new NotFoundException(`Plugin '${pluginId}' not found`);
+    }
+    return plugin.execute(command);
+  }
+
   /**
    * Finds the plugin with the given `id` that's applicable to `note`'s type
    * and runs it against `note`, returning its string result. Throws

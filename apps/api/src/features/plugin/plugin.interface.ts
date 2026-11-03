@@ -17,6 +17,13 @@ export type NotePlugin = {
   noteTypes: NoteType[];
   /** Previews the plugin against a note, returning the derived string result. */
   preview(note: NoteResponseDto): Promise<string> | string;
+  /**
+   * Executes a command and returns the output.
+   * IMPORTANT: Implementations MUST sanitize the `command` to prevent shell injection.
+   */
+  execute(command: string): Promise<string>;
+  /** Returns the command that would be executed for the given note. */
+  getCommand(note: NoteResponseDto): string;
 };
 
 /**
