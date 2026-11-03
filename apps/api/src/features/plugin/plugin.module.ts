@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { NoteModule } from '../note/note.module';
 import { PluginController } from './plugin.controller';
-import { GlobalPluginController } from './global-plugin.controller';
 import { PluginRegistryService } from './plugin-registry.service';
 import { NOTE_PLUGIN } from './plugin.interface';
+import { NmapServiceScanPlugin } from './plugins/nmap-service-scan/nmap-service-scan.plugin';
 
 /**
  * Registers all `NotePlugin` implementations as a multi-provider under the
@@ -12,12 +12,14 @@ import { NOTE_PLUGIN } from './plugin.interface';
  */
 @Module({
   imports: [NoteModule],
-  controllers: [PluginController, GlobalPluginController],
+  controllers: [PluginController],
   providers: [
     PluginRegistryService,
+    NmapServiceScanPlugin,
     {
       provide: NOTE_PLUGIN,
-      useValue: [],
+      useFactory: (nmapPlugin: NmapServiceScanPlugin) => [nmapPlugin],
+      inject: [NmapServiceScanPlugin],
     },
   ],
 })

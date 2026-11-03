@@ -4,7 +4,7 @@ import type { NotePlugin } from './plugin.interface';
 import type { NoteType } from '../note/entities/note.entity';
 import type { NoteResponseDto } from '../note/dto/note-response.dto';
 import { NoteService } from '../note/note.service';
-import { CreateNoteDto } from '../note/dto/create-note.dto';
+import { toNoteResponseDto } from '../note/dto/note-response.dto';
 
 /**
  * Holds the registry of all `NotePlugin` implementations (injected as a
@@ -68,30 +68,27 @@ export class PluginRegistryService {
       throw new NotFoundException(`Plugin '${pluginId}' not found`);
     }
 
-    const noteDto = {
-      id: note.id,
-      projectId: note.projectId,
-      type: note.type,
-      title: note.title,
-      content: note.content,
-      createdAt: note.createdAt,
-      updatedAt: note.updatedAt,
-      tags: note.tags,
-      color: note.color,
-      parentIds: note.parentIds,
-      childIds: note.childIds,
-    };
+    const noteDto = toNoteResponseDto(note);
 
     const title = await plugin.preview(noteDto);
     const command = plugin.getCommand(noteDto);
-    const content = await plugin.execute(command);
+
+    const runCommand = async (cmd: string) => {
+      try {
+        const result = await plugin.execute(cmd);
+        return result;
+      } catch (error) {
+        return `Failed\n\n${(error as Error).message}`;
+      }
+    };
+    const content = await runCommand(command);
 
     return this.noteService.create(projectId, {
       parentIds: [noteId],
       type: 'standard',
       title,
       content,
-    } as CreateNoteDto);
+    });
   }
 
   /**

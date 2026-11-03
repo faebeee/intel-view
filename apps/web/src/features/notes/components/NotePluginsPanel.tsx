@@ -23,12 +23,14 @@ import { useCreateNote } from "#/features/notes/hooks/useCreateNote.ts";
 import { useNotePluginsQuery } from "#/features/notes/hooks/useNotePluginsQuery.ts";
 import { copyToClipboard } from "#/lib/clipboard.ts";
 import { cn } from "#/lib/utils.ts";
+import { useExecuteAndCreateNotePlugin } from "../hooks/useExecuteAndCreateNotePlugin";
 import { usePreviewNotePlugin } from "../hooks/usePreviewNotePlugin";
 
 export type NotePluginsPanelProps = {
 	projectId: number;
 	noteId: number | undefined;
 	className?: string;
+	hideLabel?: boolean;
 };
 
 /**
@@ -48,6 +50,7 @@ export function NotePluginsPanel({
 	className,
 }: NotePluginsPanelProps) {
 	const { data: plugins = [] } = useNotePluginsQuery(projectId, noteId);
+	const executeAndCreateNote = useExecuteAndCreateNotePlugin(projectId);
 	const previewPluginMutation = usePreviewNotePlugin(projectId);
 	const createNoteMutation = useCreateNote(projectId);
 	const [open, setOpen] = React.useState(false);
@@ -95,36 +98,31 @@ export function NotePluginsPanel({
 		}
 	}, [previewContent]);
 
-	const handleExecuteAndCreate = React.useCallback(
-		async () => {
-			if (noteId === undefined || selectedPlugin === null) return;
+	const handleExecuteAndCreate = React.useCallback(async () => {
+		if (noteId === undefined || selectedPlugin === null) return;
 
-			setIsLoading(true);
-			try {
-				// 1. Execute plugin
-				const result = await previewPluginMutation.mutateAsync({
-					noteId,
-					pluginId: selectedPlugin.id,
-				});
+		setIsLoading(true);
+		try {
+			// 1. Execute plugin
+			const result = await executeAndCreateNote.mutateAsync({
+				noteId,
+				pluginId: selectedPlugin.id,
+			});
 
-				// 2. Create child note automatically
-				await createNoteMutation.mutateAsync({
-					parentId: noteId,
-					type: "standard",
-					title: selectedPlugin.label,
-					content: result,
-				});
-
-				toast.success("Note created from plugin output");
-				handleOpenChange(false);
-			} catch (err) {
-				// Error handled by mutations' onError
-			} finally {
-				setIsLoading(false);
-			}
-		},
-		[previewPluginMutation, createNoteMutation, noteId, selectedPlugin, handleOpenChange],
-	);
+			toast.success("Note created from plugin output");
+			handleOpenChange(false);
+		} catch (err) {
+			// Error handled by mutations' onError
+		} finally {
+			setIsLoading(false);
+		}
+	}, [
+		executeAndCreateNote,
+		createNoteMutation,
+		noteId,
+		selectedPlugin,
+		handleOpenChange,
+	]);
 
 	if (plugins.length === 0) {
 		return null;
@@ -203,7 +201,9 @@ export function NotePluginsPanel({
 									type="button"
 									variant="outline"
 									size="sm"
-									disabled={previewPluginMutation.isPending || previewContent === null}
+									disabled={
+										previewPluginMutation.isPending || previewContent === null
+									}
 									onClick={handleCopyPreview}
 								>
 									<ClipboardCopy className="h-3.5 w-3.5" />
@@ -221,9 +221,7 @@ export function NotePluginsPanel({
 									) : (
 										<FilePlus2 className="h-3.5 w-3.5" />
 									)}
-									{isLoading
-										? "Executing..."
-										: "Execute & Create Note"}
+									{isLoading ? "Executing..." : "Execute & Create Note"}
 								</Button>
 							</div>
 						</>

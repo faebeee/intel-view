@@ -270,6 +270,7 @@ export function NoteDetailsPanel({
 							<Fact label="Created">{formatIsoDateTime(note.createdAt)}</Fact>
 							<Fact label="Updated">{formatIsoDateTime(note.updatedAt)}</Fact>
 						</dl>
+
 						<NotePluginsPanel projectId={projectId} noteId={note.id} />
 					</>
 				)}
