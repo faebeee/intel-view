@@ -54,7 +54,7 @@ This section walks through how to actually use the app day-to-day.
 
 ### Dashboard: Projects & Project Groups
 
-![Dashboard](./docs/dashboard.png)
+![Dashboard](./docs/projects.png)
 
 The dashboard (home page) is where you land after opening Intel View. From here you can:
 
@@ -64,7 +64,7 @@ The dashboard (home page) is where you land after opening Intel View. From here 
 
 ### Working with Notes
 
-![Notes](./docs/notes.png)
+![Notes](./docs/note.png)
 
 The **Notes** tab is where content lives. On the left is a tree of every note in the project (respecting parent/child nesting); on the right is the editor for whichever note is selected.
 
