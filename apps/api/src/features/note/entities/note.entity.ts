@@ -6,39 +6,41 @@ import { NoteHistoryEntry } from './note-history-entry.entity';
 import { NoteLogEntry } from './note-log-entry.entity';
 
 /**
- * The kind of note. `'standard'` notes are freely-editable rich text.
- * `'log'` notes instead show an append-only sequence of timestamped
- * `NoteLogEntry` records (their own `content` field is unused). `'file'`
- * notes hold a single uploaded file, stored in MinIO object storage and
- * described by the `file*` columns. `'url'` notes store a single URL in
- * `content`, which must be a well-formed `http(s)://` URL; unlike other
- * type-specific columns, no extra fetching/unfurling is performed. `'ip'`
- * notes store a single IPv4 or IPv6 address in `content`.
- *
- * Beyond these five built-ins (`BUILTIN_NOTE_TYPES`), `type` is an
- * open-ended lowercase slug: any other value (e.g. `'ftp'`, `'ssh'`,
- * `'http'`) represents a piece of software/service discovered running on a
- * host during recon, and behaves exactly like a `'standard'` note content-
- * wise (freely-editable rich text, no extra validation) — the distinct
- * `type` value exists purely so a note can be labeled by its specific
- * service and so `NotePlugin`s can target that service directly (e.g. a
- * plugin with `noteTypes: ['ftp']`). The `type` itself is set once at
- * creation and never changed afterwards.
- */
-export type NoteType = string;
-
-/**
- * The fixed set of note types with special built-in behavior (own editor,
- * content validation, etc.). Every other `NoteType` value is an open-ended
- * custom software/service type (see the `NoteType` doc comment above).
- */
-export const BUILTIN_NOTE_TYPES = [
-  'standard',
-  'log',
-  'file',
-  'url',
-  'ip',
-] as const;
+  * The kind of note. `'standard'` notes are freely-editable rich text.
+  * `'log'` notes instead show an append-only sequence of timestamped
+  * `NoteLogEntry` records (their own `content` field is unused). `'file'`
+  * notes hold a single uploaded file, stored in MinIO object storage and
+  * described by the `file*` columns. `'url'` notes store a single URL in
+  * `content`, which must be a well-formed `http(s)://` URL; unlike other
+  * type-specific columns, no extra fetching/unfurling is performed. `'ip'`
+  * notes store a single IPv4 or IPv6 address in `content`. `'command'`
+  * notes store a shell command and its output.
+  *
+  * Beyond these six built-ins (`BUILTIN_NOTE_TYPES`), `type` is an
+  * open-ended lowercase slug: any other value (e.g. `'ftp'`, `'ssh'`,
+  * `'http'`) represents a piece of software/service discovered running on a
+  * host during recon, and behaves exactly like a `'standard'` note content-
+  * wise (freely-editable rich text, no extra validation) — the distinct
+  * `type` value exists purely so a note can be labeled by its specific
+  * service and so `NotePlugin`s can target that service directly (e.g. a
+  * plugin with `noteTypes: ['ftp']`). The `type` itself is set once at
+  * creation and never changed afterwards.
+  */
+ export type NoteType = string;
+ 
+ /**
+  * The fixed set of note types with special built-in behavior (own editor,
+  * content validation, etc.). Every other `NoteType` value is an open-ended
+  * custom software/service type (see the `NoteType` doc comment above).
+  */
+ export const BUILTIN_NOTE_TYPES = [
+   'standard',
+   'log',
+   'file',
+   'url',
+   'ip',
+   'command',
+ ] as const;
 
 @Entity()
 export class Note extends BaseEntity {
@@ -51,12 +53,12 @@ export class Note extends BaseEntity {
   project: Project;
 
   @Column({ type: 'varchar', length: 40, default: 'standard' })
-  @ApiProperty({
-    description:
-      "The kind of note. Built-in: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'file' (holds a single uploaded file stored in object storage), 'url' (content is a single well-formed URL), or 'ip' (content is a single well-formed IPv4 or IPv6 address). Any other lowercase slug (e.g. 'ftp', 'ssh', 'http') names a custom software/service note — behaves like 'standard' content-wise, but can be targeted by its own plugins. Set at creation and immutable afterwards.",
-    example: 'standard',
-    default: 'standard',
-  })
+   @ApiProperty({
+     description:
+       "The kind of note. Built-in: 'standard' (freely-editable rich text), 'log' (append-only timestamped entries), 'file' (holds a single uploaded file stored in object storage), 'url' (content is a single well-formed URL), 'ip' (content is a single well-formed IPv4 or IPv6 address), or 'command' (shell command and output). Any other lowercase slug (e.g. 'ftp', 'ssh', 'http') names a custom software/service note — behaves like 'standard' content-wise, but can be targeted by its own plugins. Set at creation and immutable afterwards.",
+     example: 'standard',
+     default: 'standard',
+   })
   type: NoteType;
 
   @Column({ type: 'text', nullable: true })

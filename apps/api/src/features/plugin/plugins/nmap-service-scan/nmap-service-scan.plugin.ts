@@ -7,8 +7,9 @@ import type { NotePlugin } from '../../plugin.interface';
 export class NmapServiceScanPlugin implements NotePlugin {
   id = 'nmap-service-scan';
   label = 'Nmap Service Scan';
+  noteType = 'command';
   noteTypes = ['ip'];
-  executable = false;
+  executable = true;
 
   constructor(private commandContainer: CommandContainer) { }
 

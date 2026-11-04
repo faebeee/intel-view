@@ -21,9 +21,9 @@ import {
 } from "#/components/ui/dialog.tsx";
 import { useCreateNote } from "#/features/notes/hooks/useCreateNote.ts";
 import { useNotePluginsQuery } from "#/features/notes/hooks/useNotePluginsQuery.ts";
-import { useCreateNotePlugin } from "../hooks/useCreateNotePlugin";
 import { copyToClipboard } from "#/lib/clipboard.ts";
 import { cn } from "#/lib/utils.ts";
+import { useCreateNotePlugin } from "../hooks/useCreateNotePlugin";
 import { useExecuteAndCreateNotePlugin } from "../hooks/useExecuteAndCreateNotePlugin";
 import { usePreviewNotePlugin } from "../hooks/usePreviewNotePlugin";
 
@@ -117,12 +117,7 @@ export function NotePluginsPanel({
 		} finally {
 			setIsLoading(false);
 		}
-	}, [
-		createNotePlugin,
-		noteId,
-		selectedPlugin,
-		handleOpenChange,
-	]);
+	}, [createNotePlugin, noteId, selectedPlugin, handleOpenChange]);
 
 	const handleExecuteAndCreate = React.useCallback(async () => {
 		if (noteId === undefined || selectedPlugin === null) return;
@@ -235,7 +230,23 @@ export function NotePluginsPanel({
 									<ClipboardCopy className="h-3.5 w-3.5" />
 									Copy preview
 								</Button>
-								{selectedPlugin.executable ? (
+
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									disabled={previewPluginMutation.isPending || isLoading}
+									onClick={handleCreate}
+								>
+									{isLoading ? (
+										<Loader2 className="h-3.5 w-3.5 animate-spin" />
+									) : (
+										<FilePlus2 className="h-3.5 w-3.5" />
+									)}
+									{isLoading ? "Creating..." : "Create Note"}
+								</Button>
+
+								{selectedPlugin.executable && (
 									<Button
 										type="button"
 										variant="default"
@@ -249,21 +260,6 @@ export function NotePluginsPanel({
 											<FilePlus2 className="h-3.5 w-3.5" />
 										)}
 										{isLoading ? "Executing..." : "Execute & Create Note"}
-									</Button>
-								) : (
-									<Button
-										type="button"
-										variant="default"
-										size="sm"
-										disabled={previewPluginMutation.isPending || isLoading}
-										onClick={handleCreate}
-									>
-										{isLoading ? (
-											<Loader2 className="h-3.5 w-3.5 animate-spin" />
-										) : (
-											<FilePlus2 className="h-3.5 w-3.5" />
-										)}
-										{isLoading ? "Creating..." : "Create Note"}
 									</Button>
 								)}
 							</div>

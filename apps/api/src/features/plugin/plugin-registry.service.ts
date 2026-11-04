@@ -1,10 +1,8 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { NOTE_PLUGIN } from './plugin.interface';
-import type { NotePlugin } from './plugin.interface';
+import { Inject, Injectable } from '@nestjs/common';
 import type { Note, NoteType } from '../note/entities/note.entity';
-import type { NoteResponseDto } from '../note/dto/note-response.dto';
 import { NoteService } from '../note/note.service';
-import { toNoteResponseDto } from '../note/dto/note-response.dto';
+import type { NotePlugin } from './plugin.interface';
+import { NOTE_PLUGIN } from './plugin.interface';
 
 /**
  * Holds the registry of all `NotePlugin` implementations (injected as a

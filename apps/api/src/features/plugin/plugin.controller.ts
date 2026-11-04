@@ -106,7 +106,7 @@ export class PluginController {
 
     return this.noteService.create(projectId, {
       parentIds: [noteId],
-      type: 'standard',
+      type: plugin.noteType,
       title: this.pluginRegistryService.getCommand(plugin, note),
       content: commandResult,
     });
@@ -140,7 +140,7 @@ export class PluginController {
 
     return this.noteService.create(projectId, {
       parentIds: [noteId],
-      type: 'standard',
+      type: plugin.noteType,
       title: this.pluginRegistryService.getCommand(plugin, note),
       content,
     });

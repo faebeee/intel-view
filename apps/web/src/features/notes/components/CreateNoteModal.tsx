@@ -6,6 +6,7 @@ import {
 	ScrollText,
 	Server,
 	Mail,
+	Terminal,
 } from "lucide-react";
 import * as React from "react";
 import { Button } from "#/components/ui/button.tsx";
@@ -76,6 +77,12 @@ const NOTE_TYPE_OPTIONS: NoteTypeOption[] = [
 		label: "IP Address",
 		description: "A note holding a single IPv4 or IPv6 address.",
 		icon: Network,
+	},
+	{
+		value: "command",
+		label: "Command",
+		description: "A note storing a shell command and its output.",
+		icon: Terminal,
 	},
 	{
 		value: "email",

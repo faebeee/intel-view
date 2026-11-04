@@ -14,6 +14,8 @@ export type NotePlugin = {
   label: string;
   /** The note types this plugin is applicable to. */
   noteTypes: NoteType[];
+  /** Represents new noteType of a child if created from this plugin */
+  noteType: NoteType;
   /** Whether this plugin is executable. */
   executable: boolean;
   /** Previews the plugin against a note, returning the derived string result. */

@@ -9,22 +9,23 @@ export type {
 /**
  * The kind of note. Built-in: `'standard'` (freely-editable rich text),
  * `'log'` (append-only timestamped entries), `'file'` (single uploaded
- * file), `'url'` (single URL), or `'ip'` (single IPv4/IPv6 address). Any
- * other lowercase slug (e.g. `'ftp'`, `'ssh'`, `'http'`) names a custom
- * software/service note — content behaves like `'standard'`, but the note
- * can be targeted by its own plugins. Set at creation and immutable
- * afterwards.
+ * file), `'url'` (single URL), `'ip'` (single IPv4/IPv6 address), or
+ * `'command'` (shell command and output). Any other lowercase slug (e.g.
+ * `'ftp'`, `'ssh'`, `'http'`) names a custom software/service note —
+ * content behaves like `'standard'`, but the note can be targeted by its
+ * own plugins. Set at creation and immutable afterwards.
  */
-export type NoteType = NoteResponseDto["type"];
-
-/** The five note types with special built-in behavior; every other `NoteType` value is a custom software/service type. */
-export const BUILTIN_NOTE_TYPES = [
-	"standard",
-	"log",
-	"file",
-	"url",
-	"ip",
-] as const;
+ export type NoteType = NoteResponseDto["type"];
+ 
+ /** The six note types with special built-in behavior; every other `NoteType` value is a custom software/service type. */
+ export const BUILTIN_NOTE_TYPES = [
+ 	"standard",
+ 	"log",
+ 	"file",
+ 	"url",
+ 	"ip",
+ 	"command",
+ ] as const;
 
 /**
  * Suggested values for the specific service/software type chosen in the
