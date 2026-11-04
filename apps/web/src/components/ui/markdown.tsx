@@ -7,10 +7,35 @@ type MarkdownProps = {
 	className?: string;
 };
 
+/**
+ * Converts stray newlines left over from soft line breaks (e.g. inside a
+ * single paragraph) into visible `<br>` tags. `@tanstack/markdown` follows
+ * CommonMark and only splits text into block elements (paragraphs, list
+ * items, etc.); a single `\n` within a paragraph is preserved as a literal
+ * character in the text content but is not rendered as a line break by
+ * browsers. `<pre>` blocks (code fences) already preserve whitespace via
+ * the default `white-space: pre` styling, so they're left untouched to
+ * avoid doubling up line breaks.
+ */
+function addLineBreaks(html: string): string {
+	return html
+		.split(/(<pre[\s\S]*?<\/pre>)/)
+		.map((segment, index) =>
+			index % 2 === 0
+				? // Newlines used purely for formatting between block-level tags
+					// are always immediately preceded by `>` and followed by `<`
+					// (e.g. `</h1>\n<p>`). Only newlines embedded within actual
+					// text content should become visible `<br>` line breaks.
+					segment.replace(/(?<=[^>])\n(?=[^<])/g, "<br>\n")
+				: segment,
+		)
+		.join("");
+}
+
 export function Markdown({ content, className }: MarkdownProps) {
 	const html = React.useMemo(() => {
 		try {
-			return renderHtml(parseMarkdown(content));
+			return addLineBreaks(renderHtml(parseMarkdown(content)));
 		} catch (err) {
 			console.error("Failed to parse markdown:", err);
 			return content;

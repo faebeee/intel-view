@@ -74,6 +74,16 @@ services:
       retries: 20
       start_period: 10s
 
+  kali:
+    build:
+      context: ./docker/kali
+      dockerfile: Dockerfile
+    container_name: intel-view-kali
+    restart: always
+    cap_add:
+      - NET_RAW
+    command: tail -f /dev/null
+
   web:
     build:
       context: .

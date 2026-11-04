@@ -8,7 +8,7 @@ const execPromise = promisify(exec);
 export class CommandContainer {
   async runCommand(command: string): Promise<string> {
     const { stdout, stderr } = await execPromise(
-      `podman run kali-rolling "${command}"`,
+      `podman exec intel-view-kali ${command}`,
     );
     return stdout || stderr || `No output returned from ${command}`;
   }
