@@ -21,6 +21,7 @@ import {
 } from "#/components/ui/dialog.tsx";
 import { useCreateNote } from "#/features/notes/hooks/useCreateNote.ts";
 import { useNotePluginsQuery } from "#/features/notes/hooks/useNotePluginsQuery.ts";
+import { useCreateNotePlugin } from "../hooks/useCreateNotePlugin";
 import { copyToClipboard } from "#/lib/clipboard.ts";
 import { cn } from "#/lib/utils.ts";
 import { useExecuteAndCreateNotePlugin } from "../hooks/useExecuteAndCreateNotePlugin";
@@ -51,6 +52,7 @@ export function NotePluginsPanel({
 }: NotePluginsPanelProps) {
 	const { data: plugins = [] } = useNotePluginsQuery(projectId, noteId);
 	const executeAndCreateNote = useExecuteAndCreateNotePlugin(projectId);
+	const createNotePlugin = useCreateNotePlugin(projectId);
 	const previewPluginMutation = usePreviewNotePlugin(projectId);
 	const createNoteMutation = useCreateNote(projectId);
 	const [open, setOpen] = React.useState(false);
@@ -97,6 +99,30 @@ export function NotePluginsPanel({
 			toast.success("Preview copied to clipboard");
 		}
 	}, [previewContent]);
+
+	const handleCreate = React.useCallback(async () => {
+		if (noteId === undefined || selectedPlugin === null) return;
+
+		setIsLoading(true);
+		try {
+			await createNotePlugin.mutateAsync({
+				noteId,
+				pluginId: selectedPlugin.id,
+			});
+
+			toast.success("Note created from plugin");
+			handleOpenChange(false);
+		} catch (err) {
+			// Error handled by mutations' onError
+		} finally {
+			setIsLoading(false);
+		}
+	}, [
+		createNotePlugin,
+		noteId,
+		selectedPlugin,
+		handleOpenChange,
+	]);
 
 	const handleExecuteAndCreate = React.useCallback(async () => {
 		if (noteId === undefined || selectedPlugin === null) return;
@@ -209,20 +235,37 @@ export function NotePluginsPanel({
 									<ClipboardCopy className="h-3.5 w-3.5" />
 									Copy preview
 								</Button>
-								<Button
-									type="button"
-									variant="default"
-									size="sm"
-									disabled={previewPluginMutation.isPending || isLoading}
-									onClick={handleExecuteAndCreate}
-								>
-									{isLoading ? (
-										<Loader2 className="h-3.5 w-3.5 animate-spin" />
-									) : (
-										<FilePlus2 className="h-3.5 w-3.5" />
-									)}
-									{isLoading ? "Executing..." : "Execute & Create Note"}
-								</Button>
+								{selectedPlugin.executable ? (
+									<Button
+										type="button"
+										variant="default"
+										size="sm"
+										disabled={previewPluginMutation.isPending || isLoading}
+										onClick={handleExecuteAndCreate}
+									>
+										{isLoading ? (
+											<Loader2 className="h-3.5 w-3.5 animate-spin" />
+										) : (
+											<FilePlus2 className="h-3.5 w-3.5" />
+										)}
+										{isLoading ? "Executing..." : "Execute & Create Note"}
+									</Button>
+								) : (
+									<Button
+										type="button"
+										variant="default"
+										size="sm"
+										disabled={previewPluginMutation.isPending || isLoading}
+										onClick={handleCreate}
+									>
+										{isLoading ? (
+											<Loader2 className="h-3.5 w-3.5 animate-spin" />
+										) : (
+											<FilePlus2 className="h-3.5 w-3.5" />
+										)}
+										{isLoading ? "Creating..." : "Create Note"}
+									</Button>
+								)}
 							</div>
 						</>
 					)}

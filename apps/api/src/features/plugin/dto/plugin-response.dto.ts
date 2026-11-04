@@ -6,4 +6,7 @@ export class PluginResponseDto {
 
   @ApiProperty({ description: "Human-readable label for this plugin's button" })
   label: string;
+
+  @ApiProperty({ description: 'Whether this plugin is executable' })
+  executable: boolean;
 }

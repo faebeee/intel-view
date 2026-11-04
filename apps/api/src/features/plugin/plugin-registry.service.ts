@@ -1,7 +1,7 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NOTE_PLUGIN } from './plugin.interface';
 import type { NotePlugin } from './plugin.interface';
-import type { NoteType } from '../note/entities/note.entity';
+import type { Note, NoteType } from '../note/entities/note.entity';
 import type { NoteResponseDto } from '../note/dto/note-response.dto';
 import { NoteService } from '../note/note.service';
 import { toNoteResponseDto } from '../note/dto/note-response.dto';
@@ -33,45 +33,20 @@ export class PluginRegistryService {
    * Returns the command that would be executed by the plugin for the given note.
    * Throws `NotFoundException` if no such plugin exists.
    */
-  getCommand(pluginId: string, note: NoteResponseDto): string {
-    const plugin = this.plugins.find((p) => p.id === pluginId);
-    if (!plugin) {
-      throw new NotFoundException(`Plugin '${pluginId}' not found`);
-    }
+  getCommand(plugin: NotePlugin, note: Note): string {
     return plugin.getCommand(note);
   }
 
-  /**
-   * Finds the plugin with the given `id` and executes it with the provided command.
-   * Throws `NotFoundException` if no such plugin exists.
-   */
-  async execute(pluginId: string, command: string): Promise<string> {
-    const plugin = this.plugins.find((p) => p.id === pluginId);
-    if (!plugin) {
-      throw new NotFoundException(`Plugin '${pluginId}' not found`);
-    }
-    return plugin.execute(command);
+  getPlugin(id: string) {
+    return this.plugins.find((p) => p.id === id);
   }
 
   /**
    * Executes a plugin against a note and creates a new child note with the
    * plugin's preview as the title and its execution result as the content.
    */
-  async executeAndCreate(projectId: number, noteId: number, pluginId: string) {
-    const note = await this.noteService.findOne(projectId, noteId);
-    if (!note) {
-      throw new NotFoundException(`Note with ID ${noteId} not found`);
-    }
-
-    const plugin = this.plugins.find((p) => p.id === pluginId);
-    if (!plugin) {
-      throw new NotFoundException(`Plugin '${pluginId}' not found`);
-    }
-
-    const noteDto = toNoteResponseDto(note);
-
-    const title = await plugin.preview(noteDto);
-    const command = plugin.getCommand(noteDto);
+  async execute(note: Note, plugin: NotePlugin) {
+    const command = plugin.getCommand(note);
 
     const runCommand = async (cmd: string) => {
       try {
@@ -81,14 +56,7 @@ export class PluginRegistryService {
         return `Command '${cmd}' failed\n\n${(error as Error).message}`;
       }
     };
-    const content = await runCommand(command);
-
-    return this.noteService.create(projectId, {
-      parentIds: [noteId],
-      type: 'standard',
-      title,
-      content,
-    });
+    return await runCommand(command);
   }
 
   /**
@@ -96,15 +64,7 @@ export class PluginRegistryService {
    * and runs it against `note`, returning its string result. Throws
    * `NotFoundException` if no such applicable plugin exists.
    */
-  async preview(pluginId: string, note: NoteResponseDto): Promise<string> {
-    const plugin = this.listForNoteType(note.type).find(
-      (candidate) => candidate.id === pluginId,
-    );
-    if (!plugin) {
-      throw new NotFoundException(
-        `Plugin '${pluginId}' not found or not applicable to notes of type '${note.type}'`,
-      );
-    }
+  async preview(plugin: NotePlugin, note: Note): Promise<string> {
     return plugin.preview(note);
   }
 }
