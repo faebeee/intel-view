@@ -23,7 +23,28 @@
 | `[-]` | Dropped — must state why |
 | `[!]` | Blocked — must link to an entry in [§4 Open Decisions](#4-open-decisions) |
 
-**Audit date:** 2026-11-05 · **Baseline commit:** `4cd887a` · **Total tasks:** 104
+**Audit date:** 2026-11-05 · **Baseline commit:** `4cd887a` · **Total tasks:** 105
+
+### Completed so far
+
+| Task | Phase | Landed | One-line outcome |
+|---|---|---|---|
+| **TD-0.1** | 0 | `d20e2ef` | `execFile` + argv array — unauthenticated RCE closed, proven by reproducing the old behaviour. |
+| **TD-0.2** | 0 | `d20e2ef` | `getCommand(): string[]`, `execute(argv)`, `formatCommand()` for display. |
+| **TD-0.3** | 0 | `d20e2ef` | `assertExecutableNote` rejects non-IP content — stops nmap flag injection. |
+| **TD-0.4** | 0 | `d20e2ef` | `command-container.service.spec.ts` + validator and nmap plugin specs. |
+| **TD-0.6** | 0 | `7a5d5ab` | `synchronize` off in production; `DB_SYNCHRONIZE` opt-in until TD-4.1. |
+| **TD-0.7** | 0 | working tree | Upload size/MIME limits **and** the download-side stored XSS they depended on. |
+| **TD-1.3** | 1 | `d20e2ef` | Plugin registry spec rewritten — the only 5 API TS errors. |
+| **TD-1.7** | 1 | `d20e2ef` | The only 6 failing API tests, both causes in those same specs. |
+
+Net effect on the gates: **API TS errors 5 → 0**, **API failing tests 6 → 0**,
+**API ESLint errors 46 → 0**. Phase 0 is not yet closed — its gate also requires
+`npm audit` clean (**TD-0.14**, untouched).
+
+Two Phase 0 items are not startable or not fixed: **TD-0.5** is blocked on
+[OD-1](#od-1--container-socket-access-for-the-plugin-runner-open), and **TD-0.15** was
+raised during TD-0.7.
 
 ---
 
@@ -31,33 +52,52 @@
 
 | Phase | Theme | Done | Est. | Status |
 |---|---|---|---|---|
-| [0](#phase-0--stop-the-bleeding) | Stop the bleeding | 5/14 | 1–2d | `[~]` |
-| [1](#phase-1--restore-the-safety-net) | Restore the safety net | 1/19 | 2–3d | `[~]` |
+| [0](#phase-0--stop-the-bleeding) | Stop the bleeding | 6/15 | 1–2d | `[~]` |
+| [1](#phase-1--restore-the-safety-net) | Restore the safety net | 2/19 | 2–3d | `[~]` |
 | [2](#phase-2--fix-what-users-see) | Fix what users see | 0/9 | 2–3d | `[ ]` |
 | [3](#phase-3--auth) | Auth | 0/10 | 3d | `[ ]` |
 | [4](#phase-4--data-integrity) | Data integrity | 0/13 | 3–4d | `[ ]` |
 | [5](#phase-5--cleanup) | Cleanup | 0/18 | 2–3d | `[ ]` |
 | [6](#phase-6--refactor) | Refactor | 0/21 | ongoing | `[ ]` |
-| | **Total** | **6/104** | **4–6w** | |
+| | **Total** | **8/105** | **4–6w** | |
 
 ### Tracked metrics
 
-Re-measure at the end of each phase. Commands run from the repo root.
+Re-measure at the end of each phase. Commands run from the repo root unless noted.
+
+**Last measured:** 2026-11-05, after TD-0.7.
 
 | Metric | Baseline | Current | Target | Command |
 |---|---|---|---|---|
 | npm critical vulns | 11 | 11 | 0 | `npm audit` |
 | npm high vulns | 25 | 25 | 0 | `npm audit` |
 | API TS errors | 5 | **0** | 0 | `npx tsc --noEmit -p apps/api/tsconfig.json` |
-| Web TS errors | 6 | 6 | 0 | `npx tsc --noEmit -p apps/web/tsconfig.json` |
+| Web TS errors | 6 | 2 ⚠ | 0 | `npx tsc --noEmit -p apps/web/tsconfig.json` |
 | API failing tests | 6 | **0** | 0 | `npm test --workspace=api` |
-| API ESLint errors | 46 | 41 | 0 | `npx eslint "apps/api/src/**/*.ts"` |
-| Web Biome diagnostics | 87 | 87 | <10 | `npx biome lint apps/web/src` |
+| API ESLint errors | 46 | **0** | 0 | `cd apps/api && npx eslint "src/**/*.ts"` |
+| Web Biome diagnostics | 87 | 87 | <10 | `cd apps/web && npx biome lint src` |
 | Packages with `check-types` | 1/5 | 1/5 | 5/5 | `npx turbo run check-types --dry=json` |
 | Dead `components/ui` files | 49/66 | 49/66 | 0 | see **TD-5.1** |
 | Hardcoded UI strings | ~228 | ~228 | 0 | see **TD-6.12** |
 | Web LOC (excl. generated) | 17016 | 17016 | ~10800 | `find apps/web/src -name '*.ts*' \| grep -v paraglide \| grep -v routeTree.gen \| xargs wc -l` |
-| API LOC | 8751 | 8751 | ~7500 | `find apps/api/src -name '*.ts' \| xargs wc -l` |
+| API LOC | 8751 | 10388 ⚠ | ~7500 | `find apps/api/src -name '*.ts' \| xargs wc -l` |
+
+**⚠ Web TS errors — do not trust this number.** It dropped 6 → 2 without anyone fixing the
+source. `packages/sdk/client/` is gitignored and was regenerated locally on 2026-11-05,
+which silently resolved **TD-1.4** and **TD-1.6**; a fresh clone still fails. This metric is
+only meaningful once [D-2](#3-locked-decisions) is implemented (commit an `openapi.json`
+snapshot, generate from it). The 2 remaining are TD-1.5 and a new unused-variable error in
+`NotePluginsPanel.tsx:128`.
+
+**⚠ API LOC — expect this to rise before it falls.** 8751 → 10388 is 5423 → 5881 non-test
+(+458, the Phase 0 hardening) and 3328 → 4507 test (+1179). The ~7500 target is a Phase 5/6
+outcome; adding the missing test coverage that Phase 0/1 demands moves it the other way
+first. Tracking the split avoids reading this as a regression.
+
+**Commands corrected 2026-11-05:** the ESLint and Biome rows previously specified
+repo-root invocations that do not work — `npx eslint` from the root fails with
+"couldn't find eslint.config", and `npx biome lint apps/web/src` fails with "nested root
+configuration". Both now run from their workspace.
 
 ---
 
@@ -191,13 +231,37 @@ Options:
   come up against empty tables. **Remove both once TD-4.1 lands.**
 - **Follow-up for TD-0.12:** `DB_SYNCHRONIZE` must be documented in the `.env.example` files.
 
-### TD-0.7 — Add upload size limit and MIME allowlist `[ ]`
+### TD-0.7 — Add upload size limit and MIME allowlist `[x]`
 
 - **File:** `apps/api/src/features/note/note.controller.ts:295`
 - **Why:** `FileInterceptor('file')` has no `limits`. Multer buffers the entire file in
   memory (`note.service.ts:70-75`), and `note.entity.ts:148` uses `bigint` for file size
   explicitly so ">2 GB is representable". Trivial OOM DoS.
 - **Do:** `FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_BYTES } })`, env-driven.
+- **Done (2026-11-05):** `features/note/upload.config.ts` — `MAX_UPLOAD_BYTES` (default
+  25 MiB) and `UPLOAD_MIME_ALLOWLIST` (comma-separated, supports `type/*`, and `*` as an
+  explicit opt-out). Also caps `limits.files`/`limits.fields` so a multipart body cannot
+  smuggle in unbounded extra parts. Unparseable env values fall back to the default rather
+  than to "unlimited". Verified over real HTTP in
+  `note.upload.integration.spec.ts`: **413** for an oversized upload, **415** for a
+  non-allowlisted type, and in both cases `NoteService.uploadFile` is never reached, so
+  nothing is buffered.
+- **Default allowlist:** tuned for pentest evidence (images, reports, text, archives,
+  pcaps, `application/octet-stream`) and deliberately omits `text/html`, `image/svg+xml`,
+  `application/xhtml+xml` and the JavaScript types.
+- **Scope extended — the allowlist alone was not a fix.** `file.mimetype` is just the
+  client's `Content-Type` header, so an allowlist on it is advisory. What made the type
+  dangerous was the *download* side: `GET /:id/file` served the stored type with
+  `disposition: inline`, so uploading `evil.html` as `text/html` was **stored XSS on the
+  API origin**. `features/note/download.config.ts` now serves `attachment` for everything
+  except raster images (SVG excluded), and the route sets
+  `X-Content-Type-Options: nosniff`. Images stay `inline` because `NoteFileEditorPane`
+  renders them in an `<img>` tag.
+- **Also fixed here:** the `Content-Disposition` filename was interpolated raw, so a
+  filename containing CR/LF could inject response headers. It is now sanitised for the
+  quoted `filename` and percent-encoded into an RFC 5987 `filename*`.
+- **Follow-up for TD-0.12:** `MAX_UPLOAD_BYTES` and `UPLOAD_MIME_ALLOWLIST` need
+  documenting in the `.env.example` files.
 
 ### TD-0.8 — Remove hardcoded LAN IP from the CORS allowlist `[ ]`
 
@@ -252,6 +316,17 @@ Options:
 - **Note:** TanStack majors will break. Budget time; do not rush this one.
 - **Verify:** `npm audit --audit-level=high` exits 0.
 
+### TD-0.15 — Sanitise the file extension used to build the storage key `[ ]`
+
+- **File:** `apps/api/src/features/storage/storage.service.ts:65-74`
+- **Why:** `buildNoteFileKey` derives the object key's extension with
+  `fileName.split('.').pop()` and does not validate it, so an upload named
+  `a.foo/../../evil` yields the key `projects/1/notes/1/<ts>.foo/../../evil` — the
+  attacker controls the key's path segments, not just its suffix. The filename itself is
+  never used as a path segment, which is why this is contained, but the extension should be
+  constrained to something like `[A-Za-z0-9]{1,10}` and dropped otherwise.
+- **Found:** 2026-11-05 while doing TD-0.7. Not fixed there — out of that task's scope.
+
 ---
 
 ## Phase 1 — Restore the safety net
@@ -291,6 +366,12 @@ and CI enforces it.
 - **File:** `apps/web/src/features/projects/phases.ts:52,72`
 - **Why:** TS2322/TS2353. The API added a `completed` phase (commit `006012e`); the SDK
   and frontend union were never updated.
+- **Status check 2026-11-05: no longer reproduces locally, but NOT fixed.**
+  `packages/sdk/client/types.gen.ts` was regenerated on 2026-11-05 and now contains
+  `'completed'` in the `phase` union, so `tsc` passes here. That artifact is gitignored,
+  so a fresh clone regenerates against whatever the API is at that moment — the error
+  comes back if the API is not running, or is stale. Leave this open until
+  [D-2](#3-locked-decisions) / **TD-1.10** make SDK output reproducible.
 
 ### TD-1.5 — Fix `CreateInlineNotePayload.title` mismatch `[ ]`
 
@@ -303,13 +384,24 @@ and CI enforces it.
   `executable` not on `PluginResponseDto`), `:128` (TS6133, unused `result`)
 - **Depends on:** TD-1.10 (SDK regeneration)
 - **Why:** the plugin "Create Note" and "Execute & Create" buttons are dead code paths today.
+- **Status check 2026-11-05: partially stale, same caveat as TD-1.4.** After the local SDK
+  regeneration, `pluginControllerCreate` and `PluginResponseDto.executable` both exist, so
+  the TS2724 and TS2339 errors are gone. **The TS6133 unused `result` at
+  `NotePluginsPanel.tsx:128` is still live** — the component awaits
+  `executeAndCreateNote.mutateAsync(...)` and discards the created note. Keep open.
 
-### TD-1.7 — Fix 6 failing API tests `[ ]`
+### TD-1.7 — Fix 6 failing API tests `[x]`
 
 - **Files:** `plugin-registry.service.spec.ts:49` (DI fails — `NoteService` not provided to
   the testing module), `plugin.controller.spec.ts:13-16,90` (mock lacks `getPlugin`, which
   `plugin.controller.ts:174` calls)
 - **Verify:** `npm test --workspace=api`
+- **Done (2026-11-05), out of order, as a side effect of TD-1.3/TD-0.2.** Both root causes
+  were in the two plugin specs that the Phase 0 work rewrote: the `NoteService` DI failure
+  was fixed by deleting that injection from `PluginRegistryService` (it was never used),
+  and `getPlugin` was added to the controller spec's mock. Confirmed by stashing the Phase 0
+  changes and re-running: the baseline 6 failures were *all* in these two files.
+  `npm test --workspace=api` now reports 24 suites / 326 tests, 0 failing.
 
 ### TD-1.8 — Delete the stock `app.e2e-spec.ts` `[ ]`
 
@@ -924,6 +1016,8 @@ Append one row per session. Keep it terse; the checkboxes carry the detail.
 | 2026-11-05 | Full tech-debt audit | — | Audited api/web/infra. 7 decisions locked (§3), 1 open (§4). Tracker created. **No code changed.** |
 | 2026-11-05 | Close the shell injection | TD-0.1, TD-0.2, TD-0.3, TD-0.4, TD-1.3 | `execFile` + argv end to end. Injection proven closed (old `exec` path creates `/tmp/pwned`, new one does not). `NmapServiceScanPlugin.execute()` was a dead `throw` — wired to `CommandContainer`, so this change *creates* the live path and had to land hardened. TD-1.3 pulled forward: those 5 TS errors were all in the spec this work rewrites, and were the only API TS errors **and** the only 6 failing API tests. Metrics: API TS errors 5→0, API failing tests 6→0, API ESLint 46→41. `podman` still hardcoded (TD-0.5 blocked on OD-1). |
 | 2026-11-05 | Stop prod schema rewrites | TD-0.6 | `synchronize` now defaults off in production, via a tested `buildTypeOrmOptions()`. `migrationsRun: true` **not** enabled — the existing migrations assume base tables and would fail on boot against both a fresh and a `synchronize`-built schema, turning a data-loss risk into an outage. Added a `DB_SYNCHRONIZE` opt-in (set in `docker-compose.yml`) so a fresh database can still be created until TD-4.1. |
+| 2026-11-05 | Bound and neuter uploads | TD-0.7 | Size limit + MIME allowlist, both env-driven; 413/415 proven over real HTTP. Scope extended to the download side after finding that `GET /:id/file` served the client-declared type `inline` — uploading `text/html` was stored XSS on the API origin. Now `attachment` + `nosniff` for everything except raster images, plus `Content-Disposition` header-injection fixed. New task TD-0.15 raised (unsanitised storage-key extension). `eslint --fix` also cleaned 41 pre-existing formatting errors in `note.entity.ts`: API ESLint 41→0. |
+| 2026-11-05 | Tracker reconciliation | TD-1.7 | Re-measured every §2 metric against the repo rather than trusting prior edits. Marked TD-1.7 done (closed as a side effect of TD-1.3). Corrected the Phase 0 denominator for TD-0.15, and the ESLint/Biome metric commands, which did not run from the repo root. Flagged two metrics as untrustworthy: Web TS errors (fell 6→2 only because the gitignored SDK was regenerated — TD-1.4/TD-1.6 are *not* fixed) and API LOC (rising because Phase 0 adds tests; now tracked as a test/non-test split). **No source changed.** |
 
 ---
 

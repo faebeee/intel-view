@@ -341,6 +341,37 @@ describe('NoteController', () => {
       expect(mockNoteService.downloadFile).toHaveBeenCalledWith(1, 3);
       expect(result.options.type).toBe('application/pdf');
       expect(result.options.length).toBe(1234);
+      // A PDF is not in the inline-renderable set, so it must not be rendered
+      // on the API origin (TD-0.7).
+      expect(result.options.disposition).toMatch(/^attachment;/);
+    });
+
+    it('serves an uploaded HTML file as an attachment, not inline', async () => {
+      mockNoteService.downloadFile.mockResolvedValue({
+        stream: Readable.from(['<script>alert(1)</script>']),
+        fileName: 'evil.html',
+        mimeType: 'text/html',
+        size: 25,
+      });
+
+      const result = await controller.downloadFile(1, 3);
+
+      // The upload allowlist is advisory — `mimetype` is a client-supplied
+      // header — so the download side has to hold on its own.
+      expect(result.options.disposition).toMatch(/^attachment;/);
+    });
+
+    it('still serves images inline so the client can render them', async () => {
+      mockNoteService.downloadFile.mockResolvedValue({
+        stream: Readable.from(['png bytes']),
+        fileName: 'shot.png',
+        mimeType: 'image/png',
+        size: 10,
+      });
+
+      const result = await controller.downloadFile(1, 3);
+
+      expect(result.options.disposition).toMatch(/^inline;/);
     });
 
     it('removes the file and maps the note to a NoteResponseDto', async () => {
