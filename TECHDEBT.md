@@ -54,9 +54,9 @@ Re-measure at the end of each phase. Commands run from the repo root.
 | API ESLint errors | 46 | 46 | 0 | `npx eslint "apps/api/src/**/*.ts"` |
 | Web Biome diagnostics | 87 | 87 | <10 | `npx biome lint apps/web/src` |
 | Packages with `check-types` | 1/5 | 1/5 | 5/5 | `npx turbo run check-types --dry=json` |
-| Dead `components/ui` files | 43 | 43 | 0 | see [TD-5.1](#td-51--delete-43-unused-componentsui-files--) |
-| Hardcoded UI strings | ~228 | ~228 | 0 | see [TD-6.12](#td-612--migrate-228-hardcoded-strings-to-paraglide--) |
-| Web LOC (excl. generated) | 17016 | 17016 | ~11000 | `find apps/web/src -name '*.ts*' \| grep -v paraglide \| grep -v routeTree.gen \| xargs wc -l` |
+| Dead `components/ui` files | 49/66 | 49/66 | 0 | see **TD-5.1** |
+| Hardcoded UI strings | ~228 | ~228 | 0 | see **TD-6.12** |
+| Web LOC (excl. generated) | 17016 | 17016 | ~10800 | `find apps/web/src -name '*.ts*' \| grep -v paraglide \| grep -v routeTree.gen \| xargs wc -l` |
 | API LOC | 8751 | 8751 | ~7500 | `find apps/api/src -name '*.ts' \| xargs wc -l` |
 
 ---
@@ -81,7 +81,7 @@ Settled 2026-11-05. Do not re-litigate without recording a new entry in §6.
 
 ### OD-1 — Container socket access for the plugin runner `[open]`
 
-**Blocks:** [TD-0.5](#td-05--switch-podman--docker-behind-container_runtime-env--)
+**Blocks:** **TD-0.5**
 
 The plugin feature shells into a sibling container. The API container has no container
 runtime binary and no socket mounted, so the feature cannot work under `docker-compose`
@@ -199,7 +199,7 @@ Options:
 - **Files:** `apps/api/src/main.ts:38-41`, `apps/api/src/app.module.ts:25-29`
 - **Why:** exposes 20 unauthenticated CRUD tools. See [D-6](#3-locked-decisions).
 - **Do:** unregister the transport and module only. Leave the four MCP controllers in-tree.
-  Re-enable decision deferred to [TD-6.5](#td-65--decide-the-fate-of-the-mcp-controller-layer--).
+  Re-enable decision deferred to **TD-6.5**.
 
 ### TD-0.14 — Resolve 11 critical and 25 high vulnerabilities `[ ]`
 
@@ -441,7 +441,7 @@ documenting a scheme that does not exist. This is a from-scratch build.
 
 ### TD-3.2 — Add `User` + better-auth session tables via migration `[ ]`
 
-- **Why:** must be a real migration, not `synchronize`. Coordinate with [TD-4.1](#td-41--write-a-baseline-migration-for-all-7-tables--).
+- **Why:** must be a real migration, not `synchronize`. Coordinate with **TD-4.1**.
 
 ### TD-3.3 — Add a global `APP_GUARD` and a `@Public()` decorator `[ ]`
 
@@ -540,17 +540,24 @@ silently hide records.
 
 **Goal:** the lint signal is trustworthy and the dependency tree is reproducible.
 
-### TD-5.1 — Delete 43 unused `components/ui` files `[ ]`
+### TD-5.1 — Delete 49 unreachable `components/ui` files `[ ]`
 
-- **Why:** 43 of 66 files are never imported anywhere — 5,655 LOC, about 33% of the web
-  codebase, producing ~60 of the 87 Biome diagnostics. Largest offenders: `sidebar.tsx` (726),
+- **Why:** only **17 of 66** files are reachable from outside `components/ui/`. The rest are
+  dead, either directly or transitively (imported only by other dead files). **6,192 LOC,
+  ~36% of the web codebase**, producing ~60 of the 87 Biome diagnostics — your lint signal is
+  dominated by code you do not ship. Largest: `sidebar.tsx` (726, the biggest file in the app),
   `chart.tsx` (374), `menubar.tsx` (276), `dropdown-menu.tsx` (257), `field.tsx` (246),
   `carousel.tsx` (241), `calendar.tsx` (218), `data-table.tsx` (208).
-- **Keep:** `sonner.tsx` — [TD-2.1](#td-21--mount-toaster--in-the-root-route--) depends on it.
-- **Keep (23 in use):** alert-dialog, button, collapsible, combobox, context-menu, dialog,
-  form-field, input, input-group, label, loading-state, markdown, markdown-editor,
-  native-select, radio-group, resizable, separator, sheet, skeleton, tag-chip, textarea,
-  toggle, tooltip.
+- **Keep — the 17 reachable roots:** `alert-dialog`, `button`, `collapsible`, `combobox`,
+  `context-menu`, `dialog`, `form-field`, `input`, `loading-state`, `markdown`,
+  `markdown-editor`, `native-select`, `radio-group`, `resizable`, `tag-chip`, `textarea`,
+  `tooltip`.
+- **Also keep `sonner.tsx`** — currently unreachable, but
+  **TD-2.1** mounts it. Do that first.
+- **Verify:** re-run the reachability script in [§7](#7-appendix); dead count should be 0
+  (or 1 if TD-2.1 is still pending).
+- **Note:** delete iteratively — removing a file can orphan others. Re-run the script until
+  it stabilises.
 
 ### TD-5.2 — Remove Prettier from the root `[ ]`
 
@@ -720,7 +727,7 @@ opportunistically once Phases 0–5 are complete.
 - **Why:** ~700 lines duplicating the REST layer 1:1, including a re-declared note-type slug
   regex and its 400-word description in both `create-note.dto.ts:12,22` and
   `note-mcp.controller.ts:23,28`. These will drift.
-- **Depends on:** [TD-0.13](#td-013--disable-the-mcp-transport--) — currently disabled.
+- **Depends on:** **TD-0.13** — currently disabled.
 
 ### TD-6.6 — Add `@ApiResponse` types to the 4 paginated `findAll` endpoints `[ ]`
 
@@ -892,12 +899,43 @@ npx turbo run check-types --dry=json | jq '.tasks[] | {package, command}'
 # Validate turbo.json is real JSON (fails until TD-1.14)
 node -e "JSON.parse(require('fs').readFileSync('turbo.json','utf8'))"
 
-# Dead-file scan for TD-5.1
-for f in apps/web/src/components/ui/*.tsx; do
-  n=$(basename "$f" .tsx)
-  c=$(grep -rl "components/ui/$n\"" apps/web/src --include='*.tsx' --include='*.ts' | wc -l)
-  [ "$c" -eq 0 ] && echo "UNUSED: $n"
-done
+# Dead-file reachability scan for TD-5.1
+# Direct grep over-counts: a dead file importing another keeps it looking alive.
+# This walks from real roots (ui modules imported from OUTSIDE components/ui)
+# and follows ui-internal relative imports transitively.
+cd apps/web/src && python3 - <<'PY'
+import os, re, glob, subprocess
+ui = [os.path.basename(f)[:-4] for f in glob.glob('components/ui/*.tsx')]
+roots = set()
+for dirpath, _, files in os.walk('.'):
+    if dirpath.startswith('./components/ui'):
+        continue
+    for fn in files:
+        if not fn.endswith(('.ts', '.tsx')):
+            continue
+        for m in re.finditer(r'ui/([a-zA-Z0-9-]+)(?:\.tsx?)?["\']',
+                             open(os.path.join(dirpath, fn)).read()):
+            if m.group(1) in ui:
+                roots.add(m.group(1))
+seen, stack = set(), list(roots)
+while stack:
+    c = stack.pop()
+    if c in seen:
+        continue
+    seen.add(c)
+    try:
+        t = open(f'components/ui/{c}.tsx').read()
+    except OSError:
+        continue
+    for m in re.finditer(r'["\']\./([a-zA-Z0-9-]+)(?:\.tsx?)?["\']', t):
+        if m.group(1) in ui and m.group(1) not in seen:
+            stack.append(m.group(1))
+dead = sorted(set(ui) - seen)
+loc = sum(int(subprocess.run(['wc', '-l', f'components/ui/{d}.tsx'],
+          capture_output=True, text=True).stdout.split()[0]) for d in dead)
+print(f"total {len(ui)}  reachable {len(seen)}  dead {len(dead)}  dead LOC {loc}")
+print("dead:", " ".join(dead))
+PY
 ```
 
 ### Findings index
@@ -908,6 +946,6 @@ done
 | Build & CI | 1, 5 | No CI; `check-types` validates 15 lines; `turbo.json` invalid JSON; caching broken |
 | Data integrity | 4 | No transactions on 7 multi-table writes; no baseline migration; `synchronize: true` in prod |
 | Frontend correctness | 2 | Toasts never mounted; errors swallowed app-wide; autosave data loss; stored XSS |
-| Code volume | 5, 6 | 5,655 LOC dead UI; ~700 LOC duplicated MCP layer; 781-line god service |
+| Code volume | 5, 6 | 6,192 LOC dead UI; ~700 LOC duplicated MCP layer; 781-line god service |
 | Consistency | 5, 6 | Two formatters fighting; two design systems; two TS compilers; i18n 97% bypassed |
 | Docs | 6 | ~14 stale claims; the newest feature has zero documentation |
