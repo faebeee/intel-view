@@ -21,13 +21,37 @@ export type NotePlugin = {
   /** Previews the plugin against a note, returning the derived string result. */
   preview(note: Note): Promise<string> | string;
   /**
-   * Executes a command and returns the output.
-   * IMPORTANT: Implementations MUST sanitize the `command` to prevent shell injection.
+   * Executes `argv` and returns the output.
+   *
+   * `argv` is passed to `execFile` as an argument array — no shell is spawned,
+   * so shell metacharacters in any element are inert. Implementations MUST NOT
+   * join `argv` back into a string or hand it to a shell.
    */
-  execute(command: string): Promise<string>;
-  /** Returns the command that would be executed for the given note. */
-  getCommand(note: Note): string;
+  execute(argv: string[]): Promise<string>;
+  /**
+   * Returns the argv array that would be executed for the given note, with the
+   * program name at index 0 and excluding any container/runtime prefix.
+   */
+  getCommand(note: Note): string[];
 };
+
+/**
+ * Renders an argv array as a single human-readable string for display only —
+ * note titles, API responses, error messages.
+ *
+ * The result is NEVER executed. Elements containing characters outside a
+ * conservative safe set are single-quoted so the rendered form is unambiguous
+ * about where one argument ends and the next begins.
+ */
+export function formatCommand(argv: string[]): string {
+  return argv
+    .map((arg) =>
+      /^[A-Za-z0-9_@%+=:,./-]+$/.test(arg)
+        ? arg
+        : `'${arg.replaceAll("'", `'\\''`)}'`,
+    )
+    .join(' ');
+}
 
 /**
  * Multi-provider DI token every `NotePlugin` implementation is registered

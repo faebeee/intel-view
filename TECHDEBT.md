@@ -31,14 +31,14 @@
 
 | Phase | Theme | Done | Est. | Status |
 |---|---|---|---|---|
-| [0](#phase-0--stop-the-bleeding) | Stop the bleeding | 0/14 | 1–2d | `[ ]` |
-| [1](#phase-1--restore-the-safety-net) | Restore the safety net | 0/19 | 2–3d | `[ ]` |
+| [0](#phase-0--stop-the-bleeding) | Stop the bleeding | 4/14 | 1–2d | `[~]` |
+| [1](#phase-1--restore-the-safety-net) | Restore the safety net | 1/19 | 2–3d | `[~]` |
 | [2](#phase-2--fix-what-users-see) | Fix what users see | 0/9 | 2–3d | `[ ]` |
 | [3](#phase-3--auth) | Auth | 0/10 | 3d | `[ ]` |
 | [4](#phase-4--data-integrity) | Data integrity | 0/13 | 3–4d | `[ ]` |
 | [5](#phase-5--cleanup) | Cleanup | 0/18 | 2–3d | `[ ]` |
 | [6](#phase-6--refactor) | Refactor | 0/21 | ongoing | `[ ]` |
-| | **Total** | **0/104** | **4–6w** | |
+| | **Total** | **5/104** | **4–6w** | |
 
 ### Tracked metrics
 
@@ -48,10 +48,10 @@ Re-measure at the end of each phase. Commands run from the repo root.
 |---|---|---|---|---|
 | npm critical vulns | 11 | 11 | 0 | `npm audit` |
 | npm high vulns | 25 | 25 | 0 | `npm audit` |
-| API TS errors | 5 | 5 | 0 | `npx tsc --noEmit -p apps/api/tsconfig.json` |
+| API TS errors | 5 | **0** | 0 | `npx tsc --noEmit -p apps/api/tsconfig.json` |
 | Web TS errors | 6 | 6 | 0 | `npx tsc --noEmit -p apps/web/tsconfig.json` |
-| API failing tests | 6 | 6 | 0 | `npm test --workspace=api` |
-| API ESLint errors | 46 | 46 | 0 | `npx eslint "apps/api/src/**/*.ts"` |
+| API failing tests | 6 | **0** | 0 | `npm test --workspace=api` |
+| API ESLint errors | 46 | 41 | 0 | `npx eslint "apps/api/src/**/*.ts"` |
 | Web Biome diagnostics | 87 | 87 | <10 | `npx biome lint apps/web/src` |
 | Packages with `check-types` | 1/5 | 1/5 | 5/5 | `npx turbo run check-types --dry=json` |
 | Dead `components/ui` files | 49/66 | 49/66 | 0 | see **TD-5.1** |
@@ -103,7 +103,7 @@ Options:
 **Goal:** nothing remotely exploitable remains.
 **Gate:** `npm audit` reports zero critical/high, and a test proves the shell injection is closed.
 
-### TD-0.1 — Replace `exec` with `execFile` in the command container `[ ]`
+### TD-0.1 — Replace `exec` with `execFile` in the command container `[x]`
 
 - **File:** `apps/api/src/features/plugin/command-container.service.ts:11`
 - **Why:** `` execPromise(`podman exec intel-view-kali ${command}`) `` spawns `/bin/sh -c`.
@@ -111,8 +111,14 @@ Options:
   fully user-controlled via `POST /projects/:id/notes`. This is unauthenticated RCE.
 - **Do:** `execFile(runtime, ['exec', 'intel-view-kali', ...argv])` — no shell, no interpolation.
 - **Verify:** a note with content `1.1.1.1; touch /tmp/pwned` does not create `/tmp/pwned`.
+- **Done (2026-11-05):** `execFile(CONTAINER_RUNTIME, ['exec', CONTAINER_NAME, ...argv], …)` in
+  callback form (keeps it mockable without `promisify.custom`). Also added `timeout` and a
+  16 MiB `maxBuffer` — Node's 1 MiB default truncates a full-port scan — an empty-argv guard,
+  and an `ENOENT` → `ServiceUnavailableException` branch, since under `docker-compose` the API
+  container has no `podman` binary. Verified against the old code side by side: `exec` with
+  interpolation creates `/tmp/pwned`, `execFile` with argv does not.
 
-### TD-0.2 — Change `NotePlugin.getCommand()` to return `string[]` `[ ]`
+### TD-0.2 — Change `NotePlugin.getCommand()` to return `string[]` `[x]`
 
 - **Files:** `apps/api/src/features/plugin/plugin.interface.ts:25`,
   `plugins/nmap-service-scan/nmap-service-scan.plugin.ts:22`,
@@ -120,18 +126,36 @@ Options:
 - **Why:** required by TD-0.1. The interface doc comment already says implementations
   "MUST sanitize" — no implementation does.
 - **Verify:** `npx tsc --noEmit -p apps/api/tsconfig.json`
+- **Done (2026-11-05):** `getCommand(note): string[]` and `execute(argv: string[])`. Added
+  `formatCommand(argv)` in `plugin.interface.ts` for display-only rendering (shell-quoting
+  unsafe elements) plus `PluginRegistryService.getCommandString()`; note titles and the
+  `command` response use that. `PluginCommandResponseDto.command` deliberately stays a
+  `string` — the web app never reads it (`pluginControllerGetCommand` has zero call sites),
+  so there is no wire-format break and no SDK regeneration needed.
+  `NmapServiceScanPlugin.preview()` is now derived from `getCommand()` so the previewed and
+  executed commands cannot drift.
 
-### TD-0.3 — Validate note content as an IP before plugin execution `[ ]`
+### TD-0.3 — Validate note content as an IP before plugin execution `[x]`
 
 - **File:** `apps/api/src/features/plugin/plugin.controller.ts`
 - **Do:** `node:net.isIP()` guard; reject with `BadRequestException` on failure.
 - **Why:** defence in depth behind TD-0.1 — the argv array stops shell metacharacters,
   this stops nmap flag injection (`--script`, `-oN /etc/cron.d/x`).
+- **Done (2026-11-05):** extracted to `executable-note.validator.ts` and called from
+  `executeAndCreate`. Keyed on `note.type === 'ip'` rather than on the plugin: the controller
+  is generic and cannot know a given plugin wants an IP, while every current plugin declares
+  `noteTypes: ['ip']`. Note types without a registered validator pass through.
 
-### TD-0.4 — Add `command-container.service.spec.ts` `[ ]`
+### TD-0.4 — Add `command-container.service.spec.ts` `[x]`
 
 - **Why:** the single most dangerous file in the repo has no test.
 - **Cover:** metacharacter injection, flag injection, non-zero exit, empty output.
+- **Done (2026-11-05):** `command-container.service.spec.ts` (argv-not-string, `;`/`$()`/
+  backticks/pipe/newline/`&&` passed verbatim, no `shell` option, timeout + maxBuffer,
+  stdout/stderr/empty fallbacks, non-zero exit, `ENOENT`, empty argv). Flag injection is
+  asserted where the guard actually lives: `executable-note.validator.spec.ts` and the
+  400-response cases in `plugin.controller.spec.ts`. Also added
+  `nmap-service-scan.plugin.spec.ts`, since `execute()` is newly live code.
 
 ### TD-0.5 — Switch `podman` → `docker` behind `CONTAINER_RUNTIME` env `[!]`
 
@@ -231,11 +255,17 @@ and CI enforces it.
 - **Why:** same — the root `npm run check-types` currently validates only
   `packages/sdk/src/index.ts`, about 15 lines of re-exports, and exits 0.
 
-### TD-1.3 — Fix 5 TS errors in `plugin-registry.service.spec.ts` `[ ]`
+### TD-1.3 — Fix 5 TS errors in `plugin-registry.service.spec.ts` `[x]`
 
 - **File:** `apps/api/src/features/plugin/plugin-registry.service.spec.ts:12,18,74,81,88`
 - **Why:** mock objects are missing `noteType`/`executable`/`execute`/`getCommand` (TS2739);
   calls use the old `preview(id, note)` signature instead of `preview(plugin, note)` (TS2345).
+- **Done (2026-11-05), out of order.** Pulled forward from Phase 1 because TD-0.2 rewrites the
+  very interface this spec mocks, which would have made it worse, and TD-0.2's own `Verify`
+  command is meaningless while it fails. The spec's `NotFoundException` assertions moved to
+  `plugin.controller.spec.ts`, which is where plugin resolution now happens. Also removed the
+  unused `NoteService` injection from `PluginRegistryService` — it was the reason the spec's
+  testing module failed to resolve at runtime.
 
 ### TD-1.4 — Fix `ProjectPhase` missing `"completed"` `[ ]`
 
@@ -867,6 +897,7 @@ Append one row per session. Keep it terse; the checkboxes carry the detail.
 | Date | Session focus | Tasks touched | Notes |
 |---|---|---|---|
 | 2026-11-05 | Full tech-debt audit | — | Audited api/web/infra. 7 decisions locked (§3), 1 open (§4). Tracker created. **No code changed.** |
+| 2026-11-05 | Close the shell injection | TD-0.1, TD-0.2, TD-0.3, TD-0.4, TD-1.3 | `execFile` + argv end to end. Injection proven closed (old `exec` path creates `/tmp/pwned`, new one does not). `NmapServiceScanPlugin.execute()` was a dead `throw` — wired to `CommandContainer`, so this change *creates* the live path and had to land hardened. TD-1.3 pulled forward: those 5 TS errors were all in the spec this work rewrites, and were the only API TS errors **and** the only 6 failing API tests. Metrics: API TS errors 5→0, API failing tests 6→0, API ESLint 46→41. `podman` still hardcoded (TD-0.5 blocked on OD-1). |
 
 ---
 
