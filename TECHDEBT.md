@@ -263,7 +263,7 @@ Options:
 - **Follow-up for TD-0.12:** `MAX_UPLOAD_BYTES` and `UPLOAD_MIME_ALLOWLIST` need
   documenting in the `.env.example` files.
 
-### TD-0.8 — Remove hardcoded LAN IP from the CORS allowlist `[ ]`
+### TD-0.8 — Remove hardcoded LAN IP from the CORS allowlist `[x]`
 
 - **File:** `apps/api/src/main.ts:20-26`
 - **Why:** `'http://192.168.50.15:4000'` (a developer's LAN machine) and `'http://intel.local:4000'`
@@ -1017,6 +1017,7 @@ Append one row per session. Keep it terse; the checkboxes carry the detail.
 | 2026-11-05 | Close the shell injection | TD-0.1, TD-0.2, TD-0.3, TD-0.4, TD-1.3 | `execFile` + argv end to end. Injection proven closed (old `exec` path creates `/tmp/pwned`, new one does not). `NmapServiceScanPlugin.execute()` was a dead `throw` — wired to `CommandContainer`, so this change *creates* the live path and had to land hardened. TD-1.3 pulled forward: those 5 TS errors were all in the spec this work rewrites, and were the only API TS errors **and** the only 6 failing API tests. Metrics: API TS errors 5→0, API failing tests 6→0, API ESLint 46→41. `podman` still hardcoded (TD-0.5 blocked on OD-1). |
 | 2026-11-05 | Stop prod schema rewrites | TD-0.6 | `synchronize` now defaults off in production, via a tested `buildTypeOrmOptions()`. `migrationsRun: true` **not** enabled — the existing migrations assume base tables and would fail on boot against both a fresh and a `synchronize`-built schema, turning a data-loss risk into an outage. Added a `DB_SYNCHRONIZE` opt-in (set in `docker-compose.yml`) so a fresh database can still be created until TD-4.1. |
 | 2026-11-05 | Bound and neuter uploads | TD-0.7 | Size limit + MIME allowlist, both env-driven; 413/415 proven over real HTTP. Scope extended to the download side after finding that `GET /:id/file` served the client-declared type `inline` — uploading `text/html` was stored XSS on the API origin. Now `attachment` + `nosniff` for everything except raster images, plus `Content-Disposition` header-injection fixed. New task TD-0.15 raised (unsanitised storage-key extension). `eslint --fix` also cleaned 41 pre-existing formatting errors in `note.entity.ts`: API ESLint 41→0. |
+| 2026-11-05 | Clean up CORS | TD-0.8 | Removed hardcoded LAN IPs from CORS allowlist; now derives from comma-separated `APP_URL` with a localhost fallback. |
 | 2026-11-05 | Tracker reconciliation | TD-1.7 | Re-measured every §2 metric against the repo rather than trusting prior edits. Marked TD-1.7 done (closed as a side effect of TD-1.3). Corrected the Phase 0 denominator for TD-0.15, and the ESLint/Biome metric commands, which did not run from the repo root. Flagged two metrics as untrustworthy: Web TS errors (fell 6→2 only because the gitignored SDK was regenerated — TD-1.4/TD-1.6 are *not* fixed) and API LOC (rising because Phase 0 adds tests; now tracked as a test/non-test split). **No source changed.** |
 
 ---
