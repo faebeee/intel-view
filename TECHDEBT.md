@@ -31,14 +31,14 @@
 
 | Phase | Theme | Done | Est. | Status |
 |---|---|---|---|---|
-| [0](#phase-0--stop-the-bleeding) | Stop the bleeding | 4/14 | 1–2d | `[~]` |
+| [0](#phase-0--stop-the-bleeding) | Stop the bleeding | 5/14 | 1–2d | `[~]` |
 | [1](#phase-1--restore-the-safety-net) | Restore the safety net | 1/19 | 2–3d | `[~]` |
 | [2](#phase-2--fix-what-users-see) | Fix what users see | 0/9 | 2–3d | `[ ]` |
 | [3](#phase-3--auth) | Auth | 0/10 | 3d | `[ ]` |
 | [4](#phase-4--data-integrity) | Data integrity | 0/13 | 3–4d | `[ ]` |
 | [5](#phase-5--cleanup) | Cleanup | 0/18 | 2–3d | `[ ]` |
 | [6](#phase-6--refactor) | Refactor | 0/21 | ongoing | `[ ]` |
-| | **Total** | **5/104** | **4–6w** | |
+| | **Total** | **6/104** | **4–6w** | |
 
 ### Tracked metrics
 
@@ -163,7 +163,7 @@ Options:
 - **Blocked by:** [OD-1](#od-1--container-socket-access-for-the-plugin-runner-open)
 - **Why:** `podman` is hardcoded while `docker-compose.yml` is Docker-based.
 
-### TD-0.6 — Gate `synchronize` on `NODE_ENV` `[ ]`
+### TD-0.6 — Gate `synchronize` on `NODE_ENV` `[x]`
 
 - **File:** `apps/api/src/app.module.ts:40`
 - **Why:** `synchronize: true` is unconditional and `apps/api/Dockerfile` sets
@@ -171,6 +171,25 @@ Options:
   `features/database/datasource.ts:13` already correctly sets `false` — the two
   connection mechanisms contradict each other.
 - **Do:** `synchronize: process.env.NODE_ENV !== 'production'` plus `migrationsRun: true`.
+- **Done (2026-11-05), partially — `migrationsRun` deliberately NOT enabled.** Extracted
+  `buildTypeOrmOptions()` / `shouldSynchronize()` into
+  `features/database/typeorm.config.ts` (unit-tested) and reduced `app.module.ts` to
+  `TypeOrmModule.forRoot(buildTypeOrmOptions())`. `synchronize` now defaults to
+  `NODE_ENV !== 'production'`.
+- **Why `migrationsRun: true` was dropped from this task:** it would take production down
+  rather than protect it. The five existing migrations are decorative `ALTER`s that assume
+  the base tables already exist (TD-4.1), so on boot they fail against a fresh database
+  (no `note` table), *and* against an existing `synchronize`-built one —
+  `RenameProjectGroupToProjectFolder` renames `project_group`, which never exists in a
+  schema that `synchronize` built from today's entities. The `migrations` glob *is* now
+  configured, so TD-4.1 only has to flip the flag.
+- **`DB_SYNCHRONIZE` escape hatch:** turning sync off in production with no baseline
+  migration means a fresh production database gets no schema at all. `DB_SYNCHRONIZE`
+  (explicit `true`/`false`, anything else ignored so a typo cannot silently disable it)
+  lets an operator opt back in deliberately. `docker-compose.yml` sets it to `'true'` with
+  a comment, since the API image runs `NODE_ENV=production` and the stack would otherwise
+  come up against empty tables. **Remove both once TD-4.1 lands.**
+- **Follow-up for TD-0.12:** `DB_SYNCHRONIZE` must be documented in the `.env.example` files.
 
 ### TD-0.7 — Add upload size limit and MIME allowlist `[ ]`
 
@@ -509,7 +528,13 @@ silently hide records.
   `note_history_entry`, `note_log_entry`, plus `note.canvasX`/`canvasY` and all four
   `file*` columns (`note.entity.ts:122-166`). A fresh DB can only be stood up via
   `synchronize`.
-- **Depends on:** TD-0.6
+- **Depends on:** TD-0.6 — **now the blocker for undoing TD-0.6's workarounds.** Until this
+  lands, `synchronize` is the only way to create a schema, so `docker-compose.yml` sets
+  `DB_SYNCHRONIZE: 'true'` and `migrationsRun` stays `false` in
+  `features/database/typeorm.config.ts`. When writing the baseline, it must be safe to
+  apply to an existing `synchronize`-built database (mark it as already applied, or guard
+  every `CREATE TABLE` with `IF NOT EXISTS`), and the four decorative migrations that
+  predate it must be ordered/guarded so they do not re-run against it.
 
 ### TD-4.2 — Wrap `NoteService.create` in a transaction `[ ]`
 
@@ -898,6 +923,7 @@ Append one row per session. Keep it terse; the checkboxes carry the detail.
 |---|---|---|---|
 | 2026-11-05 | Full tech-debt audit | — | Audited api/web/infra. 7 decisions locked (§3), 1 open (§4). Tracker created. **No code changed.** |
 | 2026-11-05 | Close the shell injection | TD-0.1, TD-0.2, TD-0.3, TD-0.4, TD-1.3 | `execFile` + argv end to end. Injection proven closed (old `exec` path creates `/tmp/pwned`, new one does not). `NmapServiceScanPlugin.execute()` was a dead `throw` — wired to `CommandContainer`, so this change *creates* the live path and had to land hardened. TD-1.3 pulled forward: those 5 TS errors were all in the spec this work rewrites, and were the only API TS errors **and** the only 6 failing API tests. Metrics: API TS errors 5→0, API failing tests 6→0, API ESLint 46→41. `podman` still hardcoded (TD-0.5 blocked on OD-1). |
+| 2026-11-05 | Stop prod schema rewrites | TD-0.6 | `synchronize` now defaults off in production, via a tested `buildTypeOrmOptions()`. `migrationsRun: true` **not** enabled — the existing migrations assume base tables and would fail on boot against both a fresh and a `synchronize`-built schema, turning a data-loss risk into an outage. Added a `DB_SYNCHRONIZE` opt-in (set in `docker-compose.yml`) so a fresh database can still be created until TD-4.1. |
 
 ---
 

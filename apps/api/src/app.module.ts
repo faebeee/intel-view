@@ -10,6 +10,7 @@ import { TagModule } from './features/tag/tag.module';
 import { ProjectModule } from './features/project/project.module';
 import { ProjectFolderModule } from './features/project-folder/project-folder.module';
 import { DatabaseModule } from './features/database/database.module';
+import { buildTypeOrmOptions } from './features/database/typeorm.config';
 import { HealthModule } from './features/health/health.module';
 import { McpFeatureModule } from './features/mcp/mcp.module';
 import { PluginModule } from './features/plugin/plugin.module';
@@ -29,17 +30,7 @@ export const mcp = new McpStrategy({
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432', 10),
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_DATABASE || 'intel_view',
-      entities: [],
-      synchronize: true,
-      autoLoadEntities: true,
-    }),
+    TypeOrmModule.forRoot(buildTypeOrmOptions()),
     DatabaseModule,
     HealthModule,
     ProjectFolderModule,

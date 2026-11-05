@@ -58,6 +58,12 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       DB_DATABASE: intel_view
+      # The API image sets NODE_ENV=production, where schema auto-sync is off
+      # by default (TD-0.6) — an unconditional sync rewrites the live schema on
+      # every boot. This stack opts back in explicitly because no baseline
+      # migration exists yet, so it is the only way to create the tables on a
+      # fresh volume. Remove this line once TD-4.1 lands and migrations run.
+      DB_SYNCHRONIZE: 'true'
       DATABASE_URL: postgresql://postgres:postgres@db:5432/intel_view
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
