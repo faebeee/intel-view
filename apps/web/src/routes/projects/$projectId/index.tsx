@@ -84,6 +84,7 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 	// it starts collapsed and is toggled from the header.
 	const [isTreeOpen, setIsTreeOpen] = React.useState(false);
 	const [addNoteRequest, setAddNoteRequest] = React.useState(0);
+	const [searchFocusRequest, setSearchFocusRequest] = React.useState(0);
 	const isFetchingNotes = useIsFetching({ queryKey: ["notes"] }) > 0;
 
 	const { defaultLayout, onLayoutChanged } = useDefaultLayout({
@@ -98,6 +99,40 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 		setSelectedNoteId(noteId);
 		setRevealRequest((previous) => previous + 1);
 	}, []);
+
+	React.useEffect(() => {
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (
+				event.target instanceof HTMLInputElement ||
+				event.target instanceof HTMLTextAreaElement ||
+				(event.target as HTMLElement).isContentEditable
+			) {
+				return;
+			}
+
+			if (event.key === "n" && !event.ctrlKey && !event.metaKey) {
+				event.preventDefault();
+				setAddNoteRequest((n) => n + 1);
+			} else if (event.key === "/" && !event.ctrlKey && !event.metaKey) {
+				event.preventDefault();
+				setIsTreeOpen(true);
+				setSearchFocusRequest((n) => n + 1);
+			} else if (event.key === "Enter" && selectedNoteId) {
+				event.preventDefault();
+				setIsEditModalOpen(true);
+			} else if ((event.key === "Backspace" || event.key === "Delete") && selectedNoteId) {
+				event.preventDefault();
+				deleteNoteMutation.mutate(selectedNoteId, {
+					onSuccess: () => {
+						setSelectedNoteId(null);
+					},
+				});
+			}
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [selectedNoteId, deleteNoteMutation]);
 
 	const handleDeleteFromSidebar = React.useCallback(
 		(noteId: number) => {
@@ -209,16 +244,18 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 			}
 		>
 			{isTreeOpen && (
-				<NoteTree
-					id="canvas-notes-list"
-					notes={notes}
-					tags={tags}
-					selectedNoteId={selectedNote?.id}
-					onSelect={handleSelectFromSidebar}
-					onDelete={handleDeleteFromSidebar}
-					isMutating={deleteNoteMutation.isPending}
-					className="w-72 shrink-0 border-r border-mc-border bg-mc-rail p-3 max-sm:h-80 max-sm:w-full max-sm:border-r-0 max-sm:border-b"
-				/>
+					<NoteTree
+						id="canvas-notes-list"
+						notes={notes}
+						tags={tags}
+						selectedNoteId={selectedNote?.id}
+						onSelect={handleSelectFromSidebar}
+						onDelete={handleDeleteFromSidebar}
+						isMutating={deleteNoteMutation.isPending}
+						className="w-72 shrink-0 border-r border-mc-border bg-mc-rail p-3 max-sm:h-80 max-sm:w-full max-sm:border-r-0 max-sm:border-b"
+						searchFocusRequest={searchFocusRequest}
+					/>
+
 			)}
 
 			<ResizablePanelGroup
