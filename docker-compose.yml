@@ -5,10 +5,10 @@ services:
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
       POSTGRES_DB: intel_view
-    ports:
-      - '5432:5432'
+    expose:
+      - '5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -27,11 +27,10 @@ services:
     restart: always
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?}
     ports:
       - '9000:9000'
-      - '9001:9001'
     volumes:
       - minio_data:/data
     healthcheck:
@@ -56,21 +55,21 @@ services:
       DB_HOST: db
       DB_PORT: 5432
       DB_USERNAME: postgres
-      DB_PASSWORD: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_DATABASE: intel_view
       # The API image sets NODE_ENV=production, where schema auto-sync is off
       # by default (TD-0.6) — an unconditional sync rewrites the live schema on
       # every boot. This stack opts back in explicitly because no baseline
       # migration exists yet, so it is the only way to create the tables on a
       # fresh volume. Remove this line once TD-4.1 lands and migrations run.
-      DB_SYNCHRONIZE: 'true'
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/intel_view
-      MINIO_ENDPOINT: minio
-      MINIO_PORT: 9000
-      MINIO_USE_SSL: 'false'
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      MINIO_BUCKET: intel-view-files
+       DB_SYNCHRONIZE: 'true'
+       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/intel_view
+       MINIO_ENDPOINT: minio
+       MINIO_PORT: 9000
+       MINIO_USE_SSL: 'false'
+       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+       MINIO_BUCKET: intel-view-files
     ports:
       - '4010:4010'
     healthcheck:
