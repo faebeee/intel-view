@@ -1,4 +1,4 @@
-import { HttpException, Inject, Injectable } from '@nestjs/common';
+import { HttpException, Inject, Injectable, Logger } from '@nestjs/common';
 import type { Note, NoteType } from '../note/entities/note.entity';
 import type { NotePlugin } from './plugin.interface';
 import { formatCommand, NOTE_PLUGIN } from './plugin.interface';
@@ -11,6 +11,8 @@ import { formatCommand, NOTE_PLUGIN } from './plugin.interface';
  */
 @Injectable()
 export class PluginRegistryService {
+  private readonly logger = new Logger(PluginRegistryService.name);
+
   constructor(@Inject(NOTE_PLUGIN) private readonly plugins: NotePlugin[]) {}
 
   /** Returns the plugins applicable to the given note type. */
@@ -52,6 +54,7 @@ export class PluginRegistryService {
    */
   async execute(note: Note, plugin: NotePlugin): Promise<string> {
     const argv = plugin.getCommand(note);
+    this.logger.log(`Executing plugin ${plugin.id} for note ${note.id}`);
 
     try {
       return await plugin.execute(argv);
@@ -69,6 +72,7 @@ export class PluginRegistryService {
    * `NotFoundException` if no such applicable plugin exists.
    */
   async preview(plugin: NotePlugin, note: Note): Promise<string> {
+    this.logger.log(`Previewing plugin ${plugin.id} for note ${note.id}`);
     return plugin.preview(note);
   }
 }

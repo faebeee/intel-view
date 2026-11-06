@@ -12,7 +12,7 @@ export class NmapServiceScanPlugin implements NotePlugin {
   noteTypes = ['ip'];
   executable = true;
 
-  constructor(private commandContainer: CommandContainer) {}
+  constructor(private commandContainer: CommandContainer) { }
 
   /**
    * The preview returns the display form of the command that will be run.
@@ -33,7 +33,7 @@ export class NmapServiceScanPlugin implements NotePlugin {
    * validate the note content as an IP first (see `assertExecutableNote`).
    */
   getCommand(note: Note): string[] {
-    return ['nmap', '-sV', '-p-', note.content.trim()];
+    return ['nmap', '-sV', note.content.trim()];
   }
 
   /**

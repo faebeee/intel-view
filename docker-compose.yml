@@ -85,7 +85,6 @@ services:
     restart: always
     cap_add:
       - NET_RAW
-    mem_limit: 512m
     pids_limit: 100
     networks:
       - kali-net

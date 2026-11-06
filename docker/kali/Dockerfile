@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd -r kaliuser && useradd -r -g kaliuser kaliuser \
-    && setcap cap_net_raw+ep /usr/bin/nmap
+    && setcap cap_net_raw+ep /usr/lib/nmap/nmap
 
 USER kaliuser
 
