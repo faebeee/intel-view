@@ -278,7 +278,7 @@ Options:
 - **Do:** `${POSTGRES_PASSWORD:?}` style required vars; `expose:` instead of `ports:` for `db`
   and the MinIO console.
 
-### TD-0.10 — Fix trailing-space bug in compose build args `[ ]`
+### TD-0.10 — Fix trailing-space bug in compose build args `[x]`
 
 - **File:** `docker-compose.yml`
 - **Why:** `VITE_API_URL: http://intel.local:4010 ` and `VITE_SDK_URL: http://api:4010 ` have
@@ -1019,6 +1019,7 @@ Append one row per session. Keep it terse; the checkboxes carry the detail.
 | 2026-11-05 | Bound and neuter uploads | TD-0.7 | Size limit + MIME allowlist, both env-driven; 413/415 proven over real HTTP. Scope extended to the download side after finding that `GET /:id/file` served the client-declared type `inline` — uploading `text/html` was stored XSS on the API origin. Now `attachment` + `nosniff` for everything except raster images, plus `Content-Disposition` header-injection fixed. New task TD-0.15 raised (unsanitised storage-key extension). `eslint --fix` also cleaned 41 pre-existing formatting errors in `note.entity.ts`: API ESLint 41→0. |
 | 2026-11-05 | Secure compose secrets | TD-0.9 | Replaced hardcoded Postgres/MinIO passwords with required env vars (`:?`). Unpublished DB port (now `expose`) and MinIO console port (9001). Updated `api` service to use these vars. |
 | 2026-11-05 | Clean up CORS | TD-0.8 | Removed hardcoded LAN IPs from CORS allowlist; now derives from comma-separated `APP_URL` with a localhost fallback. |
+| 2026-11-06 | Fix compose build args | TD-0.10 | Removed trailing spaces from VITE_API_URL and VITE_SDK_URL in docker-compose.yml. |
 | 2026-11-05 | Tracker reconciliation | TD-1.7 | Re-measured every §2 metric against the repo rather than trusting prior edits. Marked TD-1.7 done (closed as a side effect of TD-1.3). Corrected the Phase 0 denominator for TD-0.15, and the ESLint/Biome metric commands, which did not run from the repo root. Flagged two metrics as untrustworthy: Web TS errors (fell 6→2 only because the gitignored SDK was regenerated — TD-1.4/TD-1.6 are *not* fixed) and API LOC (rising because Phase 0 adds tests; now tracked as a test/non-test split). **No source changed.** |
 
 ---
