@@ -73,6 +73,9 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+    networks:
+      - default
+      - kali-net
 
   kali:
     build:
@@ -82,6 +85,10 @@ services:
     restart: always
     cap_add:
       - NET_RAW
+    mem_limit: 512m
+    pids_limit: 100
+    networks:
+      - kali-net
     command: tail -f /dev/null
 
   web:
@@ -105,3 +112,7 @@ services:
 volumes:
   postgres_data:
   minio_data:
+
+networks:
+  default:
+  kali-net:
