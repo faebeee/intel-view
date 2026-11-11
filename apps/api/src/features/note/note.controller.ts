@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Header,
   NotFoundException,
   BadRequestException,
   ParseIntPipe,
@@ -24,6 +25,11 @@ import {
 import { Paginate, Paginated, ApiPaginationQuery } from 'nestjs-paginate';
 import type { PaginateQuery } from 'nestjs-paginate';
 import { NoteService, notePaginateConfig } from './note.service';
+import { resolveDownloadHeaders } from './download.config';
+import {
+  buildUploadInterceptorOptions,
+  getMaxUploadBytes,
+} from './upload.config';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { AddNoteParentDto } from './dto/add-note-parent.dto';
@@ -292,7 +298,7 @@ export class NoteController {
   }
 
   @Post(':id/file')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', buildUploadInterceptorOptions()))
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     description: 'The file to attach to the note.',
@@ -318,6 +324,14 @@ export class NoteController {
     status: 400,
     description: "No file provided, or note is not of type 'file'.",
   })
+  @ApiResponse({
+    status: 413,
+    description: `The file exceeds the maximum upload size (${getMaxUploadBytes()} bytes).`,
+  })
+  @ApiResponse({
+    status: 415,
+    description: "The file's MIME type is not accepted.",
+  })
   async uploadFile(
     @Param('projectId', ParseIntPipe) projectId: number,
     @Param('id', ParseIntPipe) id: number,
@@ -342,14 +356,22 @@ export class NoteController {
     status: 404,
     description: 'Note not found, or it has no file attached.',
   })
+  // Stop the browser second-guessing the declared type. Without this, a file
+  // served as `application/octet-stream` can still be sniffed as HTML and
+  // executed on the API origin.
+  @Header('X-Content-Type-Options', 'nosniff')
   async downloadFile(
     @Param('projectId', ParseIntPipe) projectId: number,
     @Param('id', ParseIntPipe) id: number,
   ): Promise<StreamableFile> {
     const file = await this.noteService.downloadFile(projectId, id);
+    const { type, disposition } = resolveDownloadHeaders(
+      file.mimeType,
+      file.fileName,
+    );
     return new StreamableFile(file.stream, {
-      type: file.mimeType,
-      disposition: `inline; filename="${encodeURIComponent(file.fileName)}"`,
+      type,
+      disposition,
       length: file.size ?? undefined,
     });
   }

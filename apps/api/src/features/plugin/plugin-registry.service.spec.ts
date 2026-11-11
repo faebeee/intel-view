@@ -1,48 +1,60 @@
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import type { Note } from '../note/entities/note.entity';
 import { PluginRegistryService } from './plugin-registry.service';
-import { NOTE_PLUGIN } from './plugin.interface';
 import type { NotePlugin } from './plugin.interface';
-import type { NoteResponseDto } from '../note/dto/note-response.dto';
+import { formatCommand, NOTE_PLUGIN } from './plugin.interface';
 
 describe('PluginRegistryService', () => {
   let service: PluginRegistryService;
 
-  const urlPluginExecute = jest.fn().mockReturnValue('fetch snippet result');
+  const urlPluginPreview = jest.fn().mockReturnValue('fetch snippet result');
+  const urlPluginExecute = jest.fn().mockResolvedValue('scan output');
+  const urlPluginGetCommand = jest
+    .fn()
+    .mockReturnValue(['curl', '-sS', 'https://example.com']);
   const urlPlugin: NotePlugin = {
     id: 'url-fetch-snippet',
     label: 'Generate fetch snippet',
     noteTypes: ['url'],
-    preview: urlPluginExecute,
+    noteType: 'command',
+    executable: true,
+    preview: urlPluginPreview,
+    execute: urlPluginExecute,
+    getCommand: urlPluginGetCommand,
   };
   const standardPlugin: NotePlugin = {
     id: 'standard-only',
     label: 'Standard only plugin',
     noteTypes: ['standard'],
+    noteType: 'standard',
+    executable: false,
     preview: jest.fn().mockReturnValue('standard result'),
+    execute: jest.fn().mockResolvedValue(''),
+    getCommand: jest.fn().mockReturnValue(['true']),
   };
 
-  const makeNote = (
-    overrides: Partial<NoteResponseDto> = {},
-  ): NoteResponseDto => ({
-    id: 1,
-    projectId: 1,
-    type: 'url',
-    title: 'Example',
-    content: 'https://example.com',
-    tags: [],
-    color: null,
-    parentIds: [],
-    childIds: [],
-    canvasX: null,
-    canvasY: null,
-    fileName: null,
-    fileMimeType: null,
-    fileSize: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    ...overrides,
-  });
+  const makeNote = (overrides: Partial<Note> = {}): Note =>
+    ({
+      id: 1,
+      projectId: 1,
+      type: 'url',
+      title: 'Example',
+      content: 'https://example.com',
+      tags: [],
+      color: null,
+      parentIds: [],
+      childIds: [],
+      canvasX: null,
+      canvasY: null,
+      fileKey: null,
+      fileName: null,
+      fileMimeType: null,
+      fileSize: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      ...overrides,
+    }) as Note;
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -68,26 +80,108 @@ describe('PluginRegistryService', () => {
     });
   });
 
+  describe('getPlugin', () => {
+    it('returns the plugin with the given id', () => {
+      expect(service.getPlugin('url-fetch-snippet')).toBe(urlPlugin);
+    });
+
+    it('returns undefined when no plugin has that id', () => {
+      expect(service.getPlugin('nonexistent')).toBeUndefined();
+    });
+  });
+
+  describe('getCommand', () => {
+    it('returns the plugin argv array', () => {
+      const note = makeNote();
+      expect(service.getCommand(urlPlugin, note)).toEqual([
+        'curl',
+        '-sS',
+        'https://example.com',
+      ]);
+      expect(urlPluginGetCommand).toHaveBeenCalledWith(note);
+    });
+  });
+
+  describe('getCommandString', () => {
+    it('renders the argv array for display', () => {
+      expect(service.getCommandString(urlPlugin, makeNote())).toBe(
+        'curl -sS https://example.com',
+      );
+    });
+
+    it('quotes elements containing shell metacharacters', () => {
+      urlPluginGetCommand.mockReturnValueOnce([
+        'curl',
+        'https://example.com; rm -rf /',
+      ]);
+
+      expect(service.getCommandString(urlPlugin, makeNote())).toBe(
+        "curl 'https://example.com; rm -rf /'",
+      );
+    });
+  });
+
   describe('preview', () => {
-    it('executes the matching plugin and returns its result', async () => {
+    it('previews the given plugin and returns its result', async () => {
       const note = makeNote();
-      const result = await service.preview('url-fetch-snippet', note);
+      const result = await service.preview(urlPlugin, note);
       expect(result).toBe('fetch snippet result');
-      expect(urlPluginExecute).toHaveBeenCalledWith(note);
+      expect(urlPluginPreview).toHaveBeenCalledWith(note);
     });
+  });
 
-    it('throws NotFoundException if the plugin id does not exist', async () => {
+  describe('execute', () => {
+    it('passes the argv array to the plugin and returns its output', async () => {
       const note = makeNote();
-      await expect(service.preview('nonexistent', note)).rejects.toThrow(
-        NotFoundException,
+
+      await expect(service.execute(note, urlPlugin)).resolves.toBe(
+        'scan output',
       );
+      expect(urlPluginExecute).toHaveBeenCalledWith([
+        'curl',
+        '-sS',
+        'https://example.com',
+      ]);
     });
 
-    it('throws NotFoundException if the plugin exists but is not applicable to the note type', async () => {
-      const note = makeNote({ type: 'standard' });
-      await expect(service.preview('url-fetch-snippet', note)).rejects.toThrow(
-        NotFoundException,
+    it('reports a failed command as content rather than throwing', async () => {
+      urlPluginExecute.mockRejectedValueOnce(new Error('exit status 1'));
+
+      const result = await service.execute(makeNote(), urlPlugin);
+
+      expect(result).toContain("Command 'curl -sS https://example.com' failed");
+      expect(result).toContain('exit status 1');
+    });
+
+    it('rethrows infrastructure faults instead of persisting them as content', async () => {
+      urlPluginExecute.mockRejectedValueOnce(
+        new ServiceUnavailableException('runtime unavailable'),
+      );
+
+      await expect(service.execute(makeNote(), urlPlugin)).rejects.toThrow(
+        ServiceUnavailableException,
       );
     });
+  });
+});
+
+describe('formatCommand', () => {
+  it('leaves safe arguments unquoted', () => {
+    expect(formatCommand(['nmap', '-sV', '-p-', '1.1.1.1'])).toBe(
+      'nmap -sV -p- 1.1.1.1',
+    );
+  });
+
+  it('quotes arguments containing spaces or metacharacters', () => {
+    expect(formatCommand(['echo', 'hello world'])).toBe("echo 'hello world'");
+    expect(formatCommand(['echo', '$(id)'])).toBe("echo '$(id)'");
+  });
+
+  it('escapes embedded single quotes', () => {
+    expect(formatCommand(['echo', "it's"])).toBe("echo 'it'\\''s'");
+  });
+
+  it('renders an empty argv as an empty string', () => {
+    expect(formatCommand([])).toBe('');
   });
 });

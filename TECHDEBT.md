@@ -23,7 +23,28 @@
 | `[-]` | Dropped — must state why |
 | `[!]` | Blocked — must link to an entry in [§4 Open Decisions](#4-open-decisions) |
 
-**Audit date:** 2026-11-05 · **Baseline commit:** `4cd887a` · **Total tasks:** 104
+**Audit date:** 2026-11-05 · **Baseline commit:** `4cd887a` · **Total tasks:** 105
+
+### Completed so far
+
+| Task | Phase | Landed | One-line outcome |
+|---|---|---|---|
+| **TD-0.1** | 0 | `d20e2ef` | `execFile` + argv array — unauthenticated RCE closed, proven by reproducing the old behaviour. |
+| **TD-0.2** | 0 | `d20e2ef` | `getCommand(): string[]`, `execute(argv)`, `formatCommand()` for display. |
+| **TD-0.3** | 0 | `d20e2ef` | `assertExecutableNote` rejects non-IP content — stops nmap flag injection. |
+| **TD-0.4** | 0 | `d20e2ef` | `command-container.service.spec.ts` + validator and nmap plugin specs. |
+| **TD-0.6** | 0 | `7a5d5ab` | `synchronize` off in production; `DB_SYNCHRONIZE` opt-in until TD-4.1. |
+| **TD-0.7** | 0 | working tree | Upload size/MIME limits **and** the download-side stored XSS they depended on. |
+| **TD-1.3** | 1 | `d20e2ef` | Plugin registry spec rewritten — the only 5 API TS errors. |
+| **TD-1.7** | 1 | `d20e2ef` | The only 6 failing API tests, both causes in those same specs. |
+
+Net effect on the gates: **API TS errors 5 → 0**, **API failing tests 6 → 0**,
+**API ESLint errors 46 → 0**. Phase 0 is not yet closed — its gate also requires
+`npm audit` clean (**TD-0.14**, untouched).
+
+Two Phase 0 items are not startable or not fixed: **TD-0.5** is blocked on
+[OD-1](#od-1--container-socket-access-for-the-plugin-runner-open), and **TD-0.15** was
+raised during TD-0.7.
 
 ---
 
@@ -31,33 +52,52 @@
 
 | Phase | Theme | Done | Est. | Status |
 |---|---|---|---|---|
-| [0](#phase-0--stop-the-bleeding) | Stop the bleeding | 0/14 | 1–2d | `[ ]` |
-| [1](#phase-1--restore-the-safety-net) | Restore the safety net | 0/19 | 2–3d | `[ ]` |
+| [0](#phase-0--stop-the-bleeding) | Stop the bleeding | 6/15 | 1–2d | `[~]` |
+| [1](#phase-1--restore-the-safety-net) | Restore the safety net | 2/19 | 2–3d | `[~]` |
 | [2](#phase-2--fix-what-users-see) | Fix what users see | 0/9 | 2–3d | `[ ]` |
 | [3](#phase-3--auth) | Auth | 0/10 | 3d | `[ ]` |
 | [4](#phase-4--data-integrity) | Data integrity | 0/13 | 3–4d | `[ ]` |
 | [5](#phase-5--cleanup) | Cleanup | 0/18 | 2–3d | `[ ]` |
 | [6](#phase-6--refactor) | Refactor | 0/21 | ongoing | `[ ]` |
-| | **Total** | **0/104** | **4–6w** | |
+| | **Total** | **8/105** | **4–6w** | |
 
 ### Tracked metrics
 
-Re-measure at the end of each phase. Commands run from the repo root.
+Re-measure at the end of each phase. Commands run from the repo root unless noted.
+
+**Last measured:** 2026-11-05, after TD-0.7.
 
 | Metric | Baseline | Current | Target | Command |
 |---|---|---|---|---|
 | npm critical vulns | 11 | 11 | 0 | `npm audit` |
 | npm high vulns | 25 | 25 | 0 | `npm audit` |
-| API TS errors | 5 | 5 | 0 | `npx tsc --noEmit -p apps/api/tsconfig.json` |
-| Web TS errors | 6 | 6 | 0 | `npx tsc --noEmit -p apps/web/tsconfig.json` |
-| API failing tests | 6 | 6 | 0 | `npm test --workspace=api` |
-| API ESLint errors | 46 | 46 | 0 | `npx eslint "apps/api/src/**/*.ts"` |
-| Web Biome diagnostics | 87 | 87 | <10 | `npx biome lint apps/web/src` |
+| API TS errors | 5 | **0** | 0 | `npx tsc --noEmit -p apps/api/tsconfig.json` |
+| Web TS errors | 6 | 2 ⚠ | 0 | `npx tsc --noEmit -p apps/web/tsconfig.json` |
+| API failing tests | 6 | **0** | 0 | `npm test --workspace=api` |
+| API ESLint errors | 46 | **0** | 0 | `cd apps/api && npx eslint "src/**/*.ts"` |
+| Web Biome diagnostics | 87 | 87 | <10 | `cd apps/web && npx biome lint src` |
 | Packages with `check-types` | 1/5 | 1/5 | 5/5 | `npx turbo run check-types --dry=json` |
-| Dead `components/ui` files | 43 | 43 | 0 | see [TD-5.1](#td-51--delete-43-unused-componentsui-files--) |
-| Hardcoded UI strings | ~228 | ~228 | 0 | see [TD-6.12](#td-612--migrate-228-hardcoded-strings-to-paraglide--) |
-| Web LOC (excl. generated) | 17016 | 17016 | ~11000 | `find apps/web/src -name '*.ts*' \| grep -v paraglide \| grep -v routeTree.gen \| xargs wc -l` |
-| API LOC | 8751 | 8751 | ~7500 | `find apps/api/src -name '*.ts' \| xargs wc -l` |
+| Dead `components/ui` files | 49/66 | 49/66 | 0 | see **TD-5.1** |
+| Hardcoded UI strings | ~228 | ~228 | 0 | see **TD-6.12** |
+| Web LOC (excl. generated) | 17016 | 17016 | ~10800 | `find apps/web/src -name '*.ts*' \| grep -v paraglide \| grep -v routeTree.gen \| xargs wc -l` |
+| API LOC | 8751 | 10388 ⚠ | ~7500 | `find apps/api/src -name '*.ts' \| xargs wc -l` |
+
+**⚠ Web TS errors — do not trust this number.** It dropped 6 → 2 without anyone fixing the
+source. `packages/sdk/client/` is gitignored and was regenerated locally on 2026-11-05,
+which silently resolved **TD-1.4** and **TD-1.6**; a fresh clone still fails. This metric is
+only meaningful once [D-2](#3-locked-decisions) is implemented (commit an `openapi.json`
+snapshot, generate from it). The 2 remaining are TD-1.5 and a new unused-variable error in
+`NotePluginsPanel.tsx:128`.
+
+**⚠ API LOC — expect this to rise before it falls.** 8751 → 10388 is 5423 → 5881 non-test
+(+458, the Phase 0 hardening) and 3328 → 4507 test (+1179). The ~7500 target is a Phase 5/6
+outcome; adding the missing test coverage that Phase 0/1 demands moves it the other way
+first. Tracking the split avoids reading this as a regression.
+
+**Commands corrected 2026-11-05:** the ESLint and Biome rows previously specified
+repo-root invocations that do not work — `npx eslint` from the root fails with
+"couldn't find eslint.config", and `npx biome lint apps/web/src` fails with "nested root
+configuration". Both now run from their workspace.
 
 ---
 
@@ -81,7 +121,7 @@ Settled 2026-11-05. Do not re-litigate without recording a new entry in §6.
 
 ### OD-1 — Container socket access for the plugin runner `[open]`
 
-**Blocks:** [TD-0.5](#td-05--switch-podman--docker-behind-container_runtime-env--)
+**Blocks:** **TD-0.5**
 
 The plugin feature shells into a sibling container. The API container has no container
 runtime binary and no socket mounted, so the feature cannot work under `docker-compose`
@@ -103,7 +143,7 @@ Options:
 **Goal:** nothing remotely exploitable remains.
 **Gate:** `npm audit` reports zero critical/high, and a test proves the shell injection is closed.
 
-### TD-0.1 — Replace `exec` with `execFile` in the command container `[ ]`
+### TD-0.1 — Replace `exec` with `execFile` in the command container `[x]`
 
 - **File:** `apps/api/src/features/plugin/command-container.service.ts:11`
 - **Why:** `` execPromise(`podman exec intel-view-kali ${command}`) `` spawns `/bin/sh -c`.
@@ -111,8 +151,14 @@ Options:
   fully user-controlled via `POST /projects/:id/notes`. This is unauthenticated RCE.
 - **Do:** `execFile(runtime, ['exec', 'intel-view-kali', ...argv])` — no shell, no interpolation.
 - **Verify:** a note with content `1.1.1.1; touch /tmp/pwned` does not create `/tmp/pwned`.
+- **Done (2026-11-05):** `execFile(CONTAINER_RUNTIME, ['exec', CONTAINER_NAME, ...argv], …)` in
+  callback form (keeps it mockable without `promisify.custom`). Also added `timeout` and a
+  16 MiB `maxBuffer` — Node's 1 MiB default truncates a full-port scan — an empty-argv guard,
+  and an `ENOENT` → `ServiceUnavailableException` branch, since under `docker-compose` the API
+  container has no `podman` binary. Verified against the old code side by side: `exec` with
+  interpolation creates `/tmp/pwned`, `execFile` with argv does not.
 
-### TD-0.2 — Change `NotePlugin.getCommand()` to return `string[]` `[ ]`
+### TD-0.2 — Change `NotePlugin.getCommand()` to return `string[]` `[x]`
 
 - **Files:** `apps/api/src/features/plugin/plugin.interface.ts:25`,
   `plugins/nmap-service-scan/nmap-service-scan.plugin.ts:22`,
@@ -120,18 +166,36 @@ Options:
 - **Why:** required by TD-0.1. The interface doc comment already says implementations
   "MUST sanitize" — no implementation does.
 - **Verify:** `npx tsc --noEmit -p apps/api/tsconfig.json`
+- **Done (2026-11-05):** `getCommand(note): string[]` and `execute(argv: string[])`. Added
+  `formatCommand(argv)` in `plugin.interface.ts` for display-only rendering (shell-quoting
+  unsafe elements) plus `PluginRegistryService.getCommandString()`; note titles and the
+  `command` response use that. `PluginCommandResponseDto.command` deliberately stays a
+  `string` — the web app never reads it (`pluginControllerGetCommand` has zero call sites),
+  so there is no wire-format break and no SDK regeneration needed.
+  `NmapServiceScanPlugin.preview()` is now derived from `getCommand()` so the previewed and
+  executed commands cannot drift.
 
-### TD-0.3 — Validate note content as an IP before plugin execution `[ ]`
+### TD-0.3 — Validate note content as an IP before plugin execution `[x]`
 
 - **File:** `apps/api/src/features/plugin/plugin.controller.ts`
 - **Do:** `node:net.isIP()` guard; reject with `BadRequestException` on failure.
 - **Why:** defence in depth behind TD-0.1 — the argv array stops shell metacharacters,
   this stops nmap flag injection (`--script`, `-oN /etc/cron.d/x`).
+- **Done (2026-11-05):** extracted to `executable-note.validator.ts` and called from
+  `executeAndCreate`. Keyed on `note.type === 'ip'` rather than on the plugin: the controller
+  is generic and cannot know a given plugin wants an IP, while every current plugin declares
+  `noteTypes: ['ip']`. Note types without a registered validator pass through.
 
-### TD-0.4 — Add `command-container.service.spec.ts` `[ ]`
+### TD-0.4 — Add `command-container.service.spec.ts` `[x]`
 
 - **Why:** the single most dangerous file in the repo has no test.
 - **Cover:** metacharacter injection, flag injection, non-zero exit, empty output.
+- **Done (2026-11-05):** `command-container.service.spec.ts` (argv-not-string, `;`/`$()`/
+  backticks/pipe/newline/`&&` passed verbatim, no `shell` option, timeout + maxBuffer,
+  stdout/stderr/empty fallbacks, non-zero exit, `ENOENT`, empty argv). Flag injection is
+  asserted where the guard actually lives: `executable-note.validator.spec.ts` and the
+  400-response cases in `plugin.controller.spec.ts`. Also added
+  `nmap-service-scan.plugin.spec.ts`, since `execute()` is newly live code.
 
 ### TD-0.5 — Switch `podman` → `docker` behind `CONTAINER_RUNTIME` env `[!]`
 
@@ -139,7 +203,7 @@ Options:
 - **Blocked by:** [OD-1](#od-1--container-socket-access-for-the-plugin-runner-open)
 - **Why:** `podman` is hardcoded while `docker-compose.yml` is Docker-based.
 
-### TD-0.6 — Gate `synchronize` on `NODE_ENV` `[ ]`
+### TD-0.6 — Gate `synchronize` on `NODE_ENV` `[x]`
 
 - **File:** `apps/api/src/app.module.ts:40`
 - **Why:** `synchronize: true` is unconditional and `apps/api/Dockerfile` sets
@@ -147,23 +211,66 @@ Options:
   `features/database/datasource.ts:13` already correctly sets `false` — the two
   connection mechanisms contradict each other.
 - **Do:** `synchronize: process.env.NODE_ENV !== 'production'` plus `migrationsRun: true`.
+- **Done (2026-11-05), partially — `migrationsRun` deliberately NOT enabled.** Extracted
+  `buildTypeOrmOptions()` / `shouldSynchronize()` into
+  `features/database/typeorm.config.ts` (unit-tested) and reduced `app.module.ts` to
+  `TypeOrmModule.forRoot(buildTypeOrmOptions())`. `synchronize` now defaults to
+  `NODE_ENV !== 'production'`.
+- **Why `migrationsRun: true` was dropped from this task:** it would take production down
+  rather than protect it. The five existing migrations are decorative `ALTER`s that assume
+  the base tables already exist (TD-4.1), so on boot they fail against a fresh database
+  (no `note` table), *and* against an existing `synchronize`-built one —
+  `RenameProjectGroupToProjectFolder` renames `project_group`, which never exists in a
+  schema that `synchronize` built from today's entities. The `migrations` glob *is* now
+  configured, so TD-4.1 only has to flip the flag.
+- **`DB_SYNCHRONIZE` escape hatch:** turning sync off in production with no baseline
+  migration means a fresh production database gets no schema at all. `DB_SYNCHRONIZE`
+  (explicit `true`/`false`, anything else ignored so a typo cannot silently disable it)
+  lets an operator opt back in deliberately. `docker-compose.yml` sets it to `'true'` with
+  a comment, since the API image runs `NODE_ENV=production` and the stack would otherwise
+  come up against empty tables. **Remove both once TD-4.1 lands.**
+- **Follow-up for TD-0.12:** `DB_SYNCHRONIZE` must be documented in the `.env.example` files.
 
-### TD-0.7 — Add upload size limit and MIME allowlist `[ ]`
+### TD-0.7 — Add upload size limit and MIME allowlist `[x]`
 
 - **File:** `apps/api/src/features/note/note.controller.ts:295`
 - **Why:** `FileInterceptor('file')` has no `limits`. Multer buffers the entire file in
   memory (`note.service.ts:70-75`), and `note.entity.ts:148` uses `bigint` for file size
   explicitly so ">2 GB is representable". Trivial OOM DoS.
 - **Do:** `FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_BYTES } })`, env-driven.
+- **Done (2026-11-05):** `features/note/upload.config.ts` — `MAX_UPLOAD_BYTES` (default
+  25 MiB) and `UPLOAD_MIME_ALLOWLIST` (comma-separated, supports `type/*`, and `*` as an
+  explicit opt-out). Also caps `limits.files`/`limits.fields` so a multipart body cannot
+  smuggle in unbounded extra parts. Unparseable env values fall back to the default rather
+  than to "unlimited". Verified over real HTTP in
+  `note.upload.integration.spec.ts`: **413** for an oversized upload, **415** for a
+  non-allowlisted type, and in both cases `NoteService.uploadFile` is never reached, so
+  nothing is buffered.
+- **Default allowlist:** tuned for pentest evidence (images, reports, text, archives,
+  pcaps, `application/octet-stream`) and deliberately omits `text/html`, `image/svg+xml`,
+  `application/xhtml+xml` and the JavaScript types.
+- **Scope extended — the allowlist alone was not a fix.** `file.mimetype` is just the
+  client's `Content-Type` header, so an allowlist on it is advisory. What made the type
+  dangerous was the *download* side: `GET /:id/file` served the stored type with
+  `disposition: inline`, so uploading `evil.html` as `text/html` was **stored XSS on the
+  API origin**. `features/note/download.config.ts` now serves `attachment` for everything
+  except raster images (SVG excluded), and the route sets
+  `X-Content-Type-Options: nosniff`. Images stay `inline` because `NoteFileEditorPane`
+  renders them in an `<img>` tag.
+- **Also fixed here:** the `Content-Disposition` filename was interpolated raw, so a
+  filename containing CR/LF could inject response headers. It is now sanitised for the
+  quoted `filename` and percent-encoded into an RFC 5987 `filename*`.
+- **Follow-up for TD-0.12:** `MAX_UPLOAD_BYTES` and `UPLOAD_MIME_ALLOWLIST` need
+  documenting in the `.env.example` files.
 
-### TD-0.8 — Remove hardcoded LAN IP from the CORS allowlist `[ ]`
+### TD-0.8 — Remove hardcoded LAN IP from the CORS allowlist `[x]`
 
 - **File:** `apps/api/src/main.ts:20-26`
 - **Why:** `'http://192.168.50.15:4000'` (a developer's LAN machine) and `'http://intel.local:4000'`
   are permanently allowlisted with `credentials: true`.
 - **Do:** derive from `APP_URL`, comma-separated.
 
-### TD-0.9 — Require secrets in compose; unpublish DB and MinIO console ports `[ ]`
+### TD-0.9 — Require secrets in compose; unpublish DB and MinIO console ports `[x]`
 
 - **File:** `docker-compose.yml`
 - **Why:** `postgres:postgres` and `minioadmin:minioadmin` are hardcoded, and
@@ -171,13 +278,13 @@ Options:
 - **Do:** `${POSTGRES_PASSWORD:?}` style required vars; `expose:` instead of `ports:` for `db`
   and the MinIO console.
 
-### TD-0.10 — Fix trailing-space bug in compose build args `[ ]`
+### TD-0.10 — Fix trailing-space bug in compose build args `[x]`
 
 - **File:** `docker-compose.yml`
 - **Why:** `VITE_API_URL: http://intel.local:4010 ` and `VITE_SDK_URL: http://api:4010 ` have
   a trailing space baked into the URL string. Live bug, not cosmetic.
 
-### TD-0.11 — Pin Kali image by digest; add `user:` and resource limits `[ ]`
+### TD-0.11 — Pin Kali image by digest; add `user:` and resource limits `[x]`
 
 - **Files:** `docker/kali/Dockerfile`, `docker-compose.yml`
 - **Why:** `FROM kalilinux/kali-rolling` is completely unpinned (no tag, no digest) on a
@@ -199,7 +306,7 @@ Options:
 - **Files:** `apps/api/src/main.ts:38-41`, `apps/api/src/app.module.ts:25-29`
 - **Why:** exposes 20 unauthenticated CRUD tools. See [D-6](#3-locked-decisions).
 - **Do:** unregister the transport and module only. Leave the four MCP controllers in-tree.
-  Re-enable decision deferred to [TD-6.5](#td-65--decide-the-fate-of-the-mcp-controller-layer--).
+  Re-enable decision deferred to **TD-6.5**.
 
 ### TD-0.14 — Resolve 11 critical and 25 high vulnerabilities `[ ]`
 
@@ -208,6 +315,17 @@ Options:
   `tar`, `shell-quote`, `handlebars`, `proxy-addr`, and three MCP packages.
 - **Note:** TanStack majors will break. Budget time; do not rush this one.
 - **Verify:** `npm audit --audit-level=high` exits 0.
+
+### TD-0.15 — Sanitise the file extension used to build the storage key `[ ]`
+
+- **File:** `apps/api/src/features/storage/storage.service.ts:65-74`
+- **Why:** `buildNoteFileKey` derives the object key's extension with
+  `fileName.split('.').pop()` and does not validate it, so an upload named
+  `a.foo/../../evil` yields the key `projects/1/notes/1/<ts>.foo/../../evil` — the
+  attacker controls the key's path segments, not just its suffix. The filename itself is
+  never used as a path segment, which is why this is contained, but the extension should be
+  constrained to something like `[A-Za-z0-9]{1,10}` and dropped otherwise.
+- **Found:** 2026-11-05 while doing TD-0.7. Not fixed there — out of that task's scope.
 
 ---
 
@@ -231,17 +349,29 @@ and CI enforces it.
 - **Why:** same — the root `npm run check-types` currently validates only
   `packages/sdk/src/index.ts`, about 15 lines of re-exports, and exits 0.
 
-### TD-1.3 — Fix 5 TS errors in `plugin-registry.service.spec.ts` `[ ]`
+### TD-1.3 — Fix 5 TS errors in `plugin-registry.service.spec.ts` `[x]`
 
 - **File:** `apps/api/src/features/plugin/plugin-registry.service.spec.ts:12,18,74,81,88`
 - **Why:** mock objects are missing `noteType`/`executable`/`execute`/`getCommand` (TS2739);
   calls use the old `preview(id, note)` signature instead of `preview(plugin, note)` (TS2345).
+- **Done (2026-11-05), out of order.** Pulled forward from Phase 1 because TD-0.2 rewrites the
+  very interface this spec mocks, which would have made it worse, and TD-0.2's own `Verify`
+  command is meaningless while it fails. The spec's `NotFoundException` assertions moved to
+  `plugin.controller.spec.ts`, which is where plugin resolution now happens. Also removed the
+  unused `NoteService` injection from `PluginRegistryService` — it was the reason the spec's
+  testing module failed to resolve at runtime.
 
 ### TD-1.4 — Fix `ProjectPhase` missing `"completed"` `[ ]`
 
 - **File:** `apps/web/src/features/projects/phases.ts:52,72`
 - **Why:** TS2322/TS2353. The API added a `completed` phase (commit `006012e`); the SDK
   and frontend union were never updated.
+- **Status check 2026-11-05: no longer reproduces locally, but NOT fixed.**
+  `packages/sdk/client/types.gen.ts` was regenerated on 2026-11-05 and now contains
+  `'completed'` in the `phase` union, so `tsc` passes here. That artifact is gitignored,
+  so a fresh clone regenerates against whatever the API is at that moment — the error
+  comes back if the API is not running, or is stale. Leave this open until
+  [D-2](#3-locked-decisions) / **TD-1.10** make SDK output reproducible.
 
 ### TD-1.5 — Fix `CreateInlineNotePayload.title` mismatch `[ ]`
 
@@ -254,13 +384,24 @@ and CI enforces it.
   `executable` not on `PluginResponseDto`), `:128` (TS6133, unused `result`)
 - **Depends on:** TD-1.10 (SDK regeneration)
 - **Why:** the plugin "Create Note" and "Execute & Create" buttons are dead code paths today.
+- **Status check 2026-11-05: partially stale, same caveat as TD-1.4.** After the local SDK
+  regeneration, `pluginControllerCreate` and `PluginResponseDto.executable` both exist, so
+  the TS2724 and TS2339 errors are gone. **The TS6133 unused `result` at
+  `NotePluginsPanel.tsx:128` is still live** — the component awaits
+  `executeAndCreateNote.mutateAsync(...)` and discards the created note. Keep open.
 
-### TD-1.7 — Fix 6 failing API tests `[ ]`
+### TD-1.7 — Fix 6 failing API tests `[x]`
 
 - **Files:** `plugin-registry.service.spec.ts:49` (DI fails — `NoteService` not provided to
   the testing module), `plugin.controller.spec.ts:13-16,90` (mock lacks `getPlugin`, which
   `plugin.controller.ts:174` calls)
 - **Verify:** `npm test --workspace=api`
+- **Done (2026-11-05), out of order, as a side effect of TD-1.3/TD-0.2.** Both root causes
+  were in the two plugin specs that the Phase 0 work rewrote: the `NoteService` DI failure
+  was fixed by deleting that injection from `PluginRegistryService` (it was never used),
+  and `getPlugin` was added to the controller spec's mock. Confirmed by stashing the Phase 0
+  changes and re-running: the baseline 6 failures were *all* in these two files.
+  `npm test --workspace=api` now reports 24 suites / 326 tests, 0 failing.
 
 ### TD-1.8 — Delete the stock `app.e2e-spec.ts` `[ ]`
 
@@ -441,7 +582,7 @@ documenting a scheme that does not exist. This is a from-scratch build.
 
 ### TD-3.2 — Add `User` + better-auth session tables via migration `[ ]`
 
-- **Why:** must be a real migration, not `synchronize`. Coordinate with [TD-4.1](#td-41--write-a-baseline-migration-for-all-7-tables--).
+- **Why:** must be a real migration, not `synchronize`. Coordinate with **TD-4.1**.
 
 ### TD-3.3 — Add a global `APP_GUARD` and a `@Public()` decorator `[ ]`
 
@@ -479,7 +620,13 @@ silently hide records.
   `note_history_entry`, `note_log_entry`, plus `note.canvasX`/`canvasY` and all four
   `file*` columns (`note.entity.ts:122-166`). A fresh DB can only be stood up via
   `synchronize`.
-- **Depends on:** TD-0.6
+- **Depends on:** TD-0.6 — **now the blocker for undoing TD-0.6's workarounds.** Until this
+  lands, `synchronize` is the only way to create a schema, so `docker-compose.yml` sets
+  `DB_SYNCHRONIZE: 'true'` and `migrationsRun` stays `false` in
+  `features/database/typeorm.config.ts`. When writing the baseline, it must be safe to
+  apply to an existing `synchronize`-built database (mark it as already applied, or guard
+  every `CREATE TABLE` with `IF NOT EXISTS`), and the four decorative migrations that
+  predate it must be ordered/guarded so they do not re-run against it.
 
 ### TD-4.2 — Wrap `NoteService.create` in a transaction `[ ]`
 
@@ -540,17 +687,24 @@ silently hide records.
 
 **Goal:** the lint signal is trustworthy and the dependency tree is reproducible.
 
-### TD-5.1 — Delete 43 unused `components/ui` files `[ ]`
+### TD-5.1 — Delete 49 unreachable `components/ui` files `[ ]`
 
-- **Why:** 43 of 66 files are never imported anywhere — 5,655 LOC, about 33% of the web
-  codebase, producing ~60 of the 87 Biome diagnostics. Largest offenders: `sidebar.tsx` (726),
+- **Why:** only **17 of 66** files are reachable from outside `components/ui/`. The rest are
+  dead, either directly or transitively (imported only by other dead files). **6,192 LOC,
+  ~36% of the web codebase**, producing ~60 of the 87 Biome diagnostics — your lint signal is
+  dominated by code you do not ship. Largest: `sidebar.tsx` (726, the biggest file in the app),
   `chart.tsx` (374), `menubar.tsx` (276), `dropdown-menu.tsx` (257), `field.tsx` (246),
   `carousel.tsx` (241), `calendar.tsx` (218), `data-table.tsx` (208).
-- **Keep:** `sonner.tsx` — [TD-2.1](#td-21--mount-toaster--in-the-root-route--) depends on it.
-- **Keep (23 in use):** alert-dialog, button, collapsible, combobox, context-menu, dialog,
-  form-field, input, input-group, label, loading-state, markdown, markdown-editor,
-  native-select, radio-group, resizable, separator, sheet, skeleton, tag-chip, textarea,
-  toggle, tooltip.
+- **Keep — the 17 reachable roots:** `alert-dialog`, `button`, `collapsible`, `combobox`,
+  `context-menu`, `dialog`, `form-field`, `input`, `loading-state`, `markdown`,
+  `markdown-editor`, `native-select`, `radio-group`, `resizable`, `tag-chip`, `textarea`,
+  `tooltip`.
+- **Also keep `sonner.tsx`** — currently unreachable, but
+  **TD-2.1** mounts it. Do that first.
+- **Verify:** re-run the reachability script in [§7](#7-appendix); dead count should be 0
+  (or 1 if TD-2.1 is still pending).
+- **Note:** delete iteratively — removing a file can orphan others. Re-run the script until
+  it stabilises.
 
 ### TD-5.2 — Remove Prettier from the root `[ ]`
 
@@ -720,7 +874,7 @@ opportunistically once Phases 0–5 are complete.
 - **Why:** ~700 lines duplicating the REST layer 1:1, including a re-declared note-type slug
   regex and its 400-word description in both `create-note.dto.ts:12,22` and
   `note-mcp.controller.ts:23,28`. These will drift.
-- **Depends on:** [TD-0.13](#td-013--disable-the-mcp-transport--) — currently disabled.
+- **Depends on:** **TD-0.13** — currently disabled.
 
 ### TD-6.6 — Add `@ApiResponse` types to the 4 paginated `findAll` endpoints `[ ]`
 
@@ -860,6 +1014,14 @@ Append one row per session. Keep it terse; the checkboxes carry the detail.
 | Date | Session focus | Tasks touched | Notes |
 |---|---|---|---|
 | 2026-11-05 | Full tech-debt audit | — | Audited api/web/infra. 7 decisions locked (§3), 1 open (§4). Tracker created. **No code changed.** |
+| 2026-11-05 | Close the shell injection | TD-0.1, TD-0.2, TD-0.3, TD-0.4, TD-1.3 | `execFile` + argv end to end. Injection proven closed (old `exec` path creates `/tmp/pwned`, new one does not). `NmapServiceScanPlugin.execute()` was a dead `throw` — wired to `CommandContainer`, so this change *creates* the live path and had to land hardened. TD-1.3 pulled forward: those 5 TS errors were all in the spec this work rewrites, and were the only API TS errors **and** the only 6 failing API tests. Metrics: API TS errors 5→0, API failing tests 6→0, API ESLint 46→41. `podman` still hardcoded (TD-0.5 blocked on OD-1). |
+| 2026-11-05 | Stop prod schema rewrites | TD-0.6 | `synchronize` now defaults off in production, via a tested `buildTypeOrmOptions()`. `migrationsRun: true` **not** enabled — the existing migrations assume base tables and would fail on boot against both a fresh and a `synchronize`-built schema, turning a data-loss risk into an outage. Added a `DB_SYNCHRONIZE` opt-in (set in `docker-compose.yml`) so a fresh database can still be created until TD-4.1. |
+| 2026-11-05 | Bound and neuter uploads | TD-0.7 | Size limit + MIME allowlist, both env-driven; 413/415 proven over real HTTP. Scope extended to the download side after finding that `GET /:id/file` served the client-declared type `inline` — uploading `text/html` was stored XSS on the API origin. Now `attachment` + `nosniff` for everything except raster images, plus `Content-Disposition` header-injection fixed. New task TD-0.15 raised (unsanitised storage-key extension). `eslint --fix` also cleaned 41 pre-existing formatting errors in `note.entity.ts`: API ESLint 41→0. |
+| 2026-11-05 | Secure compose secrets | TD-0.9 | Replaced hardcoded Postgres/MinIO passwords with required env vars (`:?`). Unpublished DB port (now `expose`) and MinIO console port (9001). Updated `api` service to use these vars. |
+| 2026-11-05 | Clean up CORS | TD-0.8 | Removed hardcoded LAN IPs from CORS allowlist; now derives from comma-separated `APP_URL` with a localhost fallback. |
+| 2026-11-06 | Harden Kali container | TD-0.11 | Pinned image digest, added non-root user with capabilities, applied resource limits and isolated network. |
+| 2026-11-06 | Fix compose build args | TD-0.10 | Removed trailing spaces from VITE_API_URL and VITE_SDK_URL in docker-compose.yml. |
+| 2026-11-05 | Tracker reconciliation | TD-1.7 | Re-measured every §2 metric against the repo rather than trusting prior edits. Marked TD-1.7 done (closed as a side effect of TD-1.3). Corrected the Phase 0 denominator for TD-0.15, and the ESLint/Biome metric commands, which did not run from the repo root. Flagged two metrics as untrustworthy: Web TS errors (fell 6→2 only because the gitignored SDK was regenerated — TD-1.4/TD-1.6 are *not* fixed) and API LOC (rising because Phase 0 adds tests; now tracked as a test/non-test split). **No source changed.** |
 
 ---
 
@@ -892,12 +1054,43 @@ npx turbo run check-types --dry=json | jq '.tasks[] | {package, command}'
 # Validate turbo.json is real JSON (fails until TD-1.14)
 node -e "JSON.parse(require('fs').readFileSync('turbo.json','utf8'))"
 
-# Dead-file scan for TD-5.1
-for f in apps/web/src/components/ui/*.tsx; do
-  n=$(basename "$f" .tsx)
-  c=$(grep -rl "components/ui/$n\"" apps/web/src --include='*.tsx' --include='*.ts' | wc -l)
-  [ "$c" -eq 0 ] && echo "UNUSED: $n"
-done
+# Dead-file reachability scan for TD-5.1
+# Direct grep over-counts: a dead file importing another keeps it looking alive.
+# This walks from real roots (ui modules imported from OUTSIDE components/ui)
+# and follows ui-internal relative imports transitively.
+cd apps/web/src && python3 - <<'PY'
+import os, re, glob, subprocess
+ui = [os.path.basename(f)[:-4] for f in glob.glob('components/ui/*.tsx')]
+roots = set()
+for dirpath, _, files in os.walk('.'):
+    if dirpath.startswith('./components/ui'):
+        continue
+    for fn in files:
+        if not fn.endswith(('.ts', '.tsx')):
+            continue
+        for m in re.finditer(r'ui/([a-zA-Z0-9-]+)(?:\.tsx?)?["\']',
+                             open(os.path.join(dirpath, fn)).read()):
+            if m.group(1) in ui:
+                roots.add(m.group(1))
+seen, stack = set(), list(roots)
+while stack:
+    c = stack.pop()
+    if c in seen:
+        continue
+    seen.add(c)
+    try:
+        t = open(f'components/ui/{c}.tsx').read()
+    except OSError:
+        continue
+    for m in re.finditer(r'["\']\./([a-zA-Z0-9-]+)(?:\.tsx?)?["\']', t):
+        if m.group(1) in ui and m.group(1) not in seen:
+            stack.append(m.group(1))
+dead = sorted(set(ui) - seen)
+loc = sum(int(subprocess.run(['wc', '-l', f'components/ui/{d}.tsx'],
+          capture_output=True, text=True).stdout.split()[0]) for d in dead)
+print(f"total {len(ui)}  reachable {len(seen)}  dead {len(dead)}  dead LOC {loc}")
+print("dead:", " ".join(dead))
+PY
 ```
 
 ### Findings index
@@ -908,6 +1101,6 @@ done
 | Build & CI | 1, 5 | No CI; `check-types` validates 15 lines; `turbo.json` invalid JSON; caching broken |
 | Data integrity | 4 | No transactions on 7 multi-table writes; no baseline migration; `synchronize: true` in prod |
 | Frontend correctness | 2 | Toasts never mounted; errors swallowed app-wide; autosave data loss; stored XSS |
-| Code volume | 5, 6 | 5,655 LOC dead UI; ~700 LOC duplicated MCP layer; 781-line god service |
+| Code volume | 5, 6 | 6,192 LOC dead UI; ~700 LOC duplicated MCP layer; 781-line god service |
 | Consistency | 5, 6 | Two formatters fighting; two design systems; two TS compilers; i18n 97% bypassed |
 | Docs | 6 | ~14 stale claims; the newest feature has zero documentation |

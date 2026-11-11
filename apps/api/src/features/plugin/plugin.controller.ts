@@ -11,6 +11,7 @@ import { NoteService } from '../note/note.service';
 import { PluginCommandResponseDto } from './dto/plugin-command-response.dto';
 import { PluginExecuteResponseDto } from './dto/plugin-execute-response.dto';
 import { PluginResponseDto } from './dto/plugin-response.dto';
+import { assertExecutableNote } from './executable-note.validator';
 import { PluginRegistryService } from './plugin-registry.service';
 
 @ApiTags('plugins')
@@ -75,7 +76,7 @@ export class PluginController {
       throw new NotFoundException('Plugin not found');
     }
 
-    const command = this.pluginRegistryService.getCommand(plugin, note);
+    const command = this.pluginRegistryService.getCommandString(plugin, note);
     return { command };
   }
   @Post(':pluginId/execute-and-create')
@@ -85,6 +86,10 @@ export class PluginController {
   @ApiResponse({
     status: 201,
     description: 'The newly created note.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: "The note's content is not valid for execution.",
   })
   @ApiResponse({ status: 404, description: 'Note or plugin not found.' })
   async executeAndCreate(
@@ -105,6 +110,8 @@ export class PluginController {
       throw new NotFoundException(`Plugin ${pluginId} not found`);
     }
 
+    assertExecutableNote(note);
+
     const commandResult = await this.pluginRegistryService.execute(
       note,
       plugin,
@@ -113,7 +120,7 @@ export class PluginController {
     return this.noteService.create(projectId, {
       parentIds: [noteId],
       type: plugin.noteType,
-      title: this.pluginRegistryService.getCommand(plugin, note),
+      title: this.pluginRegistryService.getCommandString(plugin, note),
       content: commandResult,
     });
   }
@@ -150,7 +157,7 @@ export class PluginController {
     return this.noteService.create(projectId, {
       parentIds: [noteId],
       type: plugin.noteType,
-      title: this.pluginRegistryService.getCommand(plugin, note),
+      title: this.pluginRegistryService.getCommandString(plugin, note),
       content,
     });
   }

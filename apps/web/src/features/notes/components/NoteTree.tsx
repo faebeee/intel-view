@@ -31,6 +31,7 @@ type NoteTreeProps = {
 	className?: string;
 	/** DOM id, so a toggle button can reference the list via aria-controls. */
 	id?: string;
+	searchFocusRequest?: number;
 };
 
 /**
@@ -54,11 +55,19 @@ export function NoteTree({
 	isMutating = false,
 	className,
 	id,
+	searchFocusRequest,
 }: NoteTreeProps) {
 	const [search, setSearch] = React.useState("");
+	const inputRef = React.useRef<HTMLInputElement>(null);
 	const childrenMap = React.useMemo(() => buildNoteChildrenMap(notes), [notes]);
 	const rootNotes = getRootNotes(childrenMap);
 	const tagColorMap = useTagColorMap(tags);
+
+	React.useEffect(() => {
+		if (searchFocusRequest > 0) {
+			inputRef.current?.focus();
+		}
+	}, [searchFocusRequest]);
 
 	const trimmedQuery = search.trim().toLowerCase();
 
@@ -117,6 +126,7 @@ export function NoteTree({
 			<div className="relative px-1">
 				<Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
 				<Input
+					ref={inputRef}
 					placeholder="Search notes by title, content, or tag..."
 					value={search}
 					onChange={(event) => setSearch(event.target.value)}

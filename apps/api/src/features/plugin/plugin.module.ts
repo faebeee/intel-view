@@ -25,4 +25,4 @@ import { CommandContainer } from './command-container.service';
     },
   ],
 })
-export class PluginModule { }
+export class PluginModule {}

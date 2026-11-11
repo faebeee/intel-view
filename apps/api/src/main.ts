@@ -16,12 +16,12 @@ async function bootstrap() {
     }),
   );
 
+  const corsOrigins = process.env.APP_URL
+    ? process.env.APP_URL.split(',')
+    : ['http://localhost:4000'];
+
   app.enableCors({
-    origin: [
-      process.env.APP_URL ?? 'http://localhost:4000',
-      'http://192.168.50.15:4000',
-      'http://intel.local:4000',
-    ],
+    origin: corsOrigins,
     credentials: true,
   });
 

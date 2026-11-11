@@ -5,7 +5,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: intel_view
     ports:
       - '5432:5432'
@@ -27,11 +27,10 @@ services:
     restart: always
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-miniouser}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-miniopass}
     ports:
       - '9000:9000'
-      - '9001:9001'
     volumes:
       - minio_data:/data
     healthcheck:
@@ -55,15 +54,17 @@ services:
       PORT: 4010
       DB_HOST: db
       DB_PORT: 5432
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
+      APP_URL: http://intel.local:4000
+      DB_USERNAME: ${POSTGRES_USER} 
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       DB_DATABASE: intel_view
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/intel_view
+      DB_SYNCHRONIZE: 'true'
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/intel_view
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
       MINIO_USE_SSL: 'false'
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET: intel-view-files
     ports:
       - '4010:4010'
@@ -73,6 +74,9 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+    networks:
+      - default
+      - kali-net
 
   kali:
     build:
@@ -82,6 +86,9 @@ services:
     restart: always
     cap_add:
       - NET_RAW
+    pids_limit: 100
+    networks:
+      - kali-net
     command: tail -f /dev/null
 
   web:
@@ -89,8 +96,8 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        VITE_API_URL: http://intel.local:4010 
-        VITE_SDK_URL: http://api:4010 
+        VITE_API_URL: http://intel.local:4010
+        VITE_SDK_URL: http://api:4010
     container_name: intel-view-web
     restart: always
     depends_on:
@@ -98,10 +105,14 @@ services:
         condition: service_healthy
     environment:
       PORT: 4000
-      VITE_API_URL: http://intel.local:4010 
+      VITE_API_URL: http://intel.local:4010
     ports:
       - '4000:4000'
 
 volumes:
   postgres_data:
   minio_data:
+
+networks:
+  default:
+  kali-net:
