@@ -7,6 +7,10 @@ import { Button } from "#/components/ui/button.tsx";
 import { Input } from "#/components/ui/input.tsx";
 import type { NoteSaveStatus } from "#/features/notes/components/NoteEditorPane.tsx";
 import { SaveStatusIndicator } from "#/features/notes/components/NoteEditorPane.tsx";
+import {
+	contentForValidation,
+	useResolvedNoteText,
+} from "#/features/notes/note-references.ts";
 import { toastApiError } from "#/lib/api-error.ts";
 import { cn } from "#/lib/utils.ts";
 
@@ -29,7 +33,8 @@ const IPV6_REGEX =
 
 /** Returns a user-facing error message if `value` isn't a well-formed IPv4 or IPv6 address, or `null` if it's valid (empty is allowed — an ip note's content can be unset). */
 function validateIp(value: string): string | null {
-	const trimmed = value.trim();
+	// `[[NOTEID]]` references are allowed; see `contentForValidation`.
+	const trimmed = contentForValidation(value, "0");
 	if (!trimmed) return null;
 	if (IPV4_REGEX.test(trimmed) || IPV6_REGEX.test(trimmed)) {
 		return null;
@@ -95,7 +100,13 @@ export function NoteIpEditorPane({
 		updateIpMutation.mutate(draftIp);
 	};
 
-	const savedIp = (note.content ?? "").trim();
+	// Shown resolved: a saved `[[NOTEID]]` reference previews as its value.
+	const savedIp = useResolvedNoteText(
+		projectId,
+		note.id,
+		(note.content ?? "").trim(),
+		"title",
+	);
 
 	return (
 		<div

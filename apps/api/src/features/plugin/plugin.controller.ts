@@ -19,7 +19,7 @@ export class PluginController {
   constructor(
     private readonly noteService: NoteService,
     private readonly pluginRegistryService: PluginRegistryService,
-  ) { }
+  ) {}
 
   @Get()
   @ApiOperation({
@@ -63,10 +63,13 @@ export class PluginController {
     @Param('noteId', ParseIntPipe) noteId: number,
     @Param('pluginId') pluginId: string,
   ): Promise<PluginCommandResponseDto> {
-    const note = await this.noteService.findOne(projectId, noteId);
-    if (!note) {
+    const rawNote = await this.noteService.findOne(projectId, noteId);
+    if (!rawNote) {
       throw new NotFoundException(`Note with ID ${noteId} not found`);
     }
+    // Plugins run against the note's effective values, with `[[NOTEID]]`
+    // references resolved (and re-validated for typed notes).
+    const note = await this.noteService.resolveReferences(rawNote);
     const plugin = this.pluginRegistryService.getPlugin(pluginId);
     if (!plugin) {
       throw new NotFoundException('Plugin not found');
@@ -89,10 +92,13 @@ export class PluginController {
     @Param('noteId', ParseIntPipe) noteId: number,
     @Param('pluginId') pluginId: string,
   ) {
-    const note = await this.noteService.findOne(projectId, noteId);
-    if (!note) {
+    const rawNote = await this.noteService.findOne(projectId, noteId);
+    if (!rawNote) {
       throw new NotFoundException(`Note with ID ${noteId} not found`);
     }
+    // Plugins run against the note's effective values, with `[[NOTEID]]`
+    // references resolved (and re-validated for typed notes).
+    const note = await this.noteService.resolveReferences(rawNote);
 
     const plugin = this.pluginRegistryService.getPlugin(pluginId);
     if (!plugin) {
@@ -126,10 +132,13 @@ export class PluginController {
     @Param('noteId', ParseIntPipe) noteId: number,
     @Param('pluginId') pluginId: string,
   ) {
-    const note = await this.noteService.findOne(projectId, noteId);
-    if (!note) {
+    const rawNote = await this.noteService.findOne(projectId, noteId);
+    if (!rawNote) {
       throw new NotFoundException(`Note with ID ${noteId} not found`);
     }
+    // Plugins run against the note's effective values, with `[[NOTEID]]`
+    // references resolved (and re-validated for typed notes).
+    const note = await this.noteService.resolveReferences(rawNote);
 
     const plugin = this.pluginRegistryService.getPlugin(pluginId);
     if (!plugin) {
@@ -166,10 +175,13 @@ export class PluginController {
     @Param('noteId', ParseIntPipe) noteId: number,
     @Param('pluginId') pluginId: string,
   ): Promise<PluginExecuteResponseDto> {
-    const note = await this.noteService.findOne(projectId, noteId);
-    if (!note) {
+    const rawNote = await this.noteService.findOne(projectId, noteId);
+    if (!rawNote) {
       throw new NotFoundException(`Note with ID ${noteId} not found`);
     }
+    // Plugins run against the note's effective values, with `[[NOTEID]]`
+    // references resolved (and re-validated for typed notes).
+    const note = await this.noteService.resolveReferences(rawNote);
 
     const plugin = this.pluginRegistryService.getPlugin(pluginId);
     if (!plugin) {

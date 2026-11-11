@@ -23,6 +23,7 @@ import { NoteEditModal } from "#/features/notes/components/NoteEditModal.tsx";
 import { NoteTree } from "#/features/notes/components/NoteTree.tsx";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 import { useDeleteNote } from "#/features/notes/hooks/useDeleteNote.ts";
+import { useRenderedNotes } from "#/features/notes/note-references.ts";
 import { PhaseProgressBar } from "#/features/projects/components/PhaseProgressBar.tsx";
 import { useProjectQuery } from "#/features/projects/hooks/useProjectQuery.ts";
 import { useUpdateProject } from "#/features/projects/hooks/useUpdateProject.ts";
@@ -56,6 +57,13 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 	const selectedNote = React.useMemo(
 		() => notes.find((note) => note.id === selectedNoteId) ?? null,
 		[notes, selectedNoteId],
+	);
+	// Display copies with `[[NOTEID]]` references resolved. Editors keep
+	// using the raw `notes`/`selectedNote` so the original markup stays editable.
+	const renderedNotes = useRenderedNotes(notes);
+	const renderedSelectedNote = React.useMemo(
+		() => renderedNotes.find((note) => note.id === selectedNoteId) ?? null,
+		[renderedNotes, selectedNoteId],
 	);
 
 	const deleteNoteMutation = useDeleteNote(projectId);
@@ -211,7 +219,7 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 			{isTreeOpen && (
 				<NoteTree
 					id="canvas-notes-list"
-					notes={notes}
+					notes={renderedNotes}
 					tags={tags}
 					selectedNoteId={selectedNote?.id}
 					onSelect={handleSelectFromSidebar}
@@ -250,7 +258,7 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 					</section>
 				</ResizablePanel>
 
-				{selectedNote && (
+				{renderedSelectedNote && (
 					<>
 						<ResizableHandle withHandle />
 						<ResizablePanel
@@ -261,8 +269,8 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 						>
 							<NoteDetailsPanel
 								projectId={projectId}
-								note={selectedNote}
-								notes={notes}
+								note={renderedSelectedNote}
+								notes={renderedNotes}
 								onClose={() => setSelectedNoteId(null)}
 								onEdit={() => setIsEditModalOpen(true)}
 								onDeleted={() => setSelectedNoteId(null)}
@@ -276,7 +284,7 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 			<NoteEditModal
 				projectId={projectId}
 				note={selectedNote}
-				notes={notes}
+				notes={renderedNotes}
 				tags={tags}
 				open={isEditModalOpen && !!selectedNote}
 				onOpenChange={setIsEditModalOpen}

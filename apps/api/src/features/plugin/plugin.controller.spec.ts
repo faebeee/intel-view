@@ -9,9 +9,11 @@ describe('PluginController', () => {
   let controller: PluginController;
   const mockNoteService = {
     findOne: jest.fn(),
+    resolveReferences: jest.fn((note: Note) => Promise.resolve(note)),
   };
   const mockPluginRegistryService = {
     listForNoteType: jest.fn(),
+    getPlugin: jest.fn(),
     preview: jest.fn(),
   };
 
@@ -94,6 +96,24 @@ describe('PluginController', () => {
         expect.objectContaining({ id: 1, type: 'url' }),
       );
       expect(result).toEqual({ result: 'snippet result' });
+    });
+
+    it('runs the plugin against the note with references resolved', async () => {
+      const note = makeNote({ content: 'https://[[2]]' });
+      const resolved = makeNote({ content: 'https://10.0.0.5' });
+      const plugin = { id: 'url-fetch-snippet' };
+      mockNoteService.findOne.mockResolvedValue(note);
+      mockNoteService.resolveReferences.mockResolvedValueOnce(resolved);
+      mockPluginRegistryService.getPlugin.mockReturnValue(plugin);
+      mockPluginRegistryService.preview.mockResolvedValue('ok');
+
+      await controller.preview(1, 1, 'url-fetch-snippet');
+
+      expect(mockNoteService.resolveReferences).toHaveBeenCalledWith(note);
+      expect(mockPluginRegistryService.preview).toHaveBeenCalledWith(
+        plugin,
+        resolved,
+      );
     });
 
     it('throws NotFoundException when the note does not exist', async () => {

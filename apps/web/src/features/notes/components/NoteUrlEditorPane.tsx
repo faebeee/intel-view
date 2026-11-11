@@ -12,6 +12,10 @@ import { Button } from "#/components/ui/button.tsx";
 import { Input } from "#/components/ui/input.tsx";
 import type { NoteSaveStatus } from "#/features/notes/components/NoteEditorPane.tsx";
 import { SaveStatusIndicator } from "#/features/notes/components/NoteEditorPane.tsx";
+import {
+	contentForValidation,
+	useResolvedNoteText,
+} from "#/features/notes/note-references.ts";
 import { toastApiError } from "#/lib/api-error.ts";
 import { cn } from "#/lib/utils.ts";
 
@@ -27,7 +31,8 @@ type NoteUrlEditorPaneProps = {
 
 /** Returns a user-facing error message if `value` isn't a well-formed http(s) URL, or `null` if it's valid (empty is allowed — a url note's content can be unset). */
 function validateUrl(value: string): string | null {
-	const trimmed = value.trim();
+	// `[[NOTEID]]` references are allowed; see `contentForValidation`.
+	const trimmed = contentForValidation(value, "x");
 	if (!trimmed) return null;
 	let parsed: URL;
 	try {
@@ -99,7 +104,13 @@ export function NoteUrlEditorPane({
 		updateUrlMutation.mutate(draftUrl);
 	};
 
-	const savedUrl = (note.content ?? "").trim();
+	// Shown resolved: a saved `[[NOTEID]]` reference previews as its value.
+	const savedUrl = useResolvedNoteText(
+		projectId,
+		note.id,
+		(note.content ?? "").trim(),
+		"title",
+	);
 
 	return (
 		<div

@@ -7,6 +7,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull, In } from 'typeorm';
 import { isIP } from 'node:net';
 import {
+  containsNoteReference,
+  extractNoteReferenceIds,
+  isSingleNoteReference,
+  replaceNoteReferences,
+  resolveNoteReferences,
+} from './note-references.util';
+import type { ReferenceableNote } from './note-references.util';
+import {
   paginate,
   PaginateQuery,
   Paginated,
@@ -321,14 +329,42 @@ export class NoteService {
   }
 
   /**
+   * Prepares typed-note `content` (url/ip/email) for format validation.
+   * `[[NOTEID]]` references are allowed in such content: a value that is
+   * exactly one reference is accepted as-is (returns `''`, i.e. skipped,
+   * since its final value is only known once resolved), otherwise every
+   * reference is swapped for `placeholder` (a fragment valid for that
+   * format) so the surrounding text is still validated. With
+   * `allowReferences` false (used to re-validate already-resolved content)
+   * the trimmed content is returned unchanged.
+   */
+  private contentForValidation(
+    content: string | null | undefined,
+    placeholder: string,
+    allowReferences: boolean,
+  ): string {
+    const trimmed = content?.trim() ?? '';
+    if (!allowReferences || !containsNoteReference(trimmed)) {
+      return trimmed;
+    }
+    if (isSingleNoteReference(trimmed)) {
+      return '';
+    }
+    return replaceNoteReferences(trimmed, placeholder);
+  }
+
+  /**
    * Validates that `content` is a well-formed `http(s)://` URL, throwing a
    * `BadRequestException` if not. Only applicable to `'url'`-type notes,
    * for which `content` holds the URL itself rather than freeform text.
    * Empty/null content is allowed (a url note can be created without a
    * URL set yet) and is simply skipped.
    */
-  private assertValidUrlContent(content: string | null | undefined): void {
-    const trimmed = content?.trim();
+  private assertValidUrlContent(
+    content: string | null | undefined,
+    allowReferences = true,
+  ): void {
+    const trimmed = this.contentForValidation(content, 'x', allowReferences);
     if (!trimmed) {
       return;
     }
@@ -353,8 +389,11 @@ export class NoteService {
    * Empty/null content is allowed (an ip note can be created without an
    * address set yet) and is simply skipped.
    */
-  private assertValidIpContent(content: string | null | undefined): void {
-    const trimmed = content?.trim();
+  private assertValidIpContent(
+    content: string | null | undefined,
+    allowReferences = true,
+  ): void {
+    const trimmed = this.contentForValidation(content, '0', allowReferences);
     if (!trimmed) {
       return;
     }
@@ -371,8 +410,11 @@ export class NoteService {
    * `BadRequestException` if not. Only applicable to `'email'`-type notes.
    * Empty/null content is allowed and is simply skipped.
    */
-  private assertValidEmailContent(content: string | null | undefined): void {
-    const trimmed = content?.trim();
+  private assertValidEmailContent(
+    content: string | null | undefined,
+    allowReferences = true,
+  ): void {
+    const trimmed = this.contentForValidation(content, 'x.x', allowReferences);
     if (!trimmed) {
       return;
     }
@@ -459,6 +501,85 @@ export class NoteService {
     if (!note) return null;
     await this.attachRelationIds([note]);
     return note;
+  }
+
+  /**
+   * Returns a copy of `note` with every `[[NOTEID]]` reference in its
+   * `title` and `content` replaced by the referenced note's output
+   * (resolved recursively within the note's project). Used wherever the
+   * effective value matters rather than the raw markup, e.g. before running
+   * a plugin against the note. For url/ip/email notes the resolved content
+   * is re-validated, so a reference can never smuggle an arbitrary value
+   * into a plugin command. Notes without references are returned unchanged.
+   */
+  async resolveReferences(note: Note): Promise<Note> {
+    if (
+      !containsNoteReference(note.title) &&
+      !containsNoteReference(note.content)
+    ) {
+      return note;
+    }
+
+    const notesById = await this.loadReferenceableNotes(note);
+    const visiting = new Set([note.id]);
+    const resolved: Note = Object.assign(new Note(), note, {
+      title: note.title
+        ? resolveNoteReferences(note.title, notesById, 'title', visiting)
+        : note.title,
+      content: note.content
+        ? resolveNoteReferences(note.content, notesById, 'content', visiting)
+        : note.content,
+    });
+
+    if (containsNoteReference(resolved.content)) {
+      throw new BadRequestException(
+        `Note ${note.id} references a note that does not exist in this project or forms a reference cycle`,
+      );
+    }
+    if (note.type === 'url')
+      this.assertValidUrlContent(resolved.content, false);
+    if (note.type === 'ip') this.assertValidIpContent(resolved.content, false);
+    if (note.type === 'email') {
+      this.assertValidEmailContent(resolved.content, false);
+    }
+    return resolved;
+  }
+
+  /**
+   * Loads the (active) notes reachable through `[[NOTEID]]` references from
+   * `note`, restricted to its project, following references breadth-first.
+   */
+  private async loadReferenceableNotes(
+    note: Note,
+  ): Promise<Map<number, ReferenceableNote>> {
+    const notesById = new Map<number, ReferenceableNote>([[note.id, note]]);
+    let pending = [
+      ...extractNoteReferenceIds(note.title),
+      ...extractNoteReferenceIds(note.content),
+    ];
+    while (pending.length > 0) {
+      const ids = [...new Set(pending)].filter((id) => !notesById.has(id));
+      if (ids.length === 0) break;
+      const found = await this.noteRepository.find({
+        where: { id: In(ids), projectId: note.projectId, deletedAt: IsNull() },
+        select: {
+          id: true,
+          type: true,
+          title: true,
+          content: true,
+          fileName: true,
+        },
+      });
+      pending = [];
+      for (const ref of found) {
+        notesById.set(ref.id, ref);
+        pending.push(
+          ...extractNoteReferenceIds(ref.title),
+          ...extractNoteReferenceIds(ref.content),
+        );
+      }
+    }
+    return notesById;
   }
 
   /**

@@ -672,6 +672,106 @@ describe('NoteService', () => {
     });
   });
 
+  describe('note references in typed notes', () => {
+    const createWith = async (
+      type: 'ip' | 'url' | 'email',
+      content: string,
+    ): Promise<Note> => {
+      const createdNote = { id: 7, projectId: 1, type, content } as Note;
+      mockNoteRepository.create.mockReturnValue(createdNote);
+      mockNoteRepository.save.mockResolvedValue(createdNote);
+      return service.create(1, { type, content });
+    };
+
+    it("accepts an 'ip' note whose content is a single reference", async () => {
+      await expect(createWith('ip', '[[5]]')).resolves.toBeDefined();
+    });
+
+    it("accepts a 'url' note with a reference as host", async () => {
+      await expect(
+        createWith('url', 'https://[[5]]:8080/admin'),
+      ).resolves.toBeDefined();
+    });
+
+    it("accepts an 'email' note with a reference as domain", async () => {
+      await expect(createWith('email', 'admin@[[5]]')).resolves.toBeDefined();
+    });
+
+    it('still rejects invalid text around a reference', async () => {
+      await expect(createWith('url', 'ftp://[[5]]')).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(createWith('ip', 'host-[[5]]')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('resolveReferences', () => {
+    const makeNote = (overrides: Partial<Note>): Note =>
+      ({
+        id: 1,
+        projectId: 1,
+        type: 'standard',
+        title: '',
+        content: '',
+        fileName: null,
+        ...overrides,
+      }) as Note;
+
+    it('returns the note unchanged when it has no references', async () => {
+      const note = makeNote({ title: 'Plain', content: 'text' });
+      await expect(service.resolveReferences(note)).resolves.toBe(note);
+      expect(mockNoteRepository.find).not.toHaveBeenCalled();
+    });
+
+    it('resolves references recursively within the project', async () => {
+      const note = makeNote({
+        id: 1,
+        type: 'url',
+        title: 'Admin on [[2]]',
+        content: 'https://[[2]]/admin',
+      });
+      mockNoteRepository.find
+        .mockResolvedValueOnce([
+          makeNote({ id: 2, type: 'ip', content: '[[3]]' }),
+        ])
+        .mockResolvedValueOnce([
+          makeNote({ id: 3, type: 'ip', content: '10.0.0.5' }),
+        ]);
+
+      const resolved = await service.resolveReferences(note);
+
+      expect(resolved.title).toBe('Admin on 10.0.0.5');
+      expect(resolved.content).toBe('https://10.0.0.5/admin');
+      expect(note.content).toBe('https://[[2]]/admin');
+      const [findOptions] = mockNoteRepository.find.mock.calls[0] as [
+        { where: { projectId: number } },
+      ];
+      expect(findOptions.where.projectId).toBe(1);
+    });
+
+    it('rejects an ip note whose resolved content is not an IP', async () => {
+      const note = makeNote({ id: 1, type: 'ip', content: '[[2]]' });
+      mockNoteRepository.find.mockResolvedValueOnce([
+        makeNote({ id: 2, content: '--script=evil' }),
+      ]);
+
+      await expect(service.resolveReferences(note)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('rejects an unresolvable reference', async () => {
+      const note = makeNote({ id: 1, type: 'ip', content: '[[99]]' });
+      mockNoteRepository.find.mockResolvedValueOnce([]);
+
+      await expect(service.resolveReferences(note)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
   describe('findHistory', () => {
     it("returns a note's history ordered most-recent-first", async () => {
       const projectId = 1;

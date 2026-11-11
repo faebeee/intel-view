@@ -16,6 +16,7 @@ import {
 	useAddNoteParent,
 	useRemoveNoteParent,
 } from "#/features/notes/hooks/useNoteRelationMutations.ts";
+import { useRenderedNotes } from "#/features/notes/note-references.ts";
 import type { NoteType } from "#/types/note.ts";
 import { useCanvasNotesQuery } from "../hooks/useCanvasNotesQuery";
 import { useCreateInlineNote } from "../hooks/useCreateInlineNote";
@@ -96,7 +97,10 @@ function CanvasInnerView({
 	// query result actually changes, whereas a `data = []` default parameter
 	// would create a new array on every render and cause effects/memos keyed
 	// on it to re-run indefinitely.
-	const notes = React.useMemo(() => data ?? [], [data]);
+	const rawNotes = React.useMemo(() => data ?? [], [data]);
+	// The canvas only displays notes (editing happens in the edit modal), so
+	// it works with display copies that have `[[NOTEID]]` references resolved.
+	const notes = useRenderedNotes(rawNotes);
 	const updateNoteMutation = useUpdateNote(projectId);
 	const createInlineNoteMutation = useCreateInlineNote(projectId);
 	const deleteNoteMutation = useDeleteNote(projectId);
