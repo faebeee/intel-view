@@ -254,7 +254,7 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 			{isTreeOpen && (
 					<NoteTree
 						id="canvas-notes-list"
-						notes={notes}
+						notes={renderedNotes}
 						tags={tags}
 						selectedNoteId={selectedNote?.id}
 						onSelect={handleSelectFromSidebar}
