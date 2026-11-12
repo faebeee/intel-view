@@ -6,6 +6,8 @@ import type { NoteType } from "#/types/note.ts";
 
 export type CreateInlineNotePayload = {
 	type: NoteType;
+	title?: string;
+	content?: string;
 	canvasX: number;
 	canvasY: number;
 	parentIds?: number[];

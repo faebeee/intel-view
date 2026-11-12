@@ -1,45 +1,70 @@
 import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { execFile } from 'node:child_process';
+import { EventEmitter } from 'node:events';
+import { spawn } from 'node:child_process';
 import { CommandContainer } from './command-container.service';
 
 jest.mock('node:child_process', () => ({
-  execFile: jest.fn(),
+  spawn: jest.fn(),
 }));
 
-type ExecFileCallback = (
-  error: (Error & { code?: string | number }) | null,
-  stdout: string,
-  stderr: string,
-) => void;
+type SpawnOptions = { timeout: number; shell?: boolean };
 
-type ExecFileOptions = { timeout: number; maxBuffer: number };
+type SpawnArgs = [string, string[], SpawnOptions];
 
-type ExecFileArgs = [string, string[], ExecFileOptions, ExecFileCallback];
+/** Minimal stand-in for the `ChildProcess` returned by `spawn`. */
+type FakeChild = EventEmitter & {
+  stdout: EventEmitter;
+  stderr: EventEmitter;
+  kill: jest.Mock<void, []>;
+};
 
-const mockedExecFile = execFile as unknown as jest.Mock<void, ExecFileArgs>;
+const mockedSpawn = spawn as unknown as jest.Mock<FakeChild, SpawnArgs>;
 
-/** Resolves the next `execFile` call with the given streams. */
+/**
+ * Makes the next `spawn` call return a fake child process that, on the
+ * next tick, runs `drive` to emit stream data and lifecycle events.
+ */
+const spawnWith = (drive: (child: FakeChild) => void): void => {
+  mockedSpawn.mockImplementation(() => {
+    const child = Object.assign(new EventEmitter(), {
+      stdout: new EventEmitter(),
+      stderr: new EventEmitter(),
+      kill: jest.fn<void, []>(),
+    });
+    setImmediate(() => drive(child));
+    return child;
+  });
+};
+
+/** The child emits the given streams and exits with code 0. */
 const resolveWith = (stdout: string, stderr = ''): void => {
-  mockedExecFile.mockImplementation((_file, _args, _opts, cb) => {
-    cb(null, stdout, stderr);
+  spawnWith((child) => {
+    if (stdout) child.stdout.emit('data', Buffer.from(stdout));
+    if (stderr) child.stderr.emit('data', Buffer.from(stderr));
+    child.emit('close', 0);
   });
 };
 
-/** Fails the next `execFile` call. */
-const failWith = (
-  error: Error & { code?: string | number },
-  stderr = '',
-): void => {
-  mockedExecFile.mockImplementation((_file, _args, _opts, cb) => {
-    cb(error, '', stderr);
+/** The child writes `stderr` and exits with the non-zero `code`. */
+const exitWith = (code: number, stderr = ''): void => {
+  spawnWith((child) => {
+    if (stderr) child.stderr.emit('data', Buffer.from(stderr));
+    child.emit('close', code);
   });
 };
 
-/** The arguments `execFile` was invoked with. */
-const firstCall = (): ExecFileArgs => mockedExecFile.mock.calls[0];
+/** The process could not be started at all (e.g. runtime missing). */
+const errorWith = (error: Error & { code?: string | number }): void => {
+  spawnWith((child) => {
+    child.emit('error', error);
+  });
+};
 
-/** The argv array `execFile` was invoked with. */
+/** The arguments `spawn` was invoked with. */
+const firstCall = (): SpawnArgs => mockedSpawn.mock.calls[0];
+
+/** The argv array `spawn` was invoked with. */
 const calledArgs = (): string[] => firstCall()[1];
 
 describe('CommandContainer', () => {
@@ -64,7 +89,7 @@ describe('CommandContainer', () => {
 
       await service.runCommand(['nmap', '-sV', '1.1.1.1']);
 
-      expect(mockedExecFile).toHaveBeenCalledTimes(1);
+      expect(mockedSpawn).toHaveBeenCalledTimes(1);
       const [file, args, options] = firstCall();
 
       expect(file).toBe('podman');
@@ -142,15 +167,28 @@ describe('CommandContainer', () => {
   });
 
   describe('execution options', () => {
-    it('sets a timeout and a maxBuffer large enough for a full-port scan', async () => {
+    it('sets a timeout on the spawned process', async () => {
       resolveWith('');
 
-      await service.runCommand(['nmap', '-p-', '1.1.1.1']);
+      await service.runCommand(['nmap', '1.1.1.1']);
 
       const options = firstCall()[2];
       expect(options.timeout).toBeGreaterThan(0);
-      // Node's 1 MiB default truncates a full-port scan.
-      expect(options.maxBuffer).toBeGreaterThan(1024 * 1024);
+    });
+
+    it('kills the process and rejects once output exceeds the buffer cap', async () => {
+      let child: FakeChild | undefined;
+      spawnWith((c) => {
+        child = c;
+        // Node's 1 MiB default would truncate a full-port scan; the cap is
+        // well above that, so 17 MiB is needed to trip it.
+        c.stdout.emit('data', 'x'.repeat(17 * 1024 * 1024));
+      });
+
+      await expect(service.runCommand(['nmap', '1.1.1.1'])).rejects.toThrow(
+        'exceeded maximum buffer size',
+      );
+      expect(child?.kill).toHaveBeenCalled();
     });
   });
 
@@ -190,22 +228,18 @@ describe('CommandContainer', () => {
 
   describe('failure handling', () => {
     it('rejects with stderr on a non-zero exit', async () => {
-      const error = Object.assign(new Error('Command failed'), { code: 1 });
-      failWith(error, 'nmap: unrecognised option\n');
+      exitWith(1, 'nmap: unrecognised option\n');
 
       await expect(service.runCommand(['nmap', '--bogus'])).rejects.toThrow(
         'nmap: unrecognised option',
       );
     });
 
-    it('falls back to the error message when stderr is empty', async () => {
-      const error = Object.assign(new Error('Command failed: exit 2'), {
-        code: 2,
-      });
-      failWith(error, '');
+    it('falls back to the exit code when stderr is empty', async () => {
+      exitWith(2);
 
       await expect(service.runCommand(['nmap', '1.1.1.1'])).rejects.toThrow(
-        'Command failed: exit 2',
+        'Process exited with code 2',
       );
     });
 
@@ -213,7 +247,7 @@ describe('CommandContainer', () => {
       const error = Object.assign(new Error('spawn podman ENOENT'), {
         code: 'ENOENT',
       });
-      failWith(error);
+      errorWith(error);
 
       await expect(service.runCommand(['nmap', '1.1.1.1'])).rejects.toThrow(
         ServiceUnavailableException,
@@ -224,7 +258,7 @@ describe('CommandContainer', () => {
       await expect(service.runCommand([])).rejects.toThrow(
         'Cannot run an empty command',
       );
-      expect(mockedExecFile).not.toHaveBeenCalled();
+      expect(mockedSpawn).not.toHaveBeenCalled();
     });
   });
 });

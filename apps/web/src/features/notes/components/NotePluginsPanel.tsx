@@ -125,7 +125,7 @@ export function NotePluginsPanel({
 		setIsLoading(true);
 		try {
 			// 1. Execute plugin
-			const result = await executeAndCreateNote.mutateAsync({
+			await executeAndCreateNote.mutateAsync({
 				noteId,
 				pluginId: selectedPlugin.id,
 			});

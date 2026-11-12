@@ -128,7 +128,10 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 			} else if (event.key === "Enter" && selectedNoteId) {
 				event.preventDefault();
 				setIsEditModalOpen(true);
-			} else if ((event.key === "Backspace" || event.key === "Delete") && selectedNoteId) {
+			} else if (
+				(event.key === "Backspace" || event.key === "Delete") &&
+				selectedNoteId
+			) {
 				event.preventDefault();
 				deleteNoteMutation.mutate(selectedNoteId, {
 					onSuccess: () => {
@@ -252,18 +255,17 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 			}
 		>
 			{isTreeOpen && (
-					<NoteTree
-						id="canvas-notes-list"
-						notes={renderedNotes}
-						tags={tags}
-						selectedNoteId={selectedNote?.id}
-						onSelect={handleSelectFromSidebar}
-						onDelete={handleDeleteFromSidebar}
-						isMutating={deleteNoteMutation.isPending}
-						className="w-72 shrink-0 border-r border-mc-border bg-mc-rail p-3 max-sm:h-80 max-sm:w-full max-sm:border-r-0 max-sm:border-b"
-						searchFocusRequest={searchFocusRequest}
-					/>
-
+				<NoteTree
+					id="canvas-notes-list"
+					notes={renderedNotes}
+					tags={tags}
+					selectedNoteId={selectedNote?.id}
+					onSelect={handleSelectFromSidebar}
+					onDelete={handleDeleteFromSidebar}
+					isMutating={deleteNoteMutation.isPending}
+					className="w-72 shrink-0 border-r border-mc-border bg-mc-rail p-3 max-sm:h-80 max-sm:w-full max-sm:border-r-0 max-sm:border-b"
+					searchFocusRequest={searchFocusRequest}
+				/>
 			)}
 
 			<ResizablePanelGroup

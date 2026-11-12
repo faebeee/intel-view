@@ -36,19 +36,13 @@ describe('NmapServiceScanPlugin', () => {
 
   describe('getCommand', () => {
     it('returns argv with the target as a single trailing element', () => {
-      expect(plugin.getCommand(makeNote())).toEqual([
-        'nmap',
-        '-sV',
-        '-p-',
-        '1.1.1.1',
-      ]);
+      expect(plugin.getCommand(makeNote())).toEqual(['nmap', '-sV', '1.1.1.1']);
     });
 
     it('trims the target', () => {
       expect(plugin.getCommand(makeNote({ content: ' 1.1.1.1 ' }))).toEqual([
         'nmap',
         '-sV',
-        '-p-',
         '1.1.1.1',
       ]);
     });
@@ -58,19 +52,19 @@ describe('NmapServiceScanPlugin', () => {
         makeNote({ content: '1.1.1.1; touch /tmp/pwned' }),
       );
 
-      expect(argv).toHaveLength(4);
-      expect(argv[3]).toBe('1.1.1.1; touch /tmp/pwned');
+      expect(argv).toHaveLength(3);
+      expect(argv[2]).toBe('1.1.1.1; touch /tmp/pwned');
     });
   });
 
   describe('preview', () => {
     it('renders the command that would be executed', () => {
-      expect(plugin.preview(makeNote())).toBe('nmap -sV -p- 1.1.1.1');
+      expect(plugin.preview(makeNote())).toBe('nmap -sV 1.1.1.1');
     });
 
     it('quotes hostile content so the display form is unambiguous', () => {
       expect(plugin.preview(makeNote({ content: '1.1.1.1; sh' }))).toBe(
-        "nmap -sV -p- '1.1.1.1; sh'",
+        "nmap -sV '1.1.1.1; sh'",
       );
     });
 

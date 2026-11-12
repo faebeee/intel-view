@@ -55,7 +55,7 @@ export function NoteTree({
 	isMutating = false,
 	className,
 	id,
-	searchFocusRequest,
+	searchFocusRequest = 0,
 }: NoteTreeProps) {
 	const [search, setSearch] = React.useState("");
 	const inputRef = React.useRef<HTMLInputElement>(null);
