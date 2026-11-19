@@ -202,6 +202,154 @@
 	--sidebar-ring: var(--mc-accent);
 }
 
+/*
+ * App themes
+ * ----------
+ * `data-theme` on <html> picks one of the looks in `APP_THEMES`
+ * (#/lib/theme.ts). "terminal" (dark) and "daylight" (light) are the base
+ * palettes above. Dark-based themes override only the `--mc-*` tokens
+ * (everything else is mapped onto them under `:root.dark`); light-based
+ * themes override the light base palette that the `--mc-*` tokens fall back
+ * to. Selectors include `.dark` / `:not(.dark)` so they always outrank the
+ * base blocks.
+ */
+
+:root.dark[data-theme="midnight"] {
+	--mc-bg: #070b14;
+	--mc-rail: #080d18;
+	--mc-panel: #0b1220;
+	--mc-panel-hover: #111a2c;
+	--mc-code-bg: #050810;
+	--mc-border: #1a2438;
+	--mc-border-strong: #263552;
+	--mc-row-divider: #121b2c;
+	--mc-text: #e6edf7;
+	--mc-text-2: #9fadc4;
+	--mc-text-muted: #7f8eaa;
+	--mc-text-soft: #c4cfe0;
+	--mc-accent: #5cc8ff;
+	--mc-accent-hover: #8fdbff;
+	--mc-on-accent: #031220;
+	--mc-data: #63e6be;
+	--mc-danger: #ff5c7a;
+	--mc-danger-text: #ff7d95;
+	--mc-danger-border: #4a1f2e;
+	--mc-warning: #ffc25c;
+	--mc-service: #c39bff;
+	--mc-edge-idle: #33415c;
+	--mc-grid-line: rgba(92, 200, 255, 0.05);
+}
+
+:root.dark[data-theme="phosphor"] {
+	--mc-bg: #0a0703;
+	--mc-rail: #0c0904;
+	--mc-panel: #110c05;
+	--mc-panel-hover: #181108;
+	--mc-code-bg: #070502;
+	--mc-border: #2a1f0f;
+	--mc-border-strong: #3d2d15;
+	--mc-row-divider: #1a130a;
+	--mc-text: #ffdcaa;
+	--mc-text-2: #cfa673;
+	--mc-text-muted: #a88456;
+	--mc-text-soft: #f0c88c;
+	--mc-accent: #ffb000;
+	--mc-accent-hover: #ffc94d;
+	--mc-on-accent: #1a0f00;
+	--mc-data: #7fd4c1;
+	--mc-danger: #ff5a3d;
+	--mc-danger-text: #ff7b62;
+	--mc-danger-border: #4a1d12;
+	--mc-warning: #ffe066;
+	--mc-service: #e59cff;
+	--mc-edge-idle: #4a3a20;
+	--mc-grid-line: rgba(255, 176, 0, 0.05);
+}
+
+:root.dark[data-theme="contrast"] {
+	--mc-bg: #000000;
+	--mc-rail: #000000;
+	--mc-panel: #0a0a0a;
+	--mc-panel-hover: #1c1c1c;
+	--mc-code-bg: #000000;
+	--mc-border: #5c5c5c;
+	--mc-border-strong: #8a8a8a;
+	--mc-row-divider: #333333;
+	--mc-text: #ffffff;
+	--mc-text-2: #e6e6e6;
+	--mc-text-muted: #cccccc;
+	--mc-text-soft: #f2f2f2;
+	--mc-accent: #ffe600;
+	--mc-accent-hover: #fff27a;
+	--mc-on-accent: #000000;
+	--mc-data: #00e5ff;
+	--mc-danger: #ff5470;
+	--mc-danger-text: #ff8da0;
+	--mc-danger-border: #ff5470;
+	--mc-warning: #ffb020;
+	--mc-service: #d6a6ff;
+	--mc-edge-idle: #8a8a8a;
+	--mc-grid-line: rgba(255, 255, 255, 0.07);
+}
+
+:root:not(.dark)[data-theme="paper"] {
+	--sea-ink: #2a2118;
+	--sea-ink-soft: #574837;
+	--lagoon: #a3461f;
+	--lagoon-deep: #8f3f1e;
+	--palm: #1d6fa5;
+	--reference-link: #a15c07;
+	--sand: #efe5d3;
+	--foam: #faf6ee;
+	--surface: rgba(251, 248, 242, 0.75);
+	--surface-strong: rgba(251, 248, 242, 0.94);
+	--line: rgba(120, 90, 50, 0.16);
+	--kicker: #a3461f;
+	--bg-base: #f6f1e7;
+	--header-bg: rgba(251, 248, 242, 0.88);
+	--chip-bg: rgba(239, 229, 211, 0.75);
+	--chip-line: rgba(120, 90, 50, 0.2);
+	--link-bg-hover: rgba(163, 70, 31, 0.08);
+	--hero-a: rgba(163, 70, 31, 0.08);
+	--hero-b: rgba(120, 90, 50, 0.06);
+
+	--background: #f6f1e7;
+	--foreground: #2a2118;
+	--card: #fbf8f2;
+	--card-foreground: #2a2118;
+	--popover: #fbf8f2;
+	--popover-foreground: #2a2118;
+	--primary: #a3461f;
+	--primary-foreground: #fff8f0;
+	--secondary: #efe7d8;
+	--secondary-foreground: #3a2e22;
+	--muted: #efe7d8;
+	--muted-foreground: #6e5f4d;
+	--accent: #a3461f;
+	--accent-foreground: #fff8f0;
+	--destructive: #b42318;
+	--border: #ddd1bd;
+	--input: #e3d8c6;
+	--ring: #a3461f;
+	--sidebar: #f0e9dc;
+	--sidebar-foreground: #2a2118;
+	--sidebar-primary: #a3461f;
+	--sidebar-primary-foreground: #fff8f0;
+	--sidebar-accent: #efe7d8;
+	--sidebar-accent-foreground: #3a2e22;
+	--sidebar-border: #ddd1bd;
+	--sidebar-ring: #a3461f;
+
+	--mc-border-strong: #cbbda4;
+	--mc-data: #1d6fa5;
+	--mc-danger-text: #a11d12;
+	--mc-danger-border: #e8c4b8;
+	--mc-warning: #a15c07;
+	--mc-service: #7b4bb8;
+	--mc-edge-idle: #c2b39a;
+	--mc-grid-line: rgba(120, 90, 50, 0.07);
+}
+
 @theme inline {
   --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Chakra Petch', ui-sans-serif, sans-serif;

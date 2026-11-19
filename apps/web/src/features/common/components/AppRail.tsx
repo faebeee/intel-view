@@ -2,13 +2,28 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
 	Folder,
 	LayoutTemplate,
-	Moon,
-	Sun,
+	Palette,
 	Tag as TagIcon,
 	Waypoints,
 } from "lucide-react";
 import type { JSX, ReactNode } from "react";
 import { useTheme } from "#/components/theme-provider.tsx";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuLabel,
+	DropdownMenuRadioGroup,
+	DropdownMenuRadioItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "#/components/ui/dropdown-menu.tsx";
+import {
+	APP_THEMES,
+	type AppThemeDefinition,
+	findAppTheme,
+	isThemePreference,
+	SYSTEM_THEMES,
+} from "#/lib/theme.ts";
 import { cn } from "#/lib/utils.ts";
 
 type AppRailProps = {
@@ -64,13 +79,11 @@ function RailLink({
  */
 export function AppRail({ canvasProjectId }: AppRailProps): JSX.Element {
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
-	const { resolvedMode, setMode } = useTheme();
 
 	const isFolders = pathname === "/" || pathname.startsWith("/folders");
 	const isCanvas = pathname.startsWith("/projects");
 	const isTags = pathname.startsWith("/tags");
 	const isTemplates = pathname.startsWith("/templates");
-	const nextMode = resolvedMode === "dark" ? "light" : "dark";
 
 	return (
 		<nav
@@ -124,19 +137,81 @@ export function AppRail({ canvasProjectId }: AppRailProps): JSX.Element {
 
 			<div className="flex-1 max-sm:hidden" />
 
-			<button
-				type="button"
-				onClick={() => setMode(nextMode)}
-				aria-label={`Switch to ${nextMode} theme`}
-				title={`Switch to ${nextMode} theme`}
+			<ThemePicker />
+		</nav>
+	);
+}
+
+function ThemeSwatch({ theme }: { theme: AppThemeDefinition }): JSX.Element {
+	return (
+		<span
+			aria-hidden="true"
+			className="flex size-4 shrink-0 items-center justify-center border border-mc-border-strong"
+			style={{ backgroundColor: theme.swatch.bg }}
+		>
+			<span
+				className="size-1.5"
+				style={{ backgroundColor: theme.swatch.accent }}
+			/>
+		</span>
+	);
+}
+
+/** Rail button opening the app theme menu (System + every `APP_THEMES` entry). */
+function ThemePicker(): JSX.Element {
+	const { preference, theme, setPreference } = useTheme();
+	const label = `Theme: ${preference === "system" ? `System (${theme.label})` : theme.label}`;
+
+	return (
+		<DropdownMenu>
+			<DropdownMenuTrigger
+				aria-label={label}
+				title={label}
 				className={cn(ITEM_CLASS, "cursor-pointer")}
 			>
-				{resolvedMode === "dark" ? (
-					<Moon className="size-[18px]" strokeWidth={1.6} />
-				) : (
-					<Sun className="size-[18px]" strokeWidth={1.6} />
-				)}
-			</button>
-		</nav>
+				<Palette className="size-[18px]" strokeWidth={1.6} />
+			</DropdownMenuTrigger>
+			<DropdownMenuContent
+				side="right"
+				align="end"
+				className="w-64 rounded-none border-mc-border-strong bg-mc-panel font-mono text-mc-text"
+			>
+				<DropdownMenuLabel className="text-[10.5px] tracking-[0.12em] text-mc-text-muted uppercase">
+					Theme
+				</DropdownMenuLabel>
+				<DropdownMenuRadioGroup
+					value={preference}
+					onValueChange={(value) => {
+						if (isThemePreference(value)) setPreference(value);
+					}}
+				>
+					<DropdownMenuRadioItem value="system" className="rounded-none">
+						<span className="flex flex-col">
+							<span className="text-xs">System</span>
+							<span className="text-[11px] text-mc-text-muted">
+								{findAppTheme(SYSTEM_THEMES.dark).label} /{" "}
+								{findAppTheme(SYSTEM_THEMES.light).label}, follows your OS
+							</span>
+						</span>
+					</DropdownMenuRadioItem>
+					<DropdownMenuSeparator className="bg-mc-border" />
+					{APP_THEMES.map((option) => (
+						<DropdownMenuRadioItem
+							key={option.id}
+							value={option.id}
+							className="rounded-none"
+						>
+							<ThemeSwatch theme={option} />
+							<span className="flex flex-col">
+								<span className="text-xs">{option.label}</span>
+								<span className="text-[11px] text-mc-text-muted">
+									{option.description}
+								</span>
+							</span>
+						</DropdownMenuRadioItem>
+					))}
+				</DropdownMenuRadioGroup>
+			</DropdownMenuContent>
+		</DropdownMenu>
 	);
 }

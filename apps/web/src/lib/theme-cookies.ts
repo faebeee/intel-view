@@ -1,29 +1,32 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getCookie } from "@tanstack/react-start/server";
 import {
-	DEFAULT_THEME_MODE,
-	isThemeMode,
-	THEME_MODE_COOKIE,
-	type ThemeMode,
+	DEFAULT_THEME_PREFERENCE,
+	isThemePreference,
+	LEGACY_THEME_MODE_COOKIE,
+	THEME_COOKIE,
+	type ThemePreference,
+	themeFromLegacyMode,
 } from "./theme";
 
 export type ThemeCookies = {
-	mode: ThemeMode;
+	theme: ThemePreference;
 };
 
 /**
- * Reads the persisted color mode (light/dark/system) preference from the
- * request cookies so the server can render the correct mode on the very
- * first paint (no flash of the wrong mode). The accent color palette is no
- * longer a cookie-persisted global preference — it's derived per-project
- * (see `Layout`), so it isn't read here.
+ * Reads the persisted app theme preference from the request cookies so the
+ * server can render the correct theme on the very first paint (no flash of
+ * the wrong theme). Falls back to the legacy light/dark/system mode cookie.
  */
 export const getThemeCookies = createServerFn({ method: "GET" }).handler(
 	async (): Promise<ThemeCookies> => {
-		const rawMode = getCookie(THEME_MODE_COOKIE);
+		const rawTheme = getCookie(THEME_COOKIE);
+		if (isThemePreference(rawTheme)) return { theme: rawTheme };
 
 		return {
-			mode: isThemeMode(rawMode) ? rawMode : DEFAULT_THEME_MODE,
+			theme:
+				themeFromLegacyMode(getCookie(LEGACY_THEME_MODE_COOKIE)) ??
+				DEFAULT_THEME_PREFERENCE,
 		};
 	},
 );

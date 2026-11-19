@@ -7,9 +7,11 @@ import {
 	useState,
 } from "react";
 import {
-	resolveModeClass,
-	THEME_MODE_COOKIE,
-	type ThemeMode,
+	type AppThemeDefinition,
+	type ColorScheme,
+	resolveTheme,
+	THEME_COOKIE,
+	type ThemePreference,
 } from "#/lib/theme";
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
@@ -24,15 +26,26 @@ function getPrefersDark(): boolean {
 	return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
+/** Applies a resolved theme to <html>: `data-theme` plus the `.dark` class. */
+function applyTheme(theme: AppThemeDefinition): void {
+	const root = document.documentElement;
+	root.dataset.theme = theme.id;
+	root.classList.toggle("dark", theme.scheme === "dark");
+}
+
 type ThemeProviderProps = {
 	children: ReactNode;
-	initialMode: ThemeMode;
+	initialTheme: ThemePreference;
 };
 
 type ThemeProviderState = {
-	mode: ThemeMode;
-	resolvedMode: "light" | "dark";
-	setMode: (mode: ThemeMode) => void;
+	/** The user's choice, possibly "system". */
+	preference: ThemePreference;
+	/** The concrete theme currently applied. */
+	theme: AppThemeDefinition;
+	/** Light/dark base of the applied theme (for libraries with a color mode). */
+	resolvedMode: ColorScheme;
+	setPreference: (preference: ThemePreference) => void;
 };
 
 const ThemeProviderContext = createContext<ThemeProviderState | undefined>(
@@ -41,50 +54,43 @@ const ThemeProviderContext = createContext<ThemeProviderState | undefined>(
 
 export function ThemeProvider({
 	children,
-	initialMode,
+	initialTheme,
 }: ThemeProviderProps): JSX.Element {
-	const [mode, setModeState] = useState<ThemeMode>(initialMode);
+	const [preference, setPreferenceState] =
+		useState<ThemePreference>(initialTheme);
+	const [prefersDark, setPrefersDark] = useState<boolean>(getPrefersDark);
 
-	const applyMode = useCallback((nextMode: ThemeMode) => {
-		const root = document.documentElement;
-		const className = resolveModeClass(nextMode, getPrefersDark());
-		root.classList.toggle("dark", className === "dark");
+	const theme = resolveTheme(preference, prefersDark);
+
+	const setPreference = useCallback((next: ThemePreference) => {
+		setPreferenceState(next);
+		setCookie(THEME_COOKIE, next);
 	}, []);
 
-	const setMode = useCallback(
-		(nextMode: ThemeMode) => {
-			setModeState(nextMode);
-			setCookie(THEME_MODE_COOKIE, nextMode);
-			applyMode(nextMode);
-		},
-		[applyMode],
-	);
-
-	// Correct the DOM after hydration in case the server's guess for
-	// "system" mode didn't match this client's actual OS preference.
+	// Keep <html> in sync; also corrects the server's guess for "system".
 	useEffect(() => {
-		applyMode(mode);
-	}, [mode, applyMode]);
+		applyTheme(theme);
+	}, [theme]);
 
-	// Keep the DOM in sync with `mode` when relying on the OS preference.
+	// Follow OS light/dark changes while the preference is "system".
 	useEffect(() => {
-		if (mode !== "system") return;
-
+		if (preference !== "system") return;
 		const media = window.matchMedia("(prefers-color-scheme: dark)");
-		const handleChange = (): void => applyMode("system");
+		setPrefersDark(media.matches);
+		const handleChange = (): void => setPrefersDark(media.matches);
 		media.addEventListener("change", handleChange);
 		return () => media.removeEventListener("change", handleChange);
-	}, [mode, applyMode]);
-
-	const resolvedMode: "light" | "dark" =
-		mode === "system"
-			? getPrefersDark()
-				? "dark"
-				: "light"
-			: (mode as "light" | "dark");
+	}, [preference]);
 
 	return (
-		<ThemeProviderContext.Provider value={{ mode, resolvedMode, setMode }}>
+		<ThemeProviderContext.Provider
+			value={{
+				preference,
+				theme,
+				resolvedMode: theme.scheme,
+				setPreference,
+			}}
+		>
 			{children}
 		</ThemeProviderContext.Provider>
 	);
