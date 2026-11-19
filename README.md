@@ -105,7 +105,7 @@ This is useful for things like: *"Summarize everything logged on the Acme incide
 
 - Built with [`@rekog/mcp-nest`](https://www.npmjs.com/package/@rekog/mcp-nest) on top of the official MCP SDK, using the **Streamable HTTP** transport.
 - The MCP server rides on the **same host/port as the REST API** — no separate service or port to run.
-- Endpoint: `http://<api-host>:4010/mcp` (e.g. `http://localhost:4010/mcp` in local dev).
+- Endpoint: `http://<api-host>:4010/mcp` in local dev (e.g. `http://localhost:4010/mcp`), or `http://<host>:8080/mcp` through the reverse proxy when running the Compose stack (see [Docker Deployment](#docker-deployment)).
 
 ### Connecting a client
 
@@ -122,7 +122,7 @@ Point your MCP client at the Streamable HTTP endpoint above. The exact configura
 }
 ```
 
-> **Security note:** There is currently **no authentication** on the MCP endpoint — anything that can reach the API host can call these tools. Don't expose port `4010` (or the MCP path specifically) to an untrusted network without putting it behind your own auth layer (e.g. a reverse proxy requiring a token or client-cert), especially since the tools below include full create/update/delete access.
+> **Security note:** There is currently **no authentication** on the MCP endpoint — anything that can reach the API host can call these tools. Don't expose port `4010` / the proxy port (or the MCP path specifically) to an untrusted network without putting it behind your own auth layer (e.g. a reverse proxy requiring a token or client-cert), especially since the tools below include full create/update/delete access.
 
 ### Available tools
 
@@ -297,26 +297,53 @@ See [`apps/api/README.md`](./apps/api/README.md#test-suites) for coverage and e2
 Once the API is running, interactive Swagger (OpenAPI) documentation is available at:
 
 ```
-http://localhost:4010/docs
+http://localhost:4010/docs   # local dev (npm run dev)
+http://localhost:8080/docs   # Compose stack, through the reverse proxy
 ```
 
 ## Docker Deployment
 
-Beyond running just the database container for local development, the full stack (API + web + Postgres) can be built and run with Docker Compose (or Podman Compose) using the multi-stage `apps/api/Dockerfile` and `apps/web/Dockerfile` (both expect the **repository root** as their build context):
+Beyond running just the database container for local development, the full stack can be built and run with Docker Compose (or Podman Compose) using the multi-stage `apps/api/Dockerfile` and `apps/web/Dockerfile` (both expect the **repository root** as their build context):
 
 ```bash
-VITE_API_URL=https://api.example.com docker compose up -d --build
+docker compose up -d --build     # or: podman compose up -d --build
 ```
 
-- `db` — PostgreSQL 15, same as local dev.
-- `api` — built from `apps/api/Dockerfile`, listens on port `4010` (also serving `/mcp`). CORS accepts the API's `APP_URL` env var plus the hardcoded `http://intel.local:4000` and `http://192.168.50.15:4000` origins (see `apps/api/src/main.ts`) — adjust these if your deployment uses a different hostname.
-- `web` — built from `apps/web/Dockerfile`; `VITE_API_URL` is passed both as a build arg (baked into the client bundle and the Nitro server bundle via `apps/web/src/routes/__root.tsx`) and a runtime env var, and defaults to `http://intel.local:4010` if unset in `docker-compose.yml`. The build also runs `npx turbo run generate` first, so the API must be reachable at `VITE_API_URL` (or already running) at build time to regenerate `@repo/sdk` from its live OpenAPI schema.
+Then open **<http://localhost:8080>**.
+
+### Reverse proxy (single port)
+
+The browser talks to exactly one origin: a [Caddy](https://caddyserver.com/) reverse proxy (`proxy` service, configured in [`docker/proxy/Caddyfile`](./docker/proxy/Caddyfile)). `api` and `web` publish no host ports, so there are no CORS issues and no port conflicts with a local `npm run dev`.
+
+| Path                              | Routed to   | Notes                                                                                 |
+| --------------------------------- | ----------- | ------------------------------------------------------------------------------------- |
+| `/api/*`                          | `api:4010`  | `/api` prefix stripped (`/api/projects` → `/projects`). Used by the web app.           |
+| `/docs`, `/docs-json`, `/mcp`     | `api:4010`  | Passed through unchanged (Swagger UI assets use absolute `/docs/...` paths; MCP streams responses). |
+| everything else                   | `web:4000`  | The TanStack Start / Nitro server.                                                    |
+
+Configuration (environment variables read by `docker-compose.yml`, e.g. from a root `.env`):
+
+| Variable       | Purpose                                                                                   | Default                  |
+| -------------- | ----------------------------------------------------------------------------------------- | ------------------------ |
+| `PROXY_PORT`   | Host port the proxy is published on.                                                       | `8080`                   |
+| `PUBLIC_URL`   | Public origin of the proxy; passed to the API as `APP_URL` (CORS) for direct API access.   | `http://localhost:8080`  |
+
+The web image is built and run with `VITE_API_URL=/api`, so every browser API call (including file downloads) is a same-origin request to the proxy. TLS is not handled by the proxy (`auto_https off`); terminate it in front of the proxy if needed.
+
+Services:
+
+- `proxy` — Caddy, the only app port exposed to the host.
+- `db` — PostgreSQL 15 (still published on `5432` for local tooling).
+- `minio` — object storage for `file` notes (still published on `9000`).
+- `api` — built from `apps/api/Dockerfile`; listens on `4010` inside the Compose network only (also serving `/mcp`).
+- `web` — built from `apps/web/Dockerfile`; listens on `4000` inside the Compose network only. `packages/sdk/client` is not committed, so generate it first (`npx turbo run generate --filter=@repo/sdk` against a running API) — the build fails fast if it is missing.
+- `kali` — tooling container used by note plugins.
 
 For a from-source build of a single image, build with the repo root as context, e.g.:
 
 ```bash
 docker build -f apps/api/Dockerfile -t intel-view-api .
-docker build -f apps/web/Dockerfile --build-arg VITE_API_URL=https://api.example.com -t intel-view-web .
+docker build -f apps/web/Dockerfile --build-arg VITE_API_URL=/api -t intel-view-web .
 ```
 
 ## Contributing

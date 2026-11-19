@@ -54,7 +54,9 @@ services:
       PORT: 4010
       DB_HOST: db
       DB_PORT: 5432
-      APP_URL: http://intel.local:4000
+      # The browser reaches the API same-origin through `proxy` (/api), so
+      # CORS only matters for direct access; allow the public proxy origin.
+      APP_URL: ${PUBLIC_URL:-http://localhost:8080}
       DB_USERNAME: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       DB_DATABASE: intel_view
@@ -66,8 +68,10 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-miniouser}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-miniopass}
       MINIO_BUCKET: intel-view-files
-    ports:
-      - '4010:4010'
+    # No published port: reachable from the host only via `proxy`
+    # (/api/*, /docs, /mcp). Other containers use http://api:4010.
+    expose:
+      - '4010'
     healthcheck:
       test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:4010/docs-json']
       interval: 5s
@@ -96,8 +100,8 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        VITE_API_URL: http://intel.local:4010
-        VITE_SDK_URL: http://api:4010
+        # Relative: the browser calls the API same-origin through `proxy`.
+        VITE_API_URL: /api
     container_name: intel-view-web
     restart: always
     depends_on:
@@ -105,13 +109,46 @@ services:
         condition: service_healthy
     environment:
       PORT: 4000
-      VITE_API_URL: http://intel.local:4010
+      VITE_API_URL: /api
+    # No published port: reachable from the host only via `proxy`.
+    expose:
+      - '4000'
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:4000/']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # Single entry point for the browser: serves the web app at / and the API
+  # at /api (plus /docs and /mcp), so there is one origin and no CORS.
+  # Configuration: docker/proxy/Caddyfile.
+  proxy:
+    image: docker.io/library/caddy:2.10-alpine
+    container_name: intel-view-proxy
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
     ports:
-      - '4000:4000'
+      - '${PROXY_PORT:-8080}:80'
+    volumes:
+      - ./docker/proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:80/api/health']
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
 volumes:
   postgres_data:
   minio_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   default:

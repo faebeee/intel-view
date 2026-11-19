@@ -1,0 +1,45 @@
+# Reverse proxy fronting the whole Intel View stack on a single port, so the
+# browser only ever talks to one origin (no CORS, no extra published ports).
+#
+#   /api/*                    -> api:4010   ("/api" prefix stripped)
+#   /docs, /docs-json, /mcp   -> api:4010   (passed through unchanged)
+#   everything else           -> web:4000
+#
+# The web app is built with VITE_API_URL=/api, so all browser API calls
+# (including file downloads) are same-origin requests to this proxy.
+{
+	# Plain HTTP inside the compose network; TLS (if any) is expected to be
+	# terminated in front of this proxy.
+	auto_https off
+	admin off
+}
+
+:{$PROXY_LISTEN_PORT:80} {
+	# REST API. handle_path strips the matched "/api" prefix before proxying,
+	# so the API keeps serving its routes at the root (/projects, /health ...).
+	handle_path /api/* {
+		reverse_proxy api:4010
+	}
+
+	# Swagger UI loads its assets from absolute /docs/... paths, and MCP
+	# clients expect a stable /mcp URL, so these go to the API unprefixed.
+	# flush_interval -1 streams responses immediately (MCP Streamable HTTP
+	# uses server-sent events).
+	@api_unprefixed path /docs /docs/* /docs-json /mcp /mcp/*
+	handle @api_unprefixed {
+		reverse_proxy api:4010 {
+			flush_interval -1
+		}
+	}
+
+	# Web app (TanStack Start / Nitro SSR server).
+	handle {
+		encode zstd gzip
+		reverse_proxy web:4000
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}
