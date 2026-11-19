@@ -70,6 +70,15 @@ export class NoteResponseDto {
 
   @ApiProperty({
     description:
+      'Version of the software/service. Only set on custom software/service notes; null otherwise.',
+    required: false,
+    nullable: true,
+    type: 'string',
+  })
+  version: string | null;
+
+  @ApiProperty({
+    description:
       "Original name of the file uploaded to this note (only set for 'file'-type notes that have a file).",
     required: false,
     nullable: true,
@@ -113,6 +122,7 @@ export function toNoteResponseDto(note: Note): NoteResponseDto {
     childIds: note.childIds ?? [],
     canvasX: note.canvasX,
     canvasY: note.canvasY,
+    version: note.version ?? null,
     fileName: note.fileName,
     fileMimeType: note.fileMimeType,
     fileSize: note.fileSize,

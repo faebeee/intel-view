@@ -15,17 +15,26 @@ export type {
  * content behaves like `'standard'`, but the note can be targeted by its
  * own plugins. Set at creation and immutable afterwards.
  */
- export type NoteType = NoteResponseDto["type"];
- 
- /** The six note types with special built-in behavior; every other `NoteType` value is a custom software/service type. */
- export const BUILTIN_NOTE_TYPES = [
- 	"standard",
- 	"log",
- 	"file",
- 	"url",
- 	"ip",
- 	"command",
- ] as const;
+export type NoteType = NoteResponseDto["type"];
+
+/** The note types with special built-in behavior; every other `NoteType` value is a custom software/service type. */
+export const BUILTIN_NOTE_TYPES = [
+	"standard",
+	"log",
+	"file",
+	"url",
+	"ip",
+	"command",
+	"email",
+] as const;
+
+/** Whether `type` is a custom software/service type (e.g. 'ssh'): only those notes carry a `version`. */
+export function isSoftwareNoteType(type: NoteType): boolean {
+	return !(BUILTIN_NOTE_TYPES as readonly string[]).includes(type);
+}
+
+/** Maximum length of a software note's version (mirrors the API). */
+export const NOTE_VERSION_MAX_LENGTH = 100;
 
 /**
  * Suggested values for the specific service/software type chosen in the

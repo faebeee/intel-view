@@ -42,6 +42,8 @@ const FIELD_LABELS: Record<string, string> = {
 	title: "Title",
 	content: "Content",
 	tags: "Tags",
+	color: "Color",
+	version: "Version",
 };
 
 function formatFieldValue(value: unknown): string {

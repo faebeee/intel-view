@@ -141,6 +141,14 @@ export function NoteDetailsPanel({
 					<span className="font-semibold" style={{ color: kind.color }}>
 						{kind.label}
 					</span>
+					{note.version && (
+						<span
+							className="min-w-0 truncate tracking-normal text-mc-text-2"
+							title={note.version}
+						>
+							{note.version}
+						</span>
+					)}
 					<span className="text-mc-text-muted">#{note.id}</span>
 					<span className="flex-1" />
 					{onClose && (

@@ -113,6 +113,17 @@ export function NoteEditModal({
 		[note, updateNoteMutation],
 	);
 
+	const handleVersionChange = React.useCallback(
+		(version: string | null) => {
+			if (!note) return;
+			updateNoteMutation.mutate(
+				{ id: note.id, patch: { version } },
+				{ onError: toastApiError("update note's version") },
+			);
+		},
+		[note, updateNoteMutation],
+	);
+
 	const handleDelete = React.useCallback(() => {
 		if (!note) return;
 		deleteNoteMutation.mutate(note.id, {
@@ -162,6 +173,7 @@ export function NoteEditModal({
 								onRemoveChild={handleRemoveChild}
 								onTagsChange={handleTagsChange}
 								onColorChange={handleColorChange}
+								onVersionChange={handleVersionChange}
 								onDelete={handleDelete}
 								isMutating={
 									updateNoteMutation.isPending || deleteNoteMutation.isPending

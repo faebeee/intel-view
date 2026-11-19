@@ -21,7 +21,9 @@ import {
   PaginateConfig,
 } from 'nestjs-paginate';
 import { Note } from './entities/note.entity';
+import type { NoteType } from './entities/note.entity';
 import { NoteHistoryEntry } from './entities/note-history-entry.entity';
+import { isSoftwareNoteType, normalizeNoteVersion } from './note-type.util';
 import type { NoteFieldChange } from './entities/note-history-entry.entity';
 import { NoteRelation } from './entities/note-relation.entity';
 import { NoteLogEntry } from './entities/note-log-entry.entity';
@@ -49,7 +51,13 @@ export const notePaginateConfig: PaginateConfig<Note> = {
  * dedicated `'link_added'`/`'link_removed'` history entries (see
  * `addRelation`/`removeRelation`), since they're no longer a plain column.
  */
-const HISTORY_TRACKED_FIELDS = ['title', 'content', 'tags', 'color'] as const;
+const HISTORY_TRACKED_FIELDS = [
+  'title',
+  'content',
+  'tags',
+  'color',
+  'version',
+] as const;
 
 /**
  * Structurally compares two field values for equality, using JSON
@@ -427,6 +435,22 @@ export class NoteService {
     }
   }
 
+  /**
+   * A `version` only makes sense for software/service notes (e.g. 'ssh').
+   * Rejects a non-empty version on built-in note types; `null` (clear) is
+   * always allowed.
+   */
+  private assertVersionAllowed(
+    type: NoteType,
+    version: string | null | undefined,
+  ): void {
+    if (version != null && !isSoftwareNoteType(type)) {
+      throw new BadRequestException(
+        `A version can only be set on software/service notes, not on '${type}' notes`,
+      );
+    }
+  }
+
   async create(projectId: number, createNoteDto: CreateNoteDto): Promise<Note> {
     await this.assertProjectExists(projectId);
 
@@ -442,6 +466,9 @@ export class NoteService {
       this.assertValidEmailContent(createNoteDto.content);
     }
 
+    const version = normalizeNoteVersion(createNoteDto.version);
+    this.assertVersionAllowed(createNoteDto.type ?? 'standard', version);
+
     const parentIds = createNoteDto.parentIds ?? [];
     for (const parentId of parentIds) {
       const parent = await this.noteRepository.findOne({
@@ -454,7 +481,11 @@ export class NoteService {
       }
     }
 
-    const note = this.noteRepository.create({ ...createNoteDto, projectId });
+    const note = this.noteRepository.create({
+      ...createNoteDto,
+      version: version ?? null,
+      projectId,
+    });
     const savedNote = await this.noteRepository.save(note);
 
     if (parentIds.length > 0) {
@@ -831,6 +862,11 @@ export class NoteService {
       !valuesAreEqual(note.content, updateNoteDto.content)
     ) {
       this.assertValidEmailContent(updateNoteDto.content);
+    }
+
+    if (updateNoteDto.version !== undefined) {
+      updateNoteDto.version = normalizeNoteVersion(updateNoteDto.version);
+      this.assertVersionAllowed(note.type, updateNoteDto.version);
     }
 
     // Compute field-level diffs for tracked fields before applying the

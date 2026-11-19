@@ -37,6 +37,13 @@ const createNoteParams = z.object({
     .string()
     .nullish()
     .describe("Optional custom hex color (e.g. '#00f2ff') for this note"),
+  version: z
+    .string()
+    .max(100)
+    .nullish()
+    .describe(
+      "Version of the software/service (e.g. 'OpenSSH 8.9p1'). Only allowed on custom software/service notes (non-built-in type).",
+    ),
   parentIds: z
     .array(z.number().int())
     .optional()
@@ -66,6 +73,13 @@ const updateNoteParams = z.object({
     .string()
     .nullish()
     .describe('Optional custom hex color for this note; pass null to clear'),
+  version: z
+    .string()
+    .max(100)
+    .nullish()
+    .describe(
+      'Version of the software/service; pass null or an empty string to clear. Only allowed on software/service notes.',
+    ),
   canvasX: z
     .number()
     .nullish()

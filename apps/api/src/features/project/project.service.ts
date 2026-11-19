@@ -230,6 +230,7 @@ export class ProjectService {
           color: note.color,
           canvasX: note.canvasX,
           canvasY: note.canvasY,
+          version: note.version,
           fileKey: null,
           fileName: null,
           fileMimeType: null,

@@ -238,6 +238,7 @@ describe('ProjectService', () => {
           color: '#fff',
           canvasX: 10,
           canvasY: 20,
+          version: 'OpenSSH 8.9p1',
           fileKey: null,
         },
         {
@@ -287,6 +288,7 @@ describe('ProjectService', () => {
           tags: ['recon'],
           canvasX: 10,
           canvasY: 20,
+          version: 'OpenSSH 8.9p1',
         }),
         expect.objectContaining({
           projectId: 100,

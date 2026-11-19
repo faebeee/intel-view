@@ -40,7 +40,11 @@ export const BUILTIN_NOTE_TYPES = [
   'url',
   'ip',
   'command',
+  'email',
 ] as const;
+
+/** Maximum length of a software note's `version`. */
+export const NOTE_VERSION_MAX_LENGTH = 100;
 
 @Entity()
 export class Note extends BaseEntity {
@@ -98,6 +102,16 @@ export class Note extends BaseEntity {
 
   /** IDs of this note's child notes, if any. See `parentIds` for details. */
   childIds?: number[];
+
+  @Column({ type: 'varchar', length: NOTE_VERSION_MAX_LENGTH, nullable: true })
+  @ApiProperty({
+    description:
+      "Version of the software/service (e.g. 'OpenSSH 8.9p1', '2.4.57'). Only set on custom software/service notes (any non-built-in `type`).",
+    required: false,
+    nullable: true,
+    type: 'string',
+  })
+  version: string | null;
 
   @Column({ type: 'float', nullable: true })
   @ApiProperty({

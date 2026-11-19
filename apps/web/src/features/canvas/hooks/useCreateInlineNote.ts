@@ -8,6 +8,8 @@ export type CreateInlineNotePayload = {
 	type: NoteType;
 	title?: string;
 	content?: string;
+	/** Software/service version (software notes only). */
+	version?: string;
 	canvasX: number;
 	canvasY: number;
 	parentIds?: number[];

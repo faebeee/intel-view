@@ -40,7 +40,9 @@ export function useNoteDraftAutosave(
 	const updateNoteMutation = useMutation({
 		mutationFn: async (args: {
 			id: number;
-			patch: Partial<Pick<Note, "title" | "content" | "tags" | "color">>;
+			patch: Partial<
+				Pick<Note, "title" | "content" | "tags" | "color" | "version">
+			>;
 		}) => {
 			const res = await noteControllerUpdate({
 				path: { projectId, id: args.id },

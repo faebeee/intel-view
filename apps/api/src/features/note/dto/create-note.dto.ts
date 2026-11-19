@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { NOTE_VERSION_MAX_LENGTH } from '../entities/note.entity';
 import {
   IsString,
   IsOptional,
@@ -6,6 +7,7 @@ import {
   IsInt,
   Matches,
   IsNumber,
+  MaxLength,
 } from 'class-validator';
 import type { NoteType } from '../entities/note.entity';
 
@@ -94,4 +96,17 @@ export class CreateNoteDto {
     nullable: true,
   })
   canvasY?: number | null;
+
+  @IsString()
+  @MaxLength(NOTE_VERSION_MAX_LENGTH)
+  @IsOptional()
+  @ApiProperty({
+    description:
+      "Version of the software/service (e.g. 'OpenSSH 8.9p1'). Only allowed on custom software/service notes (any non-built-in `type`).",
+    required: false,
+    nullable: true,
+    type: 'string',
+    maxLength: NOTE_VERSION_MAX_LENGTH,
+  })
+  version?: string | null;
 }

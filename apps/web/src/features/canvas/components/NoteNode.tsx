@@ -86,6 +86,14 @@ export function NoteNode({ data, selected }: NoteNodeProps) {
 								>
 									{kind.label}
 								</span>
+								{note.version && (
+									<span
+										className="min-w-0 truncate font-mono text-[9.5px] text-mc-text-2"
+										title={note.version}
+									>
+										{note.version}
+									</span>
+								)}
 								<span className="flex-1" />
 								<span className="font-mono text-[10px] text-mc-text-muted">
 									#{note.id}

@@ -149,11 +149,46 @@ describe('NoteService', () => {
 
       expect(mockNoteRepository.create).toHaveBeenCalledWith({
         ...createNoteDto,
+        version: null,
         projectId,
       });
       expect(mockNoteRepository.save).toHaveBeenCalledWith(createdNote);
       expect(result).toEqual(createdNote);
     });
+
+    it('stores a trimmed version on a software note', async () => {
+      const createdNote = { id: 1, projectId: 1, type: 'ssh' } as Note;
+      mockNoteRepository.create.mockReturnValue(createdNote);
+      mockNoteRepository.save.mockResolvedValue(createdNote);
+
+      await service.create(1, { type: 'ssh', version: '  OpenSSH 8.9p1  ' });
+
+      expect(mockNoteRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'ssh', version: 'OpenSSH 8.9p1' }),
+      );
+    });
+
+    it('stores an empty version as null', async () => {
+      const createdNote = { id: 1, projectId: 1, type: 'http' } as Note;
+      mockNoteRepository.create.mockReturnValue(createdNote);
+      mockNoteRepository.save.mockResolvedValue(createdNote);
+
+      await service.create(1, { type: 'http', version: '   ' });
+
+      expect(mockNoteRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ version: null }),
+      );
+    });
+
+    it.each(['standard', 'ip', 'email', undefined])(
+      'rejects a version on a built-in %s note',
+      async (type) => {
+        await expect(
+          service.create(1, { type, content: '1.1.1.1', version: '1.0' }),
+        ).rejects.toBeInstanceOf(BadRequestException);
+        expect(mockNoteRepository.save).not.toHaveBeenCalled();
+      },
+    );
 
     it("records a 'created' history entry", async () => {
       const projectId = 1;
@@ -179,6 +214,65 @@ describe('NoteService', () => {
   });
 
   describe('update', () => {
+    it('updates the version of a software note and records it in history', async () => {
+      const existingNote = {
+        id: 1,
+        projectId: 1,
+        type: 'ftp',
+        version: 'vsftpd 2.3.4',
+      } as unknown as Note;
+      mockNoteRepository.findOne.mockResolvedValue(existingNote);
+      mockNoteRepository.save.mockImplementation((note: Note) =>
+        Promise.resolve(note),
+      );
+
+      const result = await service.update(1, 1, { version: ' vsftpd 3.0.5 ' });
+
+      expect(result?.version).toBe('vsftpd 3.0.5');
+      expect(mockNoteHistoryRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          changeType: 'updated',
+          changes: [
+            {
+              field: 'version',
+              previousValue: 'vsftpd 2.3.4',
+              newValue: 'vsftpd 3.0.5',
+            },
+          ],
+        }),
+      );
+    });
+
+    it('clears the version when an empty string is passed', async () => {
+      const existingNote = {
+        id: 1,
+        projectId: 1,
+        type: 'ftp',
+        version: 'vsftpd 2.3.4',
+      } as unknown as Note;
+      mockNoteRepository.findOne.mockResolvedValue(existingNote);
+      mockNoteRepository.save.mockImplementation((note: Note) =>
+        Promise.resolve(note),
+      );
+
+      const result = await service.update(1, 1, { version: '' });
+
+      expect(result?.version).toBeNull();
+    });
+
+    it('rejects setting a version on a built-in note type', async () => {
+      mockNoteRepository.findOne.mockResolvedValue({
+        id: 1,
+        projectId: 1,
+        type: 'standard',
+      });
+
+      await expect(
+        service.update(1, 1, { version: '1.0' }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockNoteRepository.save).not.toHaveBeenCalled();
+    });
+
     it('updates the content of a note', async () => {
       const projectId = 1;
       const existingNote = {
@@ -1027,6 +1121,7 @@ describe('NoteService', () => {
       expect(mockNoteRepository.create).toHaveBeenCalledWith({
         content: 'child note',
         parentIds: [5],
+        version: null,
         projectId,
       });
       expect(mockNoteRelationRepository.save).toHaveBeenCalledWith([

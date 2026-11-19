@@ -1,5 +1,6 @@
 import type { NoteResponseDto as Note, TagResponseDto as Tag } from "@repo/sdk";
 import { Trash2 } from "lucide-react";
+import type { JSX } from "react";
 import * as React from "react";
 import {
 	Combobox,
@@ -14,6 +15,7 @@ import {
 	useComboboxAnchor,
 } from "#/components/ui/combobox.tsx";
 import { FormField } from "#/components/ui/form-field.tsx";
+import { Input } from "#/components/ui/input.tsx";
 import { noteTypeLabel } from "#/features/canvas/note-kind.ts";
 import { ColorPickerField } from "#/features/common/components/ColorPickerField.tsx";
 import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
@@ -27,6 +29,7 @@ import {
 } from "#/features/notes/hooks/useNoteTree.ts";
 import { useTagColorMap } from "#/features/tags/hooks/useTagColorMap.ts";
 import { formatIsoDateTime } from "#/lib/format.ts";
+import { isSoftwareNoteType, NOTE_VERSION_MAX_LENGTH } from "#/types/note.ts";
 
 type NoteSettingsPanelProps = {
 	projectId: number;
@@ -39,6 +42,8 @@ type NoteSettingsPanelProps = {
 	onRemoveChild: (childId: number) => void;
 	onTagsChange: (tags: string[]) => void;
 	onColorChange: (color: string | null) => void;
+	/** Saves a software note's version (`null` clears it). */
+	onVersionChange: (version: string | null) => void;
 	onDelete: () => void;
 	isMutating?: boolean;
 	className?: string;
@@ -62,6 +67,7 @@ export function NoteSettingsPanel({
 	onRemoveChild,
 	onTagsChange,
 	onColorChange,
+	onVersionChange,
 	onDelete,
 	isMutating = false,
 	className,
@@ -161,6 +167,17 @@ export function NoteSettingsPanel({
 						{noteTypeLabel(note.type)}
 					</span>
 				</div>
+
+				{isSoftwareNoteType(note.type) && (
+					<FormField label="Version" htmlFor="note-version" className="px-1">
+						<NoteVersionInput
+							id="note-version"
+							value={note.version ?? null}
+							onCommit={onVersionChange}
+							disabled={isMutating}
+						/>
+					</FormField>
+				)}
 
 				<NotePluginsPanel
 					projectId={projectId}
@@ -372,5 +389,56 @@ export function NoteSettingsPanel({
 				</ConfirmationButton>
 			</div>
 		</div>
+	);
+}
+
+/**
+ * Text input for a software note's version. Keeps a local draft and commits
+ * on blur or Enter (Escape reverts), so the note isn't saved per keystroke.
+ * An empty value clears the version.
+ */
+function NoteVersionInput({
+	id,
+	value,
+	onCommit,
+	disabled,
+}: {
+	id: string;
+	value: string | null;
+	onCommit: (version: string | null) => void;
+	disabled?: boolean;
+}): JSX.Element {
+	const [draft, setDraft] = React.useState(value ?? "");
+
+	// Follow external changes (another save, switching notes).
+	React.useEffect(() => {
+		setDraft(value ?? "");
+	}, [value]);
+
+	const commit = (): void => {
+		const next = draft.trim() || null;
+		if (next !== (value ?? null)) onCommit(next);
+		setDraft(next ?? "");
+	};
+
+	return (
+		<Input
+			id={id}
+			value={draft}
+			maxLength={NOTE_VERSION_MAX_LENGTH}
+			placeholder="e.g. OpenSSH 8.9p1"
+			disabled={disabled}
+			onChange={(event) => setDraft(event.target.value)}
+			onBlur={commit}
+			onKeyDown={(event) => {
+				if (event.key === "Enter") {
+					event.preventDefault();
+					commit();
+				} else if (event.key === "Escape") {
+					setDraft(value ?? "");
+				}
+			}}
+			className="h-8 font-mono text-xs"
+		/>
 	);
 }

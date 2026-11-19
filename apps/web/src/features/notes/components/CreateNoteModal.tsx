@@ -1,11 +1,11 @@
 import {
 	FileText,
 	Link,
+	Mail,
 	Network,
 	Paperclip,
 	ScrollText,
 	Server,
-	Mail,
 	Terminal,
 } from "lucide-react";
 import * as React from "react";
@@ -22,6 +22,7 @@ import { Input } from "#/components/ui/input.tsx";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group.tsx";
 import { cn } from "#/lib/utils.ts";
 import {
+	NOTE_VERSION_MAX_LENGTH,
 	type NoteType,
 	SOFTWARE_TYPE_SUGGESTIONS,
 	slugifyNoteType,
@@ -31,7 +32,13 @@ export type CreateNoteModalProps = {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	/** Called with the chosen note type when the user confirms creation. The caller owns which parent (if any) the note is created under. */
-	onCreate: (params: { type: NoteType; title?: string; content?: string }) => void;
+	onCreate: (params: {
+		type: NoteType;
+		title?: string;
+		content?: string;
+		/** Software/service version; only sent for software notes. */
+		version?: string;
+	}) => void;
 	isCreating?: boolean;
 };
 
@@ -117,6 +124,7 @@ export function CreateNoteModal({
 	const [step, setStep] = React.useState<"type" | "software-subtype">("type");
 	const [type, setType] = React.useState<TypeChoice>("standard");
 	const [customSubtype, setCustomSubtype] = React.useState("");
+	const [version, setVersion] = React.useState("");
 	const [selectedSubtype, setSelectedSubtype] = React.useState<string | null>(
 		null,
 	);
@@ -127,6 +135,7 @@ export function CreateNoteModal({
 		setStep("type");
 		setType("standard");
 		setCustomSubtype("");
+		setVersion("");
 		setSelectedSubtype(null);
 	}, [open]);
 
@@ -145,7 +154,11 @@ export function CreateNoteModal({
 	const handleSoftwareStepSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!finalSubtype) return;
-		onCreate({ type: finalSubtype });
+		const trimmedVersion = version.trim();
+		onCreate({
+			type: finalSubtype,
+			version: trimmedVersion || undefined,
+		});
 	};
 
 	return (
@@ -282,6 +295,21 @@ export function CreateNoteModal({
 									placeholder="e.g. rdp, mssql, custom-proto"
 								/>
 							</div>
+							<div className="flex flex-col gap-1.5">
+								<label
+									htmlFor="note-software-version"
+									className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+								>
+									Version (optional)
+								</label>
+								<Input
+									id="note-software-version"
+									value={version}
+									onChange={(e) => setVersion(e.target.value)}
+									maxLength={NOTE_VERSION_MAX_LENGTH}
+									placeholder="e.g. OpenSSH 8.9p1, Apache 2.4.57"
+								/>
+							</div>
 							<DialogFooter className="pt-2">
 								<Button
 									type="button"
@@ -308,4 +336,3 @@ export function CreateNoteModal({
 		</Dialog>
 	);
 }
-
