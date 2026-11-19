@@ -20,6 +20,7 @@ import {
 } from "#/features/common/components/PageShell.tsx";
 import { NoteDetailsPanel } from "#/features/notes/components/NoteDetailsPanel.tsx";
 import { NoteEditModal } from "#/features/notes/components/NoteEditModal.tsx";
+import { NotePluginsSidebar } from "#/features/notes/components/NotePluginsSidebar.tsx";
 import { NoteTree } from "#/features/notes/components/NoteTree.tsx";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 import { useDeleteNote } from "#/features/notes/hooks/useDeleteNote.ts";
@@ -303,6 +304,15 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 					searchFocusRequest={searchFocusRequest}
 				/>
 			)}
+
+			{/* Own sidebar beside the notes list; renders nothing when the
+			    selected note has no plugins. */}
+			<NotePluginsSidebar
+				key={renderedSelectedNote?.id ?? "none"}
+				projectId={projectId}
+				note={renderedSelectedNote}
+				className="w-64 shrink-0 border-r border-mc-border bg-mc-rail p-3 max-sm:h-80 max-sm:w-full max-sm:border-r-0 max-sm:border-b"
+			/>
 
 			<ResizablePanelGroup
 				orientation="horizontal"

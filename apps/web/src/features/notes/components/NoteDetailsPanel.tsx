@@ -8,7 +8,6 @@ import { ConfirmationButton } from "#/features/common/components/ConfirmationBut
 import { McButton } from "#/features/common/components/McButton.tsx";
 import { NoteHistoryList } from "#/features/notes/components/NoteHistorySection.tsx";
 import { NoteLogEntryList } from "#/features/notes/components/NoteLogEntryList.tsx";
-import { NotePluginsPanel } from "#/features/notes/components/NotePluginsPanel.tsx";
 import { useDeleteNote } from "#/features/notes/hooks/useDeleteNote.ts";
 import { useNoteHistoryQuery } from "#/features/notes/hooks/useNoteHistoryQuery.ts";
 import { useNoteLogEntriesQuery } from "#/features/notes/hooks/useNoteLogEntriesQuery.ts";
@@ -214,73 +213,69 @@ export function NoteDetailsPanel({
 				className="flex min-h-0 flex-1 flex-col gap-[18px] overflow-auto px-5 py-[18px]"
 			>
 				{tab === "details" && (
-					<>
-						<dl className="m-0 flex flex-col">
-							<Fact label={parents.length > 1 ? "Parents" : "Parent"}>
-								{parents.length > 0 ? (
-									parents.map((p) => getNoteLabel(p)).join(", ")
-								) : (
-									<span className="text-mc-text-muted">— root note</span>
-								)}
-							</Fact>
-							{note.type === "url" && (
-								<Fact label="URL">
-									{content ? (
-										<a
-											href={content}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-mc-data no-underline hover:underline"
-										>
-											{content}
-										</a>
-									) : (
-										<span className="text-mc-text-muted">—</span>
-									)}
-								</Fact>
+					<dl className="m-0 flex flex-col">
+						<Fact label={parents.length > 1 ? "Parents" : "Parent"}>
+							{parents.length > 0 ? (
+								parents.map((p) => getNoteLabel(p)).join(", ")
+							) : (
+								<span className="text-mc-text-muted">— root note</span>
 							)}
-							{note.type === "ip" && (
-								<Fact label="Address">
-									{content || <span className="text-mc-text-muted">—</span>}
-								</Fact>
-							)}
-							{note.type === "file" && (
-								<Fact label="File">
-									{note.fileName ? (
-										<>
-											{note.fileName}
-											{note.fileSize != null && (
-												<span className="text-mc-text-muted">
-													{" "}
-													· {formatBytes(note.fileSize)}
-												</span>
-											)}
-										</>
-									) : (
-										<span className="text-mc-text-muted">—</span>
-									)}
-								</Fact>
-							)}
-							<Fact label="Children">
-								{note.childIds?.length ? (
-									`${note.childIds.length} ${note.childIds.length === 1 ? "note" : "notes"}`
+						</Fact>
+						{note.type === "url" && (
+							<Fact label="URL">
+								{content ? (
+									<a
+										href={content}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="text-mc-data no-underline hover:underline"
+									>
+										{content}
+									</a>
 								) : (
 									<span className="text-mc-text-muted">—</span>
 								)}
 							</Fact>
-							<Fact label="Tags">
-								{note.tags && note.tags.length > 0 ? (
-									<TagChipList tags={note.tags} tagColorMap={tagColorMap} />
+						)}
+						{note.type === "ip" && (
+							<Fact label="Address">
+								{content || <span className="text-mc-text-muted">—</span>}
+							</Fact>
+						)}
+						{note.type === "file" && (
+							<Fact label="File">
+								{note.fileName ? (
+									<>
+										{note.fileName}
+										{note.fileSize != null && (
+											<span className="text-mc-text-muted">
+												{" "}
+												· {formatBytes(note.fileSize)}
+											</span>
+										)}
+									</>
 								) : (
 									<span className="text-mc-text-muted">—</span>
 								)}
 							</Fact>
-							<Fact label="Created">{formatIsoDateTime(note.createdAt)}</Fact>
-							<Fact label="Updated">{formatIsoDateTime(note.updatedAt)}</Fact>
-						</dl>
-
-						<NotePluginsPanel projectId={projectId} noteId={note.id} />
-					</>
+						)}
+						<Fact label="Children">
+							{note.childIds?.length ? (
+								`${note.childIds.length} ${note.childIds.length === 1 ? "note" : "notes"}`
+							) : (
+								<span className="text-mc-text-muted">—</span>
+							)}
+						</Fact>
+						<Fact label="Tags">
+							{note.tags && note.tags.length > 0 ? (
+								<TagChipList tags={note.tags} tagColorMap={tagColorMap} />
+							) : (
+								<span className="text-mc-text-muted">—</span>
+							)}
+						</Fact>
+						<Fact label="Created">{formatIsoDateTime(note.createdAt)}</Fact>
+						<Fact label="Updated">{formatIsoDateTime(note.updatedAt)}</Fact>
+					</dl>
 				)}
 
 				{tab === "output" &&

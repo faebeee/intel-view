@@ -20,7 +20,6 @@ import { noteTypeLabel } from "#/features/canvas/note-kind.ts";
 import { ColorPickerField } from "#/features/common/components/ColorPickerField.tsx";
 import { ConfirmationButton } from "#/features/common/components/ConfirmationButton.tsx";
 import { NoteHistorySection } from "#/features/notes/components/NoteHistorySection.tsx";
-import { NotePluginsPanel } from "#/features/notes/components/NotePluginsPanel.tsx";
 import { useNoteHistoryQuery } from "#/features/notes/hooks/useNoteHistoryQuery.ts";
 import {
 	getNoteLabel,
@@ -178,12 +177,6 @@ export function NoteSettingsPanel({
 						/>
 					</FormField>
 				)}
-
-				<NotePluginsPanel
-					projectId={projectId}
-					noteId={note.id}
-					className="px-1"
-				/>
 
 				<FormField label="Parent Notes" htmlFor="note-parents" className="px-1">
 					<Combobox
