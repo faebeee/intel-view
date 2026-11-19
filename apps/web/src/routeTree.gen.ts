@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TagsRouteImport } from './routes/tags'
+import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as FoldersFolderIdRouteImport } from './routes/folders/$folderId'
 import { Route as FoldersUngroupedRouteImport } from './routes/folders/ungrouped'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projectId'
@@ -24,6 +25,11 @@ const IndexRoute = IndexRouteImport.update({
 const TagsRoute = TagsRouteImport.update({
   id: '/tags',
   path: '/tags',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TemplatesRoute = TemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FoldersFolderIdRoute = FoldersFolderIdRouteImport.update({
@@ -50,6 +56,7 @@ const ProjectsProjectIdIndexRoute = ProjectsProjectIdIndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/tags': typeof TagsRoute
+  '/templates': typeof TemplatesRoute
   '/folders/$folderId': typeof FoldersFolderIdRoute
   '/folders/ungrouped': typeof FoldersUngroupedRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/tags': typeof TagsRoute
+  '/templates': typeof TemplatesRoute
   '/folders/$folderId': typeof FoldersFolderIdRoute
   '/folders/ungrouped': typeof FoldersUngroupedRoute
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
@@ -66,6 +74,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/tags': typeof TagsRoute
+  '/templates': typeof TemplatesRoute
   '/folders/$folderId': typeof FoldersFolderIdRoute
   '/folders/ungrouped': typeof FoldersUngroupedRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
@@ -76,6 +85,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/tags'
+    | '/templates'
     | '/folders/$folderId'
     | '/folders/ungrouped'
     | '/projects/$projectId'
@@ -84,6 +94,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/tags'
+    | '/templates'
     | '/folders/$folderId'
     | '/folders/ungrouped'
     | '/projects/$projectId'
@@ -91,6 +102,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/tags'
+    | '/templates'
     | '/folders/$folderId'
     | '/folders/ungrouped'
     | '/projects/$projectId'
@@ -100,6 +112,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   TagsRoute: typeof TagsRoute
+  TemplatesRoute: typeof TemplatesRoute
   FoldersFolderIdRoute: typeof FoldersFolderIdRoute
   FoldersUngroupedRoute: typeof FoldersUngroupedRoute
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRouteWithChildren
@@ -119,6 +132,13 @@ declare module '@tanstack/react-router' {
       path: '/tags'
       fullPath: '/tags'
       preLoaderRoute: typeof TagsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/templates': {
+      id: '/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof TemplatesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/folders/$folderId': {
@@ -166,6 +186,7 @@ const ProjectsProjectIdRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   TagsRoute: TagsRoute,
+  TemplatesRoute: TemplatesRoute,
   FoldersFolderIdRoute: FoldersFolderIdRoute,
   FoldersUngroupedRoute: FoldersUngroupedRoute,
   ProjectsProjectIdRoute: ProjectsProjectIdRouteWithChildren,
@@ -173,12 +194,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

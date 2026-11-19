@@ -23,32 +23,15 @@ export const PROJECT_COLOR_THEMES: ProjectColorTheme[] = [
 export const DEFAULT_PROJECT_COLOR_THEME: ProjectColorTheme = 'ocean';
 
 /**
- * The phases of a penetration test, in engagement order. A project's
- * `phase` names the one currently in progress: every phase before it counts
- * as done and every phase after it as not started (shown as the progress
- * bar on the project canvas).
+ * Lifecycle status of a project: not yet started, in progress, or done.
  */
-export type ProjectPhase =
-  | 'planning'
-  | 'recon'
-  | 'scanning'
-  | 'vuln_assessment'
-  | 'exploitation'
-  | 'post_exploitation'
-  | 'cleanup'
-  | 'reporting'
-  | 'completed';
-export const PROJECT_PHASES: ProjectPhase[] = [
-  'planning',
-  'recon',
-  'scanning',
-  'vuln_assessment',
-  'exploitation',
-  'post_exploitation',
-  'cleanup',
-  'reporting',
+export type ProjectStatus = 'planned' | 'ongoing' | 'completed';
+export const PROJECT_STATUSES: ProjectStatus[] = [
+  'planned',
+  'ongoing',
   'completed',
 ];
+export const DEFAULT_PROJECT_STATUS: ProjectStatus = 'planned';
 
 @Entity()
 export class Project extends BaseEntity {
@@ -91,15 +74,21 @@ export class Project extends BaseEntity {
   })
   color: ProjectColorTheme;
 
-  @Column({ type: 'varchar', length: 24, nullable: true })
+  @Column({ type: 'varchar', length: 20, default: DEFAULT_PROJECT_STATUS })
+  @ApiProperty({
+    description: 'Lifecycle status of the project.',
+    enum: PROJECT_STATUSES,
+    default: DEFAULT_PROJECT_STATUS,
+  })
+  status: ProjectStatus;
+
+  @Column({ type: 'boolean', default: false })
   @ApiProperty({
     description:
-      'The penetration-test phase currently in progress. Earlier phases count as done, later ones as not started; null means the engagement has not started.',
-    enum: PROJECT_PHASES,
-    required: false,
-    nullable: true,
+      'Whether this project is a template. Templates are hidden from the regular project/folder listings and serve as a source of notes copied into new projects.',
+    default: false,
   })
-  phase: ProjectPhase | null;
+  isTemplate: boolean;
 
   @OneToMany(() => Note, (note) => note.project)
   notes: Note[];

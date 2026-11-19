@@ -1,19 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
-  ValidateIf,
 } from 'class-validator';
 import {
   PROJECT_COLOR_THEMES,
-  PROJECT_PHASES,
+  PROJECT_STATUSES,
 } from '../entities/project.entity';
 import type {
   ProjectColorTheme,
-  ProjectPhase,
+  ProjectStatus,
 } from '../entities/project.entity';
 
 export class CreateProjectDto {
@@ -50,15 +50,32 @@ export class CreateProjectDto {
   })
   color?: ProjectColorTheme;
 
-  @IsIn(PROJECT_PHASES)
-  @ValidateIf((_, value) => value !== null)
+  @IsIn(PROJECT_STATUSES)
+  @IsOptional()
+  @ApiProperty({
+    description: "Lifecycle status of the project. Defaults to 'planned'.",
+    enum: PROJECT_STATUSES,
+    required: false,
+  })
+  status?: ProjectStatus;
+
+  @IsBoolean()
   @IsOptional()
   @ApiProperty({
     description:
-      'The penetration-test phase currently in progress. Defaults to null (not started).',
-    enum: PROJECT_PHASES,
+      'Create the project as a template (hidden from regular listings, used as a note source for new projects). Defaults to false.',
     required: false,
-    nullable: true,
+    default: false,
   })
-  phase?: ProjectPhase | null;
+  isTemplate?: boolean;
+
+  @IsInt()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      "ID of a template project whose notes (including their parent/child links and canvas positions) are copied into the new project. When `color` is omitted, the template's color is used.",
+    type: 'number',
+    required: false,
+  })
+  templateId?: number;
 }

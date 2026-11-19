@@ -1,7 +1,7 @@
 import type { ProjectResponseDto } from "@repo/sdk";
 import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ListTree, Plus, RefreshCw } from "lucide-react";
+import { LayoutTemplate, ListTree, Plus, RefreshCw } from "lucide-react";
 import type { JSX } from "react";
 import * as React from "react";
 import { useDefaultLayout } from "react-resizable-panels";
@@ -24,13 +24,17 @@ import { NoteTree } from "#/features/notes/components/NoteTree.tsx";
 import { useAllNotesQuery } from "#/features/notes/hooks/useAllNotesQuery.ts";
 import { useDeleteNote } from "#/features/notes/hooks/useDeleteNote.ts";
 import { useRenderedNotes } from "#/features/notes/note-references.ts";
-import { PhaseProgressBar } from "#/features/projects/components/PhaseProgressBar.tsx";
+import { SaveAsTemplateDialog } from "#/features/projects/components/SaveAsTemplateDialog.tsx";
 import { useProjectQuery } from "#/features/projects/hooks/useProjectQuery.ts";
 import { useUpdateProject } from "#/features/projects/hooks/useUpdateProject.ts";
-import type { ProjectPhase } from "#/features/projects/phases.ts";
+import {
+	PROJECT_STATUSES,
+	type ProjectStatus,
+} from "#/features/projects/statuses.ts";
 import { useAllTagsQuery } from "#/features/tags/hooks/useAllTagsQuery.ts";
 import { formatIsoDateTime } from "#/lib/format.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/projects/$projectId/")({
 	component: ProjectCanvasRouteComponent,
@@ -70,14 +74,14 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 	const queryClient = useQueryClient();
 	const updateProjectMutation = useUpdateProject(projectId);
 
-	// Optimistic: the bar moves at once and rolls back if the save fails.
-	const handleSelectPhase = React.useCallback(
-		(phase: ProjectPhase) => {
+	// Optimistic: the status changes at once and rolls back if the save fails.
+	const handleSelectStatus = React.useCallback(
+		(status: ProjectStatus) => {
 			const queryKey = ["projects", projectId];
 			const previous = queryClient.getQueryData<ProjectResponseDto>(queryKey);
-			if (previous) queryClient.setQueryData(queryKey, { ...previous, phase });
+			if (previous) queryClient.setQueryData(queryKey, { ...previous, status });
 			updateProjectMutation.mutate(
-				{ phase },
+				{ status },
 				{
 					onError: () => {
 						if (previous) queryClient.setQueryData(queryKey, previous);
@@ -91,6 +95,7 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 	// The notes list is optional chrome here (the design has no sidebar), so
 	// it starts collapsed and is toggled from the header.
 	const [isTreeOpen, setIsTreeOpen] = React.useState(false);
+	const [isSaveTemplateOpen, setIsSaveTemplateOpen] = React.useState(false);
 	const [addNoteRequest, setAddNoteRequest] = React.useState(0);
 	const [searchFocusRequest, setSearchFocusRequest] = React.useState(0);
 	const isFetchingNotes = useIsFetching({ queryKey: ["notes"] }) > 0;
@@ -186,20 +191,45 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 			header={
 				<PageHeader
 					className="px-6 pt-4 pb-3.5"
-					crumbs={[
-						{ label: "Folders", to: "/" },
-						project.folder
-							? {
-									label: project.folder.name,
-									to: "/folders/$folderId",
-									params: { folderId: String(project.folder.id) },
-								}
-							: { label: "Ungrouped", to: "/folders/ungrouped" },
-						{ label: project.name },
-					]}
+					crumbs={
+						project.isTemplate
+							? [
+									{ label: "Templates", to: "/templates" },
+									{ label: project.name },
+								]
+							: [
+									{ label: "Folders", to: "/" },
+									project.folder
+										? {
+												label: project.folder.name,
+												to: "/folders/$folderId",
+												params: { folderId: String(project.folder.id) },
+											}
+										: { label: "Ungrouped", to: "/folders/ungrouped" },
+									{ label: project.name },
+								]
+					}
 					title={project.name}
 					actions={
 						<>
+							{!project.isTemplate && (
+								<label className="flex items-center gap-2 font-mono text-[11px] tracking-[0.1em] text-mc-text-muted uppercase">
+									{m.status_label()}
+									<select
+										value={project.status}
+										onChange={(event) =>
+											handleSelectStatus(event.target.value as ProjectStatus)
+										}
+										className="h-9 border border-mc-border-strong bg-mc-bg px-2 font-mono text-xs tracking-normal text-mc-text normal-case focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mc-accent"
+									>
+										{PROJECT_STATUSES.map((definition) => (
+											<option key={definition.id} value={definition.id}>
+												{definition.label()}
+											</option>
+										))}
+									</select>
+								</label>
+							)}
 							<McButton
 								variant="icon"
 								size="icon-md"
@@ -224,6 +254,17 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 							>
 								<RefreshCw className={isFetchingNotes ? "animate-spin" : ""} />
 							</McButton>
+							{!project.isTemplate && (
+								<McButton
+									variant="icon"
+									size="icon-md"
+									aria-label="Save as template"
+									title="Save as template"
+									onClick={() => setIsSaveTemplateOpen(true)}
+								>
+									<LayoutTemplate />
+								</McButton>
+							)}
 							<McButton
 								variant="primary"
 								onClick={() => setAddNoteRequest((n) => n + 1)}
@@ -233,12 +274,7 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 							</McButton>
 						</>
 					}
-				>
-					<PhaseProgressBar
-						phase={project.phase}
-						onSelectPhase={handleSelectPhase}
-					/>
-				</PageHeader>
+				/>
 			}
 			status={
 				<StatusBar
@@ -331,6 +367,12 @@ function ProjectCanvasRouteComponent(): JSX.Element {
 					setIsEditModalOpen(false);
 					setSelectedNoteId(null);
 				}}
+			/>
+
+			<SaveAsTemplateDialog
+				project={project}
+				open={isSaveTemplateOpen}
+				onOpenChange={setIsSaveTemplateOpen}
 			/>
 		</PageShell>
 	);

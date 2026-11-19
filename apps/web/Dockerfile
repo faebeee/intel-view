@@ -5,7 +5,7 @@
 #   docker build -f apps/web/Dockerfile -t intel-view-web .
 FROM node:24-alpine AS base
 WORKDIR /app
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache gcompat
 # Pin npm to the version required by the workspace's devEngines config.
 RUN npm install -g npm@11.9.0
 

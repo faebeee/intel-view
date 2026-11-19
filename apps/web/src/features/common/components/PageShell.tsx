@@ -21,7 +21,7 @@ type PageHeaderProps = {
 	/** Rendered after the title (e.g. project count, edit button). */
 	titleSuffix?: ReactNode;
 	actions?: ReactNode;
-	/** Full-width second row under the title row (e.g. the canvas phase bar). */
+	/** Full-width second row under the title row (e.g. a progress or filter bar). */
 	children?: ReactNode;
 	className?: string;
 };

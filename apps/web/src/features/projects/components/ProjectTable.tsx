@@ -8,21 +8,18 @@ import { ConfirmationButton } from "#/features/common/components/ConfirmationBut
 import { McButton } from "#/features/common/components/McButton.tsx";
 import { StatusChip } from "#/features/common/components/StatusChip.tsx";
 import {
-	findPhase,
-	NO_PHASE_TOKEN,
-	PHASE_TOKEN,
-	PROJECT_PHASES,
-	type ProjectPhase,
-} from "#/features/projects/phases.ts";
+	findStatus,
+	PROJECT_STATUSES,
+	type ProjectStatus,
+} from "#/features/projects/statuses.ts";
 import { formatIsoDate } from "#/lib/format.ts";
 import { readLastProjectId } from "#/lib/last-project.ts";
 import { cn } from "#/lib/utils.ts";
-import { m } from "#/paraglide/messages.js";
 
 type SortOrder = "newest" | "oldest" | "name";
 
-/** Filter value: a concrete phase, projects with no phase yet, or everything. */
-type PhaseFilter = ProjectPhase | "none" | "all";
+/** Filter value: a concrete status, or everything. */
+type StatusFilter = ProjectStatus | "all";
 
 const SORT_LABELS: Record<SortOrder, string> = {
 	newest: "newest first",
@@ -41,38 +38,14 @@ type ProjectTableProps = {
 	isDeleting?: boolean;
 };
 
-/** The project's engagement phase, rendered as its status chip. */
-function statusOf(project: ProjectResponseDto): {
-	key: PhaseFilter;
-	token: string;
-	short: string;
-	name: string;
-} {
-	const definition = project.phase ? findPhase(project.phase) : undefined;
-	if (!definition) {
-		return {
-			key: "none",
-			token: NO_PHASE_TOKEN,
-			short: m.phase_none_short(),
-			name: m.phase_none_name(),
-		};
-	}
-	return {
-		key: definition.id,
-		token: PHASE_TOKEN[definition.id],
-		short: definition.short(),
-		name: definition.name(),
-	};
-}
-
 const TH_CLASS =
 	"border-b border-mc-border px-5 py-3 text-left font-mono text-[10.5px] font-medium tracking-[0.12em] text-mc-text-muted uppercase";
 const TD_CLASS = "border-b border-mc-row-divider px-5";
 
 /**
  * Filter bar + project table shared by every folder-detail route (a real
- * folder, or the synthetic "Ungrouped" folder). Filtering, the phase
- * ("status") filter, sorting and paging all happen client-side on the
+ * folder, or the synthetic "Ungrouped" folder). Filtering, the status
+ * filter, sorting and paging all happen client-side on the
  * already-loaded list. Scrolls horizontally under 860px.
  */
 export function ProjectTable({
@@ -84,7 +57,7 @@ export function ProjectTable({
 	isDeleting = false,
 }: ProjectTableProps): JSX.Element {
 	const [query, setQuery] = React.useState("");
-	const [phase, setPhase] = React.useState<PhaseFilter>("all");
+	const [status, setStatus] = React.useState<StatusFilter>("all");
 	const [sort, setSort] = React.useState<SortOrder>("newest");
 	const [visible, setVisible] = React.useState(PAGE_SIZE);
 	const filterId = React.useId();
@@ -94,10 +67,10 @@ export function ProjectTable({
 	const [lastProjectId, setLastProjectId] = React.useState<string | null>(null);
 	React.useEffect(() => setLastProjectId(readLastProjectId()), []);
 
-	const phaseCounts = React.useMemo(() => {
-		const counts = new Map<PhaseFilter, number>();
+	const statusCounts = React.useMemo(() => {
+		const counts = new Map<ProjectStatus, number>();
 		for (const project of projects) {
-			const key = statusOf(project).key;
+			const key = findStatus(project.status).id;
 			counts.set(key, (counts.get(key) ?? 0) + 1);
 		}
 		return counts;
@@ -107,7 +80,7 @@ export function ProjectTable({
 		const needle = query.trim().toLowerCase();
 		const filtered = projects.filter(
 			(project) =>
-				(phase === "all" || statusOf(project).key === phase) &&
+				(status === "all" || findStatus(project.status).id === status) &&
 				(!needle ||
 					project.name.toLowerCase().includes(needle) ||
 					(project.description ?? "").toLowerCase().includes(needle)),
@@ -118,7 +91,7 @@ export function ProjectTable({
 				new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
 			return sort === "oldest" ? diff : -diff || b.id - a.id;
 		});
-	}, [projects, query, phase, sort]);
+	}, [projects, query, status, sort]);
 
 	if (projects.length === 0) {
 		return (
@@ -165,38 +138,28 @@ export function ProjectTable({
 					className="flex flex-wrap border border-mc-border-strong"
 				>
 					<FilterToggle
-						pressed={phase === "all"}
-						onClick={() => setPhase("all")}
+						pressed={status === "all"}
+						onClick={() => setStatus("all")}
 					>
 						All <span className="text-mc-text-2">{projects.length}</span>
 					</FilterToggle>
-					{phaseCounts.has("none") && (
-						<FilterToggle
-							pressed={phase === "none"}
-							onClick={() => setPhase("none")}
-						>
-							<span
-								aria-hidden="true"
-								className="size-1.5"
-								style={{ backgroundColor: NO_PHASE_TOKEN }}
-							/>
-							{m.phase_none_short()}
-						</FilterToggle>
-					)}
-					{PROJECT_PHASES.filter((definition) =>
-						phaseCounts.has(definition.id),
+					{PROJECT_STATUSES.filter((definition) =>
+						statusCounts.has(definition.id),
 					).map((definition) => (
 						<FilterToggle
 							key={definition.id}
-							pressed={phase === definition.id}
-							onClick={() => setPhase(definition.id)}
+							pressed={status === definition.id}
+							onClick={() => setStatus(definition.id)}
 						>
 							<span
 								aria-hidden="true"
 								className="size-1.5"
-								style={{ backgroundColor: PHASE_TOKEN[definition.id] }}
+								style={{ backgroundColor: definition.token }}
 							/>
-							{definition.short()}
+							{definition.label()}
+							<span className="text-mc-text-2">
+								{statusCounts.get(definition.id)}
+							</span>
 						</FilterToggle>
 					))}
 				</div>
@@ -249,7 +212,7 @@ export function ProjectTable({
 					</thead>
 					<tbody>
 						{shown.map((project) => {
-							const status = statusOf(project);
+							const projectStatus = findStatus(project.status);
 							const isLast = String(project.id) === lastProjectId;
 							const params = { projectId: String(project.id) };
 							return (
@@ -290,8 +253,10 @@ export function ProjectTable({
 									>
 										{project.description || "—"}
 									</td>
-									<td className={TD_CLASS} title={status.name}>
-										<StatusChip color={status.token}>{status.short}</StatusChip>
+									<td className={TD_CLASS}>
+										<StatusChip color={projectStatus.token}>
+											{projectStatus.label()}
+										</StatusChip>
 									</td>
 									<td
 										className={cn(

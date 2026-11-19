@@ -5,11 +5,11 @@ import { z } from 'zod';
 import { ProjectService } from '../project/project.service';
 import {
   PROJECT_COLOR_THEMES,
-  PROJECT_PHASES,
+  PROJECT_STATUSES,
 } from '../project/entities/project.entity';
 import type {
   ProjectColorTheme,
-  ProjectPhase,
+  ProjectStatus,
 } from '../project/entities/project.entity';
 import { toProjectResponseDto } from '../project/dto/project-response.dto';
 import { buildMcpPaginateQuery } from './mcp-paginate.util';
@@ -22,11 +22,11 @@ const colorThemeEnum = z
     "The accent color palette applied app-wide while this project is open. Defaults to 'ocean'.",
   );
 
-const phaseEnum = z
-  .enum(PROJECT_PHASES as [ProjectPhase, ...ProjectPhase[]])
-  .nullish()
+const statusEnum = z
+  .enum(PROJECT_STATUSES as [ProjectStatus, ...ProjectStatus[]])
+  .optional()
   .describe(
-    'The penetration-test phase currently in progress; earlier phases count as done. Pass null for not started.',
+    "Lifecycle status of the project: 'planned', 'ongoing' or 'completed'. Defaults to 'planned'.",
   );
 
 const createProjectParams = z.object({
@@ -38,7 +38,20 @@ const createProjectParams = z.object({
     .nullish()
     .describe('ID of the folder this project belongs to'),
   color: colorThemeEnum,
-  phase: phaseEnum,
+  status: statusEnum,
+  isTemplate: z
+    .boolean()
+    .optional()
+    .describe(
+      'Create the project as a template (a note source for new projects, hidden from regular listings)',
+    ),
+  templateId: z
+    .number()
+    .int()
+    .optional()
+    .describe(
+      'ID of a template whose notes (with links and canvas positions) are copied into the new project; its color is used unless one is given',
+    ),
 });
 
 const updateProjectParams = z.object({
@@ -53,7 +66,7 @@ const updateProjectParams = z.object({
       'ID of the folder this project belongs to. Pass null to unassign.',
     ),
   color: colorThemeEnum,
-  phase: phaseEnum,
+  status: statusEnum,
 });
 
 const listProjectsParams = z.object({

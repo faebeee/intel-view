@@ -60,7 +60,8 @@ export class ProjectFolderService {
   /**
    * Counts active projects grouped by folder in a single query, used by the
    * controller to annotate each folder with `projectsCount` on the dashboard
-   * and to surface the count of unassigned ("ungrouped") projects.
+   * and to surface the count of unassigned ("ungrouped") projects. Template
+   * projects are excluded.
    */
   async countProjectsByFolder(): Promise<ProjectCountsByFolder> {
     const rows = await this.projectRepository
@@ -68,6 +69,7 @@ export class ProjectFolderService {
       .select('project.folderId', 'folderId')
       .addSelect('COUNT(*)', 'count')
       .where('project.deletedAt IS NULL')
+      .andWhere('project.isTemplate = false')
       .groupBy('project.folderId')
       .getRawMany<{ folderId: number | null; count: string }>();
 

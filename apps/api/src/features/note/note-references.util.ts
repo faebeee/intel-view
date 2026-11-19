@@ -39,6 +39,25 @@ export function replaceNoteReferences(
   return text.replace(NOTE_REFERENCE_PATTERN, placeholder);
 }
 
+/**
+ * Rewrites every `[[NOTEID]]` in `text` whose id is a key of `idMap` to
+ * `[[<mapped id>]]` (used when copying notes between projects, so copied
+ * cross-references point at the copies). References to ids not in the map
+ * are left untouched.
+ */
+export function remapNoteReferences(
+  text: string,
+  idMap: ReadonlyMap<number, number>,
+): string {
+  return text.replace(
+    NOTE_REFERENCE_PATTERN,
+    (match: string, rawId: string) => {
+      const mapped = idMap.get(Number(rawId));
+      return mapped === undefined ? match : `[[${mapped}]]`;
+    },
+  );
+}
+
 /** Returns the ids of every note referenced in `text`. */
 export function extractNoteReferenceIds(
   text: string | null | undefined,

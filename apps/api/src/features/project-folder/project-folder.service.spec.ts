@@ -18,6 +18,7 @@ describe('ProjectFolderService', () => {
     select: jest.fn().mockReturnThis(),
     addSelect: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
     groupBy: jest.fn().mockReturnThis(),
     getRawMany: jest.fn(),
   };
@@ -108,6 +109,9 @@ describe('ProjectFolderService', () => {
 
       expect(result.countsByFolderId.get(1)).toBe(3);
       expect(result.ungroupedCount).toBe(2);
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'project.isTemplate = false',
+      );
     });
   });
 });

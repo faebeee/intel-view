@@ -1,5 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Folder, Moon, Sun, Tag as TagIcon, Waypoints } from "lucide-react";
+import {
+	Folder,
+	LayoutTemplate,
+	Moon,
+	Sun,
+	Tag as TagIcon,
+	Waypoints,
+} from "lucide-react";
 import type { JSX, ReactNode } from "react";
 import { useTheme } from "#/components/theme-provider.tsx";
 import { cn } from "#/lib/utils.ts";
@@ -30,7 +37,7 @@ function RailLink({
 	active,
 	children,
 }: {
-	to: "/" | "/tags" | "/projects/$projectId";
+	to: "/" | "/tags" | "/templates" | "/projects/$projectId";
 	params?: { projectId: string };
 	label: string;
 	active: boolean;
@@ -62,6 +69,7 @@ export function AppRail({ canvasProjectId }: AppRailProps): JSX.Element {
 	const isFolders = pathname === "/" || pathname.startsWith("/folders");
 	const isCanvas = pathname.startsWith("/projects");
 	const isTags = pathname.startsWith("/tags");
+	const isTemplates = pathname.startsWith("/templates");
 	const nextMode = resolvedMode === "dark" ? "light" : "dark";
 
 	return (
@@ -105,6 +113,10 @@ export function AppRail({ canvasProjectId }: AppRailProps): JSX.Element {
 					<Waypoints className="size-5" strokeWidth={1.6} />
 				</span>
 			)}
+
+			<RailLink to="/templates" label="Templates" active={isTemplates}>
+				<LayoutTemplate className="size-5" strokeWidth={1.6} />
+			</RailLink>
 
 			<RailLink to="/tags" label="Tags" active={isTags}>
 				<TagIcon className="size-5" strokeWidth={1.6} />

@@ -1,12 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   PROJECT_COLOR_THEMES,
-  PROJECT_PHASES,
+  DEFAULT_PROJECT_STATUS,
+  PROJECT_STATUSES,
   Project,
 } from '../entities/project.entity';
 import type {
   ProjectColorTheme,
-  ProjectPhase,
+  ProjectStatus,
 } from '../entities/project.entity';
 
 export class ProjectFolderSummaryDto {
@@ -48,12 +49,16 @@ export class ProjectResponseDto {
   color: ProjectColorTheme;
 
   @ApiProperty({
-    description:
-      'The penetration-test phase currently in progress; null when the engagement has not started.',
-    enum: PROJECT_PHASES,
-    nullable: true,
+    description: 'Lifecycle status of the project.',
+    enum: PROJECT_STATUSES,
   })
-  phase: ProjectPhase | null;
+  status: ProjectStatus;
+
+  @ApiProperty({
+    description:
+      'Whether this project is a template (a note source for new projects).',
+  })
+  isTemplate: boolean;
 
   @ApiProperty()
   createdAt: Date;
@@ -76,7 +81,8 @@ export function toProjectResponseDto(project: Project): ProjectResponseDto {
         }
       : null,
     color: project.color,
-    phase: project.phase ?? null,
+    status: project.status ?? DEFAULT_PROJECT_STATUS,
+    isTemplate: project.isTemplate ?? false,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
   };

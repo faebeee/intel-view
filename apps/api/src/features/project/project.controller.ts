@@ -15,6 +15,7 @@ import type { PaginateQuery } from 'nestjs-paginate';
 import { ProjectService, projectPaginateConfig } from './project.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { SaveAsTemplateDto } from './dto/save-as-template.dto';
 import {
   ProjectResponseDto,
   toProjectResponseDto,
@@ -39,9 +40,35 @@ export class ProjectController {
     return toProjectResponseDto(project);
   }
 
+  @Post(':id/save-as-template')
+  @ApiOperation({
+    summary:
+      'Create a new template from a project, copying its notes, links and canvas layout',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'The template has been successfully created.',
+    type: ProjectResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Project not found.' })
+  async saveAsTemplate(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() saveAsTemplateDto: SaveAsTemplateDto,
+  ): Promise<ProjectResponseDto> {
+    const template = await this.projectService.saveAsTemplate(
+      id,
+      saveAsTemplateDto,
+    );
+    if (!template) {
+      throw new NotFoundException(`Project with ID ${id} not found`);
+    }
+    return toProjectResponseDto(template);
+  }
+
   @Get()
   @ApiOperation({
-    summary: 'Get all active projects with pagination, filtering and sorting',
+    summary:
+      'Get all active projects with pagination, filtering and sorting. Templates are excluded unless filtered on `isTemplate`.',
   })
   @ApiPaginationQuery(projectPaginateConfig)
   @ApiResponse({

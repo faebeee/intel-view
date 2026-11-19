@@ -21,6 +21,12 @@ import {
 } from "#/components/ui/native-select.tsx";
 import { Textarea } from "#/components/ui/textarea";
 import { useAllProjectFoldersQuery } from "#/features/project-folders/hooks/useAllProjectFoldersQuery.ts";
+import { useTemplatesQuery } from "#/features/projects/hooks/useTemplatesQuery.ts";
+import {
+	DEFAULT_PROJECT_STATUS,
+	PROJECT_STATUSES,
+	type ProjectStatus,
+} from "#/features/projects/statuses.ts";
 import { toastApiError } from "#/lib/api-error.ts";
 import {
 	COLOR_THEME_LABELS,
@@ -41,6 +47,11 @@ type ProjectModalProps = {
 	 * effect in edit mode, where the project's current folder is used instead.
 	 */
 	defaultFolderId?: number | null;
+	/**
+	 * Create a template instead of a regular project (no folder, no template
+	 * picker). Has no effect in edit mode, where `project.isTemplate` decides.
+	 */
+	asTemplate?: boolean;
 	onSuccess?: () => void;
 };
 
@@ -54,15 +65,32 @@ export function ProjectModal({
 	onOpenChange,
 	project = null,
 	defaultFolderId = null,
+	asTemplate = false,
 	onSuccess,
 }: ProjectModalProps) {
 	const isEditing = project !== null;
+	const isTemplate = project ? project.isTemplate : asTemplate;
+	const showTemplatePicker = !isEditing && !asTemplate;
+	const noun = isTemplate ? "Template" : "Project";
 	const [name, setName] = React.useState("");
 	const [description, setDescription] = React.useState("");
 	const [folderId, setFolderId] = React.useState<string>("");
 	const [color, setColor] = React.useState<ColorTheme>(DEFAULT_COLOR_THEME);
+	const [status, setStatus] = React.useState<ProjectStatus>(
+		DEFAULT_PROJECT_STATUS,
+	);
+	const [templateId, setTemplateId] = React.useState<string>("");
 	const queryClient = useQueryClient();
 	const { data: folders = [] } = useAllProjectFoldersQuery();
+	const { data: templates = [] } = useTemplatesQuery({
+		enabled: open && showTemplatePicker,
+	});
+
+	const handleTemplateChange = (value: string): void => {
+		setTemplateId(value);
+		const template = templates.find((t) => String(t.id) === value);
+		if (template) setColor(template.color as ColorTheme);
+	};
 
 	// Reset (create mode) or prefill (edit mode) the form whenever the modal
 	// opens, or the project being edited changes.
@@ -73,12 +101,15 @@ export function ProjectModal({
 			setDescription(project.description || "");
 			setFolderId(project.folderId != null ? String(project.folderId) : "");
 			setColor((project.color as ColorTheme) || DEFAULT_COLOR_THEME);
+			setStatus(project.status ?? DEFAULT_PROJECT_STATUS);
 		} else {
 			setName("");
 			setDescription("");
 			setFolderId(defaultFolderId != null ? String(defaultFolderId) : "");
 			setColor(DEFAULT_COLOR_THEME);
+			setStatus(DEFAULT_PROJECT_STATUS);
 		}
+		setTemplateId("");
 	}, [open, project, defaultFolderId]);
 
 	const saveProjectMutation = useMutation({
@@ -87,30 +118,37 @@ export function ProjectModal({
 			description?: string;
 			folderId: number | null;
 			color: ColorTheme;
+			status?: ProjectStatus;
+			templateId?: number;
 		}) => {
 			if (isEditing) {
 				if (!project) throw new Error("No project selected");
+				const { templateId: _unused, ...updateBody } = payload;
 				const res = await projectControllerUpdate({
 					path: { id: project.id },
-					body: payload,
+					body: updateBody,
 				});
 				return res.data;
 			}
-			const res = await projectControllerCreate({ body: payload });
+			const res = await projectControllerCreate({
+				body: { ...payload, isTemplate: asTemplate || undefined },
+			});
 			return res.data;
 		},
 		onSuccess: () => {
 			toast.success(
 				isEditing
-					? "Project updated successfully"
-					: "Project created successfully",
+					? `${noun} updated successfully`
+					: `${noun} created successfully`,
 			);
 			queryClient.invalidateQueries({ queryKey: ["projects"] });
 			queryClient.invalidateQueries({ queryKey: ["project-folders"] });
 			onOpenChange(false);
 			if (onSuccess) onSuccess();
 		},
-		onError: toastApiError(isEditing ? "update project" : "create project"),
+		onError: toastApiError(
+			`${isEditing ? "update" : "create"} ${noun.toLowerCase()}`,
+		),
 	});
 
 	const handleSubmit = (e: React.FormEvent) => {
@@ -118,7 +156,7 @@ export function ProjectModal({
 
 		if (!name.trim()) {
 			toast.warning("Empty name", {
-				description: "Project name cannot be empty.",
+				description: `${noun} name cannot be empty.`,
 			});
 			return;
 		}
@@ -126,8 +164,11 @@ export function ProjectModal({
 		saveProjectMutation.mutate({
 			name: name.trim(),
 			description: description.trim() || undefined,
-			folderId: folderId ? Number(folderId) : null,
+			folderId: !isTemplate && folderId ? Number(folderId) : null,
 			color,
+			status: isTemplate ? undefined : status,
+			templateId:
+				showTemplatePicker && templateId ? Number(templateId) : undefined,
 		});
 	};
 
@@ -136,17 +177,19 @@ export function ProjectModal({
 			<DialogContent className="border-line bg-surface-strong/95 backdrop-blur-md text-sea-ink max-w-md shadow-2xl shadow-black/80">
 				<DialogHeader className="space-y-1">
 					<DialogTitle className="text-lg font-bold text-sea-ink uppercase tracking-wider font-mono">
-						{isEditing ? `Edit Project #${project?.id}` : "Create Project"}
+						{isEditing ? `Edit ${noun} #${project?.id}` : `Create ${noun}`}
 					</DialogTitle>
 					<DialogDescription className="text-xs text-muted-foreground leading-relaxed">
 						{isEditing
-							? "Update the project name, description and accent color."
-							: "Projects organize related notes together. Pick an accent color to make this project recognizable when open."}
+							? `Update the ${noun.toLowerCase()} name, description and accent color.`
+							: isTemplate
+								? "Templates hold notes that are copied into new projects created from them."
+								: "Projects organize related notes together. Pick an accent color to make this project recognizable when open."}
 					</DialogDescription>
 				</DialogHeader>
 
 				<form onSubmit={handleSubmit} className="space-y-4 my-2">
-					<FormField label="Project Name" htmlFor="project-name">
+					<FormField label={`${noun} Name`} htmlFor="project-name">
 						<Input
 							id="project-name"
 							placeholder="e.g. Operation Blue Horizon"
@@ -173,24 +216,66 @@ export function ProjectModal({
 						/>
 					</FormField>
 
-					<FormField label="Folder (optional)" htmlFor="project-folder">
-						<NativeSelect
-							id="project-folder"
-							className={`${HUD_INPUT_CLASS} w-full`}
-							value={folderId}
-							onChange={(e) => setFolderId(e.target.value)}
-							disabled={saveProjectMutation.isPending}
-						>
-							<NativeSelectOption value="">
-								No folder (ungrouped)
-							</NativeSelectOption>
-							{folders.map((folder) => (
-								<NativeSelectOption key={folder.id} value={String(folder.id)}>
-									{folder.name}
+					{showTemplatePicker && templates.length > 0 && (
+						<FormField label="Template (optional)" htmlFor="project-template">
+							<NativeSelect
+								id="project-template"
+								className={`${HUD_INPUT_CLASS} w-full`}
+								value={templateId}
+								onChange={(e) => handleTemplateChange(e.target.value)}
+								disabled={saveProjectMutation.isPending}
+							>
+								<NativeSelectOption value="">Blank project</NativeSelectOption>
+								{templates.map((template) => (
+									<NativeSelectOption
+										key={template.id}
+										value={String(template.id)}
+									>
+										{template.name}
+									</NativeSelectOption>
+								))}
+							</NativeSelect>
+						</FormField>
+					)}
+
+					{!isTemplate && (
+						<FormField label="Folder (optional)" htmlFor="project-folder">
+							<NativeSelect
+								id="project-folder"
+								className={`${HUD_INPUT_CLASS} w-full`}
+								value={folderId}
+								onChange={(e) => setFolderId(e.target.value)}
+								disabled={saveProjectMutation.isPending}
+							>
+								<NativeSelectOption value="">
+									No folder (ungrouped)
 								</NativeSelectOption>
-							))}
-						</NativeSelect>
-					</FormField>
+								{folders.map((folder) => (
+									<NativeSelectOption key={folder.id} value={String(folder.id)}>
+										{folder.name}
+									</NativeSelectOption>
+								))}
+							</NativeSelect>
+						</FormField>
+					)}
+
+					{!isTemplate && (
+						<FormField label="Status" htmlFor="project-status">
+							<NativeSelect
+								id="project-status"
+								className={`${HUD_INPUT_CLASS} w-full`}
+								value={status}
+								onChange={(e) => setStatus(e.target.value as ProjectStatus)}
+								disabled={saveProjectMutation.isPending}
+							>
+								{PROJECT_STATUSES.map((definition) => (
+									<NativeSelectOption key={definition.id} value={definition.id}>
+										{definition.label()}
+									</NativeSelectOption>
+								))}
+							</NativeSelect>
+						</FormField>
+					)}
 
 					<FormField
 						label="Accent Color"
@@ -244,7 +329,7 @@ export function ProjectModal({
 							) : isEditing ? (
 								"Save Changes"
 							) : (
-								"Create Project"
+								`Create ${noun}`
 							)}
 						</Button>
 					</DialogFooter>

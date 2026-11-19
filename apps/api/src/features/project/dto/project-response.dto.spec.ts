@@ -10,7 +10,8 @@ describe('toProjectResponseDto', () => {
       folderId: null,
       folder: null,
       color: 'ocean',
-      phase: null,
+      status: 'planned',
+      isTemplate: false,
       notes: [],
       createdAt: new Date('2024-01-01T00:00:00.000Z'),
       updatedAt: new Date('2024-01-02T00:00:00.000Z'),
@@ -31,10 +32,17 @@ describe('toProjectResponseDto', () => {
       folderId: null,
       folder: null,
       color: 'ocean',
-      phase: null,
+      status: 'planned',
+      isTemplate: false,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
     });
+  });
+
+  it('maps the template flag', () => {
+    const result = toProjectResponseDto(buildProject({ isTemplate: true }));
+
+    expect(result.isTemplate).toBe(true);
   });
 
   it('maps the folder relation when present', () => {
@@ -48,11 +56,9 @@ describe('toProjectResponseDto', () => {
     expect(result.folder).toEqual({ id: 5, name: 'Ops', color: '#00f2ff' });
   });
 
-  it('maps the current penetration-test phase', () => {
-    const result = toProjectResponseDto(
-      buildProject({ phase: 'exploitation' }),
-    );
+  it('maps the project status', () => {
+    const result = toProjectResponseDto(buildProject({ status: 'completed' }));
 
-    expect(result.phase).toBe('exploitation');
+    expect(result.status).toBe('completed');
   });
 });
