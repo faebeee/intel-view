@@ -86,6 +86,7 @@ The **Canvas** tab is a free-form, node-based workspace (via [`@xyflow/react`](h
 - **Drag from one node's handle to another** to create a parent/child connection between them.
 - Delete a connection by selecting its edge and pressing delete.
 - Click a node to select it and open its details panel; click empty canvas space to deselect.
+- **Paste JSON to bulk-create notes**: copy a document in the [`intel-view/notes` import format](./docs/note-import-format.md) and press Ctrl/Cmd+V on the canvas. Other tools can emit this format to feed their results straight into a project.
 
 ### Tags
 

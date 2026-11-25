@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://intel-view.local/schemas/note-import-format.v1.json",
+  "title": "Intel View notes import (v1)",
+  "description": "Clipboard/interchange format for creating notes in Intel View. Paste a document of this shape onto a project canvas to create its notes. Spec: docs/note-import-format.md.",
+  "type": "object",
+  "required": ["format", "version", "notes"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "format": { "const": "intel-view/notes" },
+    "version": { "const": 1 },
+    "source": {
+      "type": "string",
+      "description": "Name of the producing tool, shown in the import confirmation."
+    },
+    "notes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/note" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "note": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Local identifier, unique within the document. Only needed if another note lists it in `parents`."
+        },
+        "type": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,39}$",
+          "not": { "const": "file" },
+          "default": "standard",
+          "description": "Built-in: standard, log, url, ip, email, command. Any other slug is a software/service type (e.g. ssh, http)."
+        },
+        "title": { "type": "string" },
+        "content": {
+          "type": "string",
+          "description": "Markdown. For url/ip/email it must be exactly one valid URL / IP address / email address."
+        },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "color": {
+          "type": "string",
+          "pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+        },
+        "version": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Software/service version. Only allowed on non built-in types."
+        },
+        "entries": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Log entries, appended in order. Only allowed on type `log`."
+        },
+        "parents": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "type": "string", "minLength": 1, "description": "`ref` of another note in this document." },
+              { "type": "integer", "minimum": 1, "description": "ID of an existing note in the target project." }
+            ]
+          }
+        },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/note" },
+          "description": "Nested notes, each created as a child of this note."
+        }
+      }
+    }
+  }
+}

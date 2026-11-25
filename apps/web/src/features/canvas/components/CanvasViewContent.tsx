@@ -8,6 +8,7 @@ import {
 	useReactFlow,
 } from "@xyflow/react";
 import * as React from "react";
+import { toast } from "sonner";
 import { useTheme } from "#/components/theme-provider.tsx";
 import { LoadingState } from "#/components/ui/loading-state.tsx";
 import { CreateNoteModal } from "#/features/notes/components/CreateNoteModal.tsx";
@@ -20,7 +21,9 @@ import { useRenderedNotes } from "#/features/notes/note-references.ts";
 import type { NoteType } from "#/types/note.ts";
 import { useCanvasNotesQuery } from "../hooks/useCanvasNotesQuery";
 import { useCreateInlineNote } from "../hooks/useCreateInlineNote";
+import { NoteImportError, useImportNotes } from "../hooks/useImportNotes";
 import { useUpdateNote } from "../hooks/useUpdateNote";
+import { parseNoteImport } from "../note-import";
 import {
 	CANVAS_GRID_CELL_HEIGHT,
 	CANVAS_GRID_CELL_WIDTH,
@@ -40,6 +43,19 @@ const edgeTypes = {
 };
 
 const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
+
+/** Whether a paste is aimed at a text field, other editable element or an open dialog rather than the canvas. */
+function isEditableTarget(target: EventTarget | null): boolean {
+	if (!(target instanceof HTMLElement)) return false;
+	return (
+		target.isContentEditable ||
+		target.closest(
+			"input, textarea, select, [contenteditable='true'], [role='dialog'], [role='alertdialog']",
+		) !== null
+	);
+}
+
+const MAX_IMPORT_ERRORS_SHOWN = 5;
 
 function focusNode(id: number): void {
 	document
@@ -106,6 +122,7 @@ function CanvasInnerView({
 	const deleteNoteMutation = useDeleteNote(projectId);
 	const addNoteParentMutation = useAddNoteParent(projectId);
 	const removeNoteParentMutation = useRemoveNoteParent(projectId);
+	const importNotesMutation = useImportNotes(projectId);
 	const { screenToFlowPosition, setCenter, getNode, getZoom } = useReactFlow();
 
 	const [nodes, setNodes] = React.useState<Node[]>([]);
@@ -342,6 +359,87 @@ function CanvasInnerView({
 		[notes, selectedNoteId, onSelectNote],
 	);
 
+	/** Last pointer position over the canvas (client coords), used as the paste target. */
+	const pointerRef = React.useRef<{ x: number; y: number } | null>(null);
+
+	// Paste a JSON document in the `intel-view/notes` format (see
+	// docs/note-import-format.md) anywhere on the canvas to create its notes.
+	// Any other clipboard content is ignored, so normal pastes into inputs
+	// and modals keep working.
+	const importNotesMutationRef = React.useRef(importNotesMutation);
+	importNotesMutationRef.current = importNotesMutation;
+	React.useEffect(() => {
+		const onPaste = (event: ClipboardEvent) => {
+			if (isEditableTarget(event.target)) return;
+			if (draft !== null) return;
+			const text = event.clipboardData?.getData("text/plain");
+			if (!text) return;
+			const parsed = parseNoteImport(text);
+			if (parsed.kind === "not-import") return;
+			event.preventDefault();
+
+			if (parsed.kind === "error") {
+				const shown = parsed.errors.slice(0, MAX_IMPORT_ERRORS_SHOWN);
+				const more = parsed.errors.length - shown.length;
+				toast.error("Pasted notes are invalid", {
+					description: (
+						<ul className="list-disc pl-4">
+							{shown.map((message) => (
+								<li key={message}>{message}</li>
+							))}
+							{more > 0 && <li>…and {more} more</li>}
+						</ul>
+					),
+				});
+				return;
+			}
+			if (importNotesMutationRef.current.isPending) {
+				toast.error("An import is already running");
+				return;
+			}
+
+			const rect = containerRef.current?.getBoundingClientRect();
+			const pointer = pointerRef.current;
+			const origin = screenToFlowPosition(
+				pointer ?? {
+					x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2,
+					y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2,
+				},
+			);
+			const count = parsed.plan.notes.length;
+			const toastId = toast.loading(
+				`Importing ${count} ${count === 1 ? "note" : "notes"}…`,
+			);
+			importNotesMutationRef.current.mutate(
+				{ plan: parsed.plan, origin },
+				{
+					onSuccess: (created) => {
+						toast.success(
+							`Imported ${created.length} ${created.length === 1 ? "note" : "notes"}`,
+							{
+								id: toastId,
+								description: parsed.plan.source
+									? `from ${parsed.plan.source}`
+									: undefined,
+							},
+						);
+						if (created[0]) onSelectNote(created[0].id);
+					},
+					onError: (error) => {
+						const created =
+							error instanceof NoteImportError ? error.created.length : 0;
+						toast.error(
+							`Import stopped after ${created} of ${count} ${count === 1 ? "note" : "notes"}`,
+							{ id: toastId, description: error.message },
+						);
+					},
+				},
+			);
+		};
+		document.addEventListener("paste", onPaste);
+		return () => document.removeEventListener("paste", onPaste);
+	}, [draft, screenToFlowPosition, onSelectNote]);
+
 	const handleCreateNote = React.useCallback(
 		({
 			type,
@@ -377,7 +475,16 @@ function CanvasInnerView({
 	);
 
 	return (
-		<div ref={containerRef} className="relative h-full w-full min-h-0 bg-mc-bg">
+		<div
+			ref={containerRef}
+			className="relative h-full w-full min-h-0 bg-mc-bg"
+			onPointerMove={(e) => {
+				pointerRef.current = { x: e.clientX, y: e.clientY };
+			}}
+			onPointerLeave={() => {
+				pointerRef.current = null;
+			}}
+		>
 			{isLoading ? (
 				<LoadingState label="Loading notes..." compact />
 			) : (
